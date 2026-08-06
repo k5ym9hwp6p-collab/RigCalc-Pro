@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101828">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="RigCalc Pro">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <title>RigCalc Pro</title>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <span class="eyebrow">VERSION 1.0</span>
+      <h1>RigCalc Pro</h1>
+      <p>Professional drilling calculations, simplified.</p>
+    </div>
+    <button id="themeBtn" class="icon-btn" aria-label="Toggle dark mode">◐</button>
+  </header>
+
+  <main>
+    <section id="dashboard" class="screen active">
+      <div class="status-card">
+        <div>
+          <span class="status-dot"></span>
+          <strong>Offline ready</strong>
+          <p>Inputs save on this device.</p>
+        </div>
+        <button id="installHelpBtn">Install</button>
+      </div>
+
+      <h2>Rig Tools</h2>
+      <div class="tool-grid">
+        <button class="tool-card" data-open="capacities"><b>📏</b><span>Capacities</span><small>Volumes & displacement</small></button>
+        <button class="tool-card" data-open="pump"><b>🔧</b><span>Pumps</span><small>Output & bottoms-up</small></button>
+        <button class="tool-card" data-open="wellcontrol"><b>🚨</b><span>Well Control</span><small>Hydrostatic & kill density</small></button>
+        <button class="tool-card" data-open="mpd"><b>🔵</b><span>MPD</span><small>BHP, ECD & window</small></button>
+        <button class="tool-card" data-open="cementing"><b>🛢</b><span>Cementing</span><small>Volumes & sacks</small></button>
+        <button class="tool-card" data-open="trip"><b>📋</b><span>Trip Sheet</span><small>Fill & tank check</small></button>
+      </div>
+
+      <div class="disclaimer">
+        <strong>Field aid only</strong>
+        <p>Verify critical calculations independently and follow approved company, well-control and MPD procedures.</p>
+      </div>
+    </section>
+
+    <section id="capacities" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Capacities</h2><p>m³ and m³/m only</p></div></div>
+      <div class="input-card">
+        <label>Hole / casing ID <span>mm</span><input id="cap_hole" type="number" inputmode="decimal" value="311"></label>
+        <label>Pipe OD <span>mm</span><input id="cap_od" type="number" inputmode="decimal" value="127"></label>
+        <label>Pipe ID <span>mm</span><input id="cap_id" type="number" inputmode="decimal" value="108.6"></label>
+        <label>Interval length <span>m</span><input id="cap_len" type="number" inputmode="decimal" value="1000"></label>
+      </div>
+      <div class="results">
+        <div><span>Hole capacity</span><strong id="r_hole_cap">—</strong><em>m³/m</em></div>
+        <div><span>Hole volume</span><strong id="r_hole_vol">—</strong><em>m³</em></div>
+        <div><span>Annular capacity</span><strong id="r_ann_cap">—</strong><em>m³/m</em></div>
+        <div><span>Annular volume</span><strong id="r_ann_vol">—</strong><em>m³</em></div>
+        <div><span>Pipe internal capacity</span><strong id="r_pipe_cap">—</strong><em>m³/m</em></div>
+        <div><span>Pipe internal volume</span><strong id="r_pipe_vol">—</strong><em>m³</em></div>
+        <div><span>Closed-end displacement</span><strong id="r_closed_disp">—</strong><em>m³/m</em></div>
+        <div><span>Steel displacement</span><strong id="r_steel_disp">—</strong><em>m³/m</em></div>
+      </div>
+    </section>
+
+    <section id="pump" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Pumps & Circulation</h2><p>Triplex pump calculator</p></div></div>
+      <div class="input-card">
+        <label>Liner diameter <span>mm</span><input id="pump_liner" type="number" inputmode="decimal" value="165.1"></label>
+        <label>Stroke length <span>mm</span><input id="pump_stroke" type="number" inputmode="decimal" value="304.8"></label>
+        <label>Volumetric efficiency <span>%</span><input id="pump_eff" type="number" inputmode="decimal" value="95"></label>
+        <label>Pump speed <span>spm</span><input id="pump_spm" type="number" inputmode="decimal" value="55"></label>
+        <label>Pumps online <span>count</span><input id="pump_count" type="number" inputmode="numeric" value="2"></label>
+        <label>Annular volume <span>m³</span><input id="pump_annvol" type="number" inputmode="decimal" value="55"></label>
+        <label>Annular capacity <span>m³/m</span><input id="pump_anncap" type="number" inputmode="decimal" value="0.055"></label>
+      </div>
+      <div class="results">
+        <div><span>Theoretical output / pump</span><strong id="r_pump_theor">—</strong><em>m³/stk</em></div>
+        <div><span>Adjusted output / pump</span><strong id="r_pump_adj">—</strong><em>m³/stk</em></div>
+        <div><span>Combined flow</span><strong id="r_pump_flow">—</strong><em>m³/min</em></div>
+        <div><span>Bottoms-up strokes</span><strong id="r_bu_strokes">—</strong><em>strokes</em></div>
+        <div><span>Bottoms-up time</span><strong id="r_bu_time">—</strong><em>minutes</em></div>
+        <div><span>Strokes per metre</span><strong id="r_stk_m">—</strong><em>strokes/m</em></div>
+      </div>
+    </section>
+
+    <section id="wellcontrol" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Well Control</h2><p>Static pressure tools</p></div></div>
+      <div class="input-card">
+        <label>Current mud density <span>kg/m³</span><input id="wc_density" type="number" inputmode="decimal" value="1200"></label>
+        <label>True vertical depth <span>m</span><input id="wc_tvd" type="number" inputmode="decimal" value="2500"></label>
+        <label>SIDPP <span>kPa</span><input id="wc_sidpp" type="number" inputmode="decimal" value="3500"></label>
+        <label>Safety margin <span>kPa</span><input id="wc_margin" type="number" inputmode="decimal" value="0"></label>
+        <label>Surface pressure for equivalent density <span>kPa</span><input id="wc_surface" type="number" inputmode="decimal" value="0"></label>
+      </div>
+      <div class="results">
+        <div><span>Hydrostatic pressure</span><strong id="r_wc_hydro">—</strong><em>MPa</em></div>
+        <div><span>Required density increase</span><strong id="r_wc_inc">—</strong><em>kg/m³</em></div>
+        <div><span>Kill mud density</span><strong id="r_wc_kmd">—</strong><em>kg/m³</em></div>
+        <div><span>Kill mud SG</span><strong id="r_wc_sg">—</strong><em>SG</em></div>
+        <div><span>Equivalent density</span><strong id="r_wc_eqd">—</strong><em>kg/m³</em></div>
+      </div>
+      <div class="disclaimer danger"><strong>Well-control warning</strong><p>Use an approved kill sheet and certified procedure.</p></div>
+    </section>
+
+    <section id="cementing" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Cementing</h2><p>Annular volume and yield</p></div></div>
+      <div class="input-card">
+        <label>Hole / previous casing ID <span>mm</span><input id="cem_hole" type="number" inputmode="decimal" value="311"></label>
+        <label>Casing / liner OD <span>mm</span><input id="cem_od" type="number" inputmode="decimal" value="177.8"></label>
+        <label>Cemented interval <span>m</span><input id="cem_len" type="number" inputmode="decimal" value="1200"></label>
+        <label>Excess <span>%</span><input id="cem_excess" type="number" inputmode="decimal" value="20"></label>
+        <label>Lead slurry yield <span>L/sack</span><input id="cem_lead_yield" type="number" inputmode="decimal" value="75"></label>
+        <label>Tail slurry volume <span>m³</span><input id="cem_tail_vol" type="number" inputmode="decimal" value="10"></label>
+        <label>Tail slurry yield <span>L/sack</span><input id="cem_tail_yield" type="number" inputmode="decimal" value="55"></label>
+      </div>
+      <div class="results">
+        <div><span>Annular capacity</span><strong id="r_cem_cap">—</strong><em>m³/m</em></div>
+        <div><span>Base annular volume</span><strong id="r_cem_base">—</strong><em>m³</em></div>
+        <div><span>Total with excess</span><strong id="r_cem_total">—</strong><em>m³</em></div>
+        <div><span>Lead slurry volume</span><strong id="r_cem_lead">—</strong><em>m³</em></div>
+        <div><span>Tail slurry volume</span><strong id="r_cem_tail">—</strong><em>m³</em></div>
+        <div><span>Estimated total sacks</span><strong id="r_cem_sacks">—</strong><em>sacks</em></div>
+      </div>
+    </section>
+
+    <section id="trip" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Trip Sheet</h2><p>Theoretical fill comparison</p></div></div>
+      <div class="input-card">
+        <label>Pipe OD <span>mm</span><input id="trip_od" type="number" inputmode="decimal" value="127"></label>
+        <label>Pipe ID <span>mm</span><input id="trip_id" type="number" inputmode="decimal" value="108.6"></label>
+        <label>Stand length <span>m</span><input id="trip_stand" type="number" inputmode="decimal" value="28.5"></label>
+        <label>Stands pulled <span>stands</span><input id="trip_stands" type="number" inputmode="numeric" value="10"></label>
+        <label>Pull mode <span>selection</span><select id="trip_mode"><option>Wet</option><option>Dry</option></select></label>
+        <label>Trip tank start <span>m³</span><input id="trip_start" type="number" inputmode="decimal" value="20"></label>
+        <label>Observed trip tank <span>m³</span><input id="trip_obs" type="number" inputmode="decimal" value="19.1"></label>
+      </div>
+      <div class="results">
+        <div><span>Total pipe pulled</span><strong id="r_trip_len">—</strong><em>m</em></div>
+        <div><span>Selected displacement</span><strong id="r_trip_disp">—</strong><em>m³/m</em></div>
+        <div><span>Theoretical fill</span><strong id="r_trip_fill">—</strong><em>m³</em></div>
+        <div><span>Expected tank volume</span><strong id="r_trip_expected">—</strong><em>m³</em></div>
+        <div><span>Observed change</span><strong id="r_trip_change">—</strong><em>m³</em></div>
+        <div id="trip_status_box"><span>Observed vs expected</span><strong id="r_trip_diff">—</strong><em>m³</em></div>
+      </div>
+    </section>
+
+    <section id="mpd" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Managed Pressure Drilling</h2><p>BHP, ECD and operating window</p></div></div>
+      <div class="input-card">
+        <label>Mud density <span>kg/m³</span><input id="mpd_density" type="number" inputmode="decimal" value="1200"></label>
+        <label>True vertical depth <span>m</span><input id="mpd_tvd" type="number" inputmode="decimal" value="2500"></label>
+        <label>Surface backpressure <span>kPa</span><input id="mpd_sbp" type="number" inputmode="decimal" value="2500"></label>
+        <label>Annular friction pressure <span>kPa</span><input id="mpd_afp" type="number" inputmode="decimal" value="1800"></label>
+        <label>Desired BHP <span>kPa</span><input id="mpd_target" type="number" inputmode="decimal" value="33000"></label>
+        <label>Pore-pressure gradient <span>kPa/m</span><input id="mpd_ppg" type="number" inputmode="decimal" value="11.5"></label>
+        <label>Fracture gradient <span>kPa/m</span><input id="mpd_fg" type="number" inputmode="decimal" value="15.5"></label>
+        <label>Margin above pore pressure <span>kPa</span><input id="mpd_lowmargin" type="number" inputmode="decimal" value="500"></label>
+        <label>Margin below fracture pressure <span>kPa</span><input id="mpd_highmargin" type="number" inputmode="decimal" value="500"></label>
+      </div>
+
+      <div class="window-card">
+        <div class="window-labels"><span>Fracture limit</span><span id="windowMax">—</span></div>
+        <div class="window-track"><div id="windowMarker" class="window-marker"></div></div>
+        <div class="window-labels"><span>Pore-pressure minimum</span><span id="windowMin">—</span></div>
+      </div>
+
+      <div class="results">
+        <div><span>Hydrostatic pressure</span><strong id="r_mpd_hydro">—</strong><em>MPa</em></div>
+        <div><span>Static BHP</span><strong id="r_mpd_static">—</strong><em>MPa</em></div>
+        <div><span>Circulating BHP</span><strong id="r_mpd_circ">—</strong><em>MPa</em></div>
+        <div><span>Equivalent static density</span><strong id="r_mpd_esd">—</strong><em>kg/m³</em></div>
+        <div><span>Equivalent circulating density</span><strong id="r_mpd_ecd">—</strong><em>kg/m³</em></div>
+        <div><span>Required SBP — static</span><strong id="r_mpd_req_static">—</strong><em>kPa</em></div>
+        <div><span>Required SBP — circulating</span><strong id="r_mpd_req_circ">—</strong><em>kPa</em></div>
+        <div><span>Operating window</span><strong id="r_mpd_window">—</strong><em>kPa</em></div>
+        <div id="mpd_static_status_box"><span>Static status</span><strong id="r_mpd_static_status">—</strong><em></em></div>
+        <div id="mpd_circ_status_box"><span>Circulating status</span><strong id="r_mpd_circ_status">—</strong><em></em></div>
+      </div>
+      <div class="disclaimer danger"><strong>MPD warning</strong><p>Simplified calculations only. Use the approved MPD program, operating matrix and real-time hydraulics model.</p></div>
+    </section>
+  </main>
+
+  <div id="installModal" class="modal hidden">
+    <div class="modal-card">
+      <h3>Add RigCalc Pro to iPhone</h3>
+      <ol><li>Open the hosted app in Safari.</li><li>Tap the Share button.</li><li>Select <b>Add to Home Screen</b>.</li><li>Open it once online to cache it for offline use.</li></ol>
+      <button id="closeModal">Close</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
