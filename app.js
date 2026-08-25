@@ -177,3 +177,136 @@ document.addEventListener("click",e=>{if(e.target.dataset.fluidDel!==undefined){
 setInterval(renderFluidList,500);
 ["wp_bit","wp_output","wp_spm","fluidPipeCap"].forEach(id=>{if(q(id))q(id).addEventListener("input",renderFluidList)});
 renderFluidList();
+
+// ===== RigCalc Pro v1.4: Detailed Drill String + Full-screen Profile =====
+const STRING_KEY="rigcalc-string-v14";
+const STRING_DEFAULTS=[
+  {name:"Drill Pipe",from:0,to:3500,id:108.6},
+  {name:"HWDP",from:3500,to:3700,id:76.2},
+  {name:"Drill Collars",from:3700,to:3900,id:71.4},
+  {name:"BHA / Tools",from:3900,to:3978,id:50.8}
+];
+let stringData=[];
+try{stringData=JSON.parse(localStorage.getItem(STRING_KEY)||"[]")||[]}catch(e){stringData=[]}
+if(!stringData.length)stringData=JSON.parse(JSON.stringify(STRING_DEFAULTS));
+function saveString(){localStorage.setItem(STRING_KEY,JSON.stringify(stringData))}
+function stringCapM3m(id){return circle(Math.max(0,id))}
+function effectiveStringSections(bitMD){
+  return [...stringData].sort((a,b)=>a.from-b.from).map(s=>({
+    ...s,
+    from:Math.max(0,Number(s.from)||0),
+    to:Math.min(bitMD,Number(s.to)||0),
+    id:Math.max(0,Number(s.id)||0)
+  })).filter(s=>s.to>s.from);
+}
+function detailedPipeVolumeToBit(bitMD){
+  let vol=0;
+  for(const s of effectiveStringSections(bitMD))vol+=(s.to-s.from)*stringCapM3m(s.id);
+  return vol;
+}
+function pipeMDFromDetailedVolume(bitMD,vol){
+  let remaining=Math.max(0,vol);
+  const sections=effectiveStringSections(bitMD);
+  for(const s of sections){
+    const cap=stringCapM3m(s.id),sv=(s.to-s.from)*cap;
+    if(remaining<=sv)return s.from+(cap?remaining/cap:0);
+    remaining-=sv;
+  }
+  return bitMD;
+}
+function renderString(){
+  const tb=q("stringTable").querySelector("tbody");tb.innerHTML="";
+  stringData.sort((a,b)=>a.from-b.from).forEach((r,i)=>{
+    const vol=Math.max(0,(Number(r.to)-Number(r.from))*stringCapM3m(Number(r.id)));
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td><input data-string="${i}" data-k="name" value="${r.name}"></td>
+      <td><input data-string="${i}" data-k="from" type="number" value="${r.from}"></td>
+      <td><input data-string="${i}" data-k="to" type="number" value="${r.to}"></td>
+      <td><input data-string="${i}" data-k="id" type="number" step="0.1" value="${r.id}"></td>
+      <td>${vol.toFixed(3)}</td><td><button data-del-string="${i}">✕</button></td>`;
+    tb.appendChild(tr);
+  });
+  const bit=Math.max(0,n("wp_bit")),vol=detailedPipeVolumeToBit(bit),out=Math.max(0,n("wp_output")),spm=Math.max(0,n("wp_spm"));
+  const strokes=out?vol/out:0,time=spm?strokes/spm:0;
+  q("stringTotalVol").textContent=vol.toFixed(3);
+  q("stringBitStrokes").textContent=strokes.toFixed(0);
+  q("stringBitTime").textContent=time.toFixed(1);
+}
+q("addStringBtn").onclick=()=>{
+  const last=stringData[stringData.length-1]||{to:0,id:108.6};
+  stringData.push({name:"New component",from:Number(last.to)||0,to:(Number(last.to)||0)+100,id:Number(last.id)||100});
+  saveString();renderString();renderFluidList();
+};
+document.addEventListener("change",e=>{
+  const a=e.target.dataset;
+  if(a.string!==undefined){
+    stringData[+a.string][a.k]=a.k==="name"?e.target.value:(+e.target.value||0);
+    saveString();renderString();renderFluidList();
+  }
+});
+document.addEventListener("click",e=>{
+  if(e.target.dataset.delString!==undefined){
+    stringData.splice(+e.target.dataset.delString,1);saveString();renderString();renderFluidList();
+  }
+});
+
+// Override v1.3's edge-state function so every tracked fluid uses the detailed drill-string model.
+fluidEdgeState=function(event,edgeStartOffset){
+  const bit=Math.max(0,n("wp_bit"));
+  const pipeVol=detailedPipeVolumeToBit(bit);
+  const currentPumped=liveTotalPumpedVolume();
+  const edgePumped=currentPumped-(Number(event.startPumpVol)||0)-edgeStartOffset;
+  const rate=n("wp_spm")*n("wp_output");
+  if(edgePumped<=0){
+    return {phase:"At surface",md:0,progress:0,formation:"Surface",etaBit:rate?pipeVol/rate:0,etaSurface:null};
+  }
+  if(edgePumped<pipeVol){
+    const downMD=pipeMDFromDetailedVolume(bit,edgePumped);
+    const remainingPipe=pipeVol-edgePumped;
+    return {phase:"Down drill string",md:downMD,progress:pipeVol?edgePumped/pipeVol:0,formation:formationAtMD(downMD),etaBit:rate?remainingPipe/rate:0,etaSurface:null};
+  }
+  const annVol=edgePumped-pipeVol,annTotal=totalAnnulusToBit(bit),used=Math.min(annTotal,annVol);
+  const md=annulusMDUpFromBit(bit,used),rem=Math.max(0,annTotal-used);
+  return {phase:rem<=0.0001?"At surface":"Up annulus",md,progress:annTotal?used/annTotal:1,formation:formationAtMD(md),etaBit:0,etaSurface:rate?rem/rate:0};
+};
+
+// New events no longer store/use average pipe capacity.
+q("addFluidBtn").onclick=()=>{
+  const type=q("fluidType").value,label=q("fluidLabel").value.trim()||type,volume=Math.max(0,n("fluidVolume"));
+  if(volume<=0){alert("Enter a fluid volume greater than zero.");return}
+  fluidEvents.push({type,label,volume,startPumpVol:liveTotalPumpedVolume(),createdAt:Date.now(),model:"detailed-v14"});
+  saveFluids();renderFluidList();
+  const m=label.match(/(\d+)$/);if(m)q("fluidLabel").value=label.replace(/\d+$/,(Number(m[1])+1).toString());
+};
+
+// ---- Full-screen zoom profile ----
+let zoomScale=1;
+function clonePlotForZoom(){
+  const src=q("wellSvg"),host=q("zoomSvgHost");if(!src||!host)return;
+  const clone=src.cloneNode(true);
+  clone.removeAttribute("id");
+  clone.querySelectorAll("[id]").forEach(el=>el.removeAttribute("id"));
+  host.innerHTML="";
+  host.appendChild(clone);
+  host.style.transform=`scale(${zoomScale})`;
+  host.style.width=`${100/zoomScale}%`;
+  q("zoomResetBtn").textContent=Math.round(zoomScale*100)+"%";
+  const live=getLiveComputed();
+  q("zoomReadout").textContent=`Front ${live.front.toFixed(0)} m MD • ${formationAtMD(live.front)} • ETA ${live.remaining<=.0001?"surface":live.remTime.toFixed(1)+" min"}`;
+}
+function openZoom(){
+  zoomScale=1;q("wellZoomModal").classList.remove("hidden");clonePlotForZoom();
+  document.body.style.overflow="hidden";
+}
+function closeZoom(){q("wellZoomModal").classList.add("hidden");document.body.style.overflow=""}
+q("wellSvg").addEventListener("click",openZoom);
+q("zoomCloseBtn").onclick=closeZoom;
+q("zoomInBtn").onclick=()=>{zoomScale=Math.min(3,zoomScale+.25);clonePlotForZoom()};
+q("zoomOutBtn").onclick=()=>{zoomScale=Math.max(.75,zoomScale-.25);clonePlotForZoom()};
+q("zoomResetBtn").onclick=()=>{zoomScale=1;clonePlotForZoom()};
+q("wellZoomModal").addEventListener("click",e=>{if(e.target===q("wellZoomModal"))closeZoom()});
+setInterval(()=>{if(!q("wellZoomModal").classList.contains("hidden"))clonePlotForZoom()},750);
+
+["wp_bit","wp_output","wp_spm"].forEach(id=>q(id).addEventListener("input",()=>{renderString();renderFluidList()}));
+renderString();
+renderFluidList();

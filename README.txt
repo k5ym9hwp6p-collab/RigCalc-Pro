@@ -1,21 +1,23 @@
-RigCalc Pro Version 1.3
+RigCalc Pro Version 1.4
 
-New in v1.3 — Fluid Tracker:
-- Add and label a Sweep, Pill, LCM Pill, Spacer, or custom fluid event
-- Enter fluid volume in m³
-- Track the leading edge and trailing edge
-- Track the fluid from surface down the drill string to the bit
-- Automatically transition the front/tail into the annulus after reaching the bit
-- Follow the fluid back toward surface
-- Show current MD, phase, formation, and ETA
-- Display the tracked fluid on the live well-profile graphic
-- Multiple fluid events can be tracked simultaneously
-- Fluid events persist locally on the device
+New in v1.4
 
-Circulate Live from v1.2.1 remains included.
+Detailed drill-string model
+- Model drill pipe, HWDP, drill collars, BHA and other components separately
+- Enter component name, From MD, To MD and internal diameter
+- RigCalc calculates each component's internal volume
+- Displays total internal volume, strokes to bit and time to bit
+- Fluid Tracker now follows the front and tail through the actual section-by-section drill-string internal capacities
+- Once each edge reaches the bit, tracking automatically continues up the annulus using the existing hole/annulus sections
 
-Important modeling note:
-The drill-string down-leg currently uses a user-entered average internal capacity (m³/m). The annular return leg uses the editable hole/annulus sections already stored in the Well Profile module. Future versions can replace the average internal capacity with detailed drill-pipe/BHA internal sections.
+Full-screen well profile
+- Tap the live well trajectory to open a full-screen view
+- Zoom in and out from 75% to 300%
+- Live bit, bottoms-up and fluid markers remain visible
+- Full-screen plot refreshes while circulation is active
+- Live readout shows returns-front MD, formation and ETA
 
-Operational limitation:
-All positions are calculated volumetric estimates. Actual fluid transport can vary with pump efficiency, compressibility, cuttings, washout, temperature, multiphase flow, mixing/dispersion, BHA geometry and rig instrumentation. Always use approved operating, MPD and well-control procedures and actual rig instrumentation.
+Important:
+The supplied drill-string sections are starter/sample values only. Replace them with the actual drill-string/BHA geometry before operational use.
+
+All tracked positions are calculated volumetric estimates. Actual transport may differ due to pump efficiency, compressibility, cuttings loading, washout, temperature, multiphase flow, mixing/dispersion, tool geometry and instrumentation. Use approved operating, MPD and well-control procedures and actual rig instrumentation.

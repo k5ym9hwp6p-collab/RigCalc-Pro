@@ -15,7 +15,7 @@
 <body>
   <header class="app-header">
     <div>
-      <span class="eyebrow">VERSION 1.3</span>
+      <span class="eyebrow">VERSION 1.4</span>
       <h1>RigCalc Pro</h1>
       <p>Professional drilling calculations, simplified.</p>
     </div>
@@ -199,9 +199,9 @@
         <div><span>Formation at front</span><strong id="wp_front_formation">—</strong><em></em></div>
       </div>
 
-      <div class="profile-card">
+      <div class="profile-card profile-clickable" id="wellPlotCard">
         <div class="profile-toolbar">
-          <div><strong>Well trajectory</strong><small>Blue marker is the calculated returns front.</small></div>
+          <div><strong>Well trajectory</strong><small>Blue marker is the calculated returns front. Tap plot for full-screen view.</small></div>
           <button id="wpResetBtn">Reset circulation</button>
         </div>
         <svg id="wellSvg" viewBox="0 0 700 430">
@@ -260,8 +260,8 @@
           <label>Volume <span>m³</span>
             <input id="fluidVolume" type="number" inputmode="decimal" value="5">
           </label>
-          <label>Pipe internal capacity <span>m³/m</span>
-            <input id="fluidPipeCap" type="number" inputmode="decimal" value="0.00926">
+          <label>Downhole model <span>source</span>
+            <input id="fluidPipeModel" value="Detailed drill string" readonly>
           </label>
         </div>
 
@@ -291,6 +291,25 @@
         <div class="table-wrap"><table id="holeTable"><thead><tr><th>From MD</th><th>To MD</th><th>Hole/ID mm</th><th>Pipe OD mm</th><th></th></tr></thead><tbody></tbody></table></div>
       </div>
 
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Detailed drill-string model</strong><small>Internal capacities for DP, HWDP, collars and BHA. Used by Fluid Tracker on the trip to the bit.</small></div>
+          <button id="addStringBtn">+ Add</button>
+        </div>
+        <div class="table-wrap">
+          <table id="stringTable">
+            <thead><tr><th>Component</th><th>From MD</th><th>To MD</th><th>ID mm</th><th>Internal m³</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="string-summary">
+          <div><span>Modelled internal volume to bit</span><strong id="stringTotalVol">—</strong><em>m³</em></div>
+          <div><span>Strokes surface → bit</span><strong id="stringBitStrokes">—</strong><em>strokes</em></div>
+          <div><span>Time surface → bit</span><strong id="stringBitTime">—</strong><em>min</em></div>
+        </div>
+      </div>
+
       <div class="profile-card">
         <div class="section-heading"><div><strong>Formation tops & expected pressure</strong><small>Pressure = gradient × interpolated TVD at top.</small></div><button id="addFormationBtn">+ Add</button></div>
         <div class="table-wrap"><table id="formationTable"><thead><tr><th>Formation</th><th>Top MD</th><th>Gradient kPa/m</th><th>Est. pressure</th><th></th></tr></thead><tbody></tbody></table></div>
@@ -300,6 +319,28 @@
     </section>
 
   </main>
+
+
+  <div id="wellZoomModal" class="well-zoom-modal hidden">
+    <div class="zoom-topbar">
+      <div><strong>Live Well Profile</strong><small>Full-screen trajectory view</small></div>
+      <div class="zoom-actions">
+        <button id="zoomOutBtn">−</button>
+        <button id="zoomResetBtn">100%</button>
+        <button id="zoomInBtn">+</button>
+        <button id="zoomCloseBtn">✕</button>
+      </div>
+    </div>
+    <div id="zoomViewport" class="zoom-viewport">
+      <div id="zoomSvgHost" class="zoom-svg-host"></div>
+    </div>
+    <div class="zoom-footer">
+      <span><i class="legend-bit"></i> Bit</span>
+      <span><i class="legend-front"></i> Returns front</span>
+      <span><i class="zoom-fluid"></i> Sweep / pill</span>
+      <span id="zoomReadout">Tap − / + to change scale</span>
+    </div>
+  </div>
 
   <div id="installModal" class="modal hidden">
     <div class="modal-card">
