@@ -69,3 +69,9 @@ h2{margin:20px 0 12px}.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:
 .motor-gauges{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:14px}.motor-gauge{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column}.motor-gauge span{font-size:.76rem;color:var(--muted);font-weight:750}.motor-gauge strong{font-size:1.15rem;margin-top:4px}.motor-gauge em{font-style:normal;color:var(--muted);font-size:.72rem;margin-top:2px}
 .motor-gauge.good{background:var(--good);border-color:#63a663}.motor-gauge.warn{background:#fff4cc;border-color:#f79009}.motor-gauge.bad{background:var(--bad);border-color:#d44}
 @media(max-width:620px){.motor-gauges{grid-template-columns:1fr}}
+
+.cement-live-card{margin-top:14px}
+.cement-progress-wrap{margin-top:14px}.cement-progress-bar{height:14px;background:rgba(255,255,255,.18);border-radius:999px;overflow:hidden}.cement-progress-bar i{display:block;height:100%;width:0%;background:#12b76a;transition:width .25s linear}.cement-progress-labels{display:flex;justify-content:space-between;font-size:.7rem;opacity:.7;margin-top:4px}
+.cement-alert{margin-top:12px;padding:12px;border-radius:10px;background:#f79009;color:#fff;font-weight:900;text-align:center;font-size:1.05rem;letter-spacing:.05em}.cement-alert.hidden{display:none}
+.cement-front-card{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}.cement-front-card div{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px;display:flex;flex-direction:column}.cement-front-card span{font-size:.75rem;color:var(--muted);font-weight:750}.cement-front-card strong{font-size:1.05rem;margin-top:4px}.cement-front-card em{font-style:normal;color:var(--muted);font-size:.72rem}
+@media(max-width:620px){.cement-front-card{grid-template-columns:1fr}}

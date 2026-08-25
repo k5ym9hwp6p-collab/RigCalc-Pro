@@ -15,7 +15,7 @@
 <body>
   <header class="app-header">
     <div>
-      <span class="eyebrow">VERSION 1.5</span>
+      <span class="eyebrow">VERSION 1.6</span>
       <h1>RigCalc Pro</h1>
       <p>Professional drilling calculations, simplified.</p>
     </div>
@@ -112,24 +112,107 @@
       <div class="disclaimer danger"><strong>Well-control warning</strong><p>Use an approved kill sheet and certified procedure.</p></div>
     </section>
 
+
     <section id="cementing" class="screen calculator">
-      <div class="screen-title"><button class="back">‹</button><div><h2>Cementing</h2><p>Annular volume and yield</p></div></div>
-      <div class="input-card">
-        <label>Hole / previous casing ID <span>mm</span><input id="cem_hole" type="number" inputmode="decimal" value="311"></label>
-        <label>Casing / liner OD <span>mm</span><input id="cem_od" type="number" inputmode="decimal" value="177.8"></label>
-        <label>Cemented interval <span>m</span><input id="cem_len" type="number" inputmode="decimal" value="1200"></label>
-        <label>Excess <span>%</span><input id="cem_excess" type="number" inputmode="decimal" value="20"></label>
-        <label>Lead slurry yield <span>L/sack</span><input id="cem_lead_yield" type="number" inputmode="decimal" value="75"></label>
-        <label>Tail slurry volume <span>m³</span><input id="cem_tail_vol" type="number" inputmode="decimal" value="10"></label>
-        <label>Tail slurry yield <span>L/sack</span><input id="cem_tail_yield" type="number" inputmode="decimal" value="55"></label>
+      <div class="screen-title"><button class="back">‹</button><div><h2>Cementing</h2><p>Job planning & live displacement tracking</p></div></div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Job setup</strong><small>Enter the approved program values for this cement job.</small></div><button id="saveCementJobBtn">Save</button></div>
+        <div class="input-card embedded">
+          <label>Previous casing / hole ID <span>mm</span><input id="cem2_hole" type="number" value="222"></label>
+          <label>Casing / liner OD <span>mm</span><input id="cem2_od" type="number" value="177.8"></label>
+          <label>Casing / liner ID <span>mm</span><input id="cem2_id" type="number" value="159.4"></label>
+          <label>Casing shoe depth <span>m MD</span><input id="cem2_shoe" type="number" value="3978"></label>
+          <label>Float collar depth <span>m MD</span><input id="cem2_float" type="number" value="3958"></label>
+          <label>Crossover / tool depth <span>m MD</span><input id="cem2_cross" type="number" value="2588"></label>
+          <label>Top of cement <span>m MD</span><input id="cem2_toc" type="number" value="800"></label>
+          <label>Annular excess <span>%</span><input id="cem2_excess" type="number" value="10"></label>
+          <label>Lead slurry yield <span>L/sack</span><input id="cem2_lead_yield" type="number" value="75"></label>
+          <label>Tail slurry yield <span>L/sack</span><input id="cem2_tail_yield" type="number" value="55"></label>
+          <label>Tail slurry volume <span>m³</span><input id="cem2_tail_vol" type="number" value="10"></label>
+          <label>Shoe-track volume <span>m³</span><input id="cem2_shoe_vol" type="number" value="0.60"></label>
+          <label>Surface-line volume <span>m³</span><input id="cem2_surface_vol" type="number" value="0.50"></label>
+          <label>Over-displacement <span>m³</span><input id="cem2_overdisp" type="number" value="0.30"></label>
+          <label>Pump output <span>m³/stk</span><input id="cem2_output" type="number" value="0.0315"></label>
+          <label>Displacement rate <span>m³/min</span><input id="cem2_rate" type="number" value="1.20"></label>
+        </div>
       </div>
+
       <div class="results">
-        <div><span>Annular capacity</span><strong id="r_cem_cap">—</strong><em>m³/m</em></div>
-        <div><span>Base annular volume</span><strong id="r_cem_base">—</strong><em>m³</em></div>
-        <div><span>Total with excess</span><strong id="r_cem_total">—</strong><em>m³</em></div>
-        <div><span>Lead slurry volume</span><strong id="r_cem_lead">—</strong><em>m³</em></div>
-        <div><span>Tail slurry volume</span><strong id="r_cem_tail">—</strong><em>m³</em></div>
-        <div><span>Estimated total sacks</span><strong id="r_cem_sacks">—</strong><em>sacks</em></div>
+        <div><span>Annular capacity</span><strong id="r_cem2_anncap">—</strong><em>m³/m</em></div>
+        <div><span>Base cement interval</span><strong id="r_cem2_basevol">—</strong><em>m³</em></div>
+        <div><span>Total cement with excess</span><strong id="r_cem2_totalcem">—</strong><em>m³</em></div>
+        <div><span>Lead slurry volume</span><strong id="r_cem2_leadvol">—</strong><em>m³</em></div>
+        <div><span>Tail slurry volume</span><strong id="r_cem2_tailvol">—</strong><em>m³</em></div>
+        <div><span>Estimated lead sacks</span><strong id="r_cem2_leadsacks">—</strong><em>sacks</em></div>
+        <div><span>Estimated tail sacks</span><strong id="r_cem2_tailsacks">—</strong><em>sacks</em></div>
+        <div><span>Crossover → surface displacement</span><strong id="r_cem2_crosssurf">—</strong><em>m³</em></div>
+        <div><span>Float collar → crossover displacement</span><strong id="r_cem2_floatcross">—</strong><em>m³</em></div>
+        <div><span>Total displacement to bump</span><strong id="r_cem2_bumpvol">—</strong><em>m³</em></div>
+        <div><span>Strokes to bump</span><strong id="r_cem2_bumpstrokes">—</strong><em>strokes</em></div>
+        <div><span>Time to bump</span><strong id="r_cem2_bumptime">—</strong><em>min</em></div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Pumping schedule</strong><small>Build the job sequence exactly as provided by the cementing program.</small></div><button id="addCemStageBtn">+ Add stage</button></div>
+        <div class="table-wrap">
+          <table id="cementStageTable">
+            <thead><tr><th>Stage</th><th>Volume m³</th><th>Rate m³/min</th><th>Pressure limit MPa</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="live-card cement-live-card">
+        <div class="live-head">
+          <div><span class="live-kicker">LIVE CEMENT JOB</span><strong id="cemLiveState">Paused</strong></div>
+          <span id="cemLivePulse" class="live-pulse paused"></span>
+        </div>
+        <div class="live-stats">
+          <div><span>Current stage</span><strong id="cemLiveStage">—</strong></div>
+          <div><span>Stage pumped</span><strong id="cemLiveStageVol">0.00 m³</strong></div>
+          <div><span>Total pumped</span><strong id="cemLiveTotal">0.00 m³</strong></div>
+          <div><span>Remaining to bump</span><strong id="cemLiveRemain">—</strong></div>
+          <div><span>Strokes remaining</span><strong id="cemLiveStrokes">—</strong></div>
+          <div><span>ETA bump</span><strong id="cemLiveEta">—</strong></div>
+        </div>
+
+        <div class="cement-progress-wrap">
+          <div class="cement-progress-bar"><i id="cemProgressFill"></i></div>
+          <div class="cement-progress-labels"><span>0</span><span id="cemProgressMid">50%</span><span>Bump</span></div>
+        </div>
+
+        <div id="cemSlowAlert" class="cement-alert hidden">SLOW RATE NOW</div>
+
+        <div class="live-actions">
+          <button id="cemStartBtn" class="live-start">▶ Start</button>
+          <button id="cemPauseBtn" class="live-pause">Ⅱ Pause</button>
+          <button id="cemResetBtn" class="live-reset">↺ Reset</button>
+        </div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Slow-rate / bump settings</strong><small>Optional alerts for the final displacement.</small></div></div>
+        <div class="input-card embedded">
+          <label>Slow-rate trigger <span>m³ before bump</span><input id="cem2_slow_trigger" type="number" value="2.0"></label>
+          <label>Slow-rate target <span>m³/min</span><input id="cem2_slow_rate" type="number" value="1.0"></label>
+          <label>Expected final pump pressure <span>MPa</span><input id="cem2_final_pressure" type="number" value="32"></label>
+          <label>Bump pressure above final <span>kPa</span><input id="cem2_bump_pressure" type="number" value="3500"></label>
+        </div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Displacement front</strong><small>Calculated location inside the casing/liner based on pumped displacement volume.</small></div></div>
+        <div class="cement-front-card">
+          <div><span>Calculated front position</span><strong id="cemFrontMd">—</strong><em>m MD</em></div>
+          <div><span>Distance remaining</span><strong id="cemFrontRemain">—</strong><em>m</em></div>
+          <div><span>Program status</span><strong id="cemProgramStatus">Ready</strong><em></em></div>
+        </div>
+      </div>
+
+      <div class="disclaimer danger">
+        <strong>Cementing limitation</strong>
+        <p>This is a planning and displacement-tracking aid. Use the approved cementing program, service-company job procedure, actual pump totals and pressure response for operational decisions. Account for actual tool volumes, surface iron, compressibility, plug behavior, air entrainment and job-specific procedures.</p>
       </div>
     </section>
 

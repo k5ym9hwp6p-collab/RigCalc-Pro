@@ -375,3 +375,115 @@ q("saveMotorBtn").onclick=()=>{saveMotor();q("saveMotorBtn").textContent="Saved"
 q("bit_flow").addEventListener("change",()=>{q("motor_flow").value=q("bit_flow").value;calcMotor()});
 q("motor_flow").addEventListener("change",()=>{q("bit_flow").value=q("motor_flow").value;calcBitHydraulics()});
 loadMotor();renderJets();calcMotor();
+
+// ===== RigCalc Pro v1.6: Cement Job Planner + Live Displacement =====
+const CEMJOB_KEY="rigcalc-cementjob-v16";
+const CEMSTAGE_KEY="rigcalc-cementstages-v16";
+const CEMLIVE_KEY="rigcalc-cementlive-v16";
+
+const cemJobFields=["cem2_hole","cem2_od","cem2_id","cem2_shoe","cem2_float","cem2_cross","cem2_toc","cem2_excess","cem2_lead_yield","cem2_tail_yield","cem2_tail_vol","cem2_shoe_vol","cem2_surface_vol","cem2_overdisp","cem2_output","cem2_rate","cem2_slow_trigger","cem2_slow_rate","cem2_final_pressure","cem2_bump_pressure"];
+let cementStages=[];
+try{cementStages=JSON.parse(localStorage.getItem(CEMSTAGE_KEY)||"[]")||[]}catch(e){cementStages=[]}
+if(!cementStages.length)cementStages=[
+  {name:"Preflush 1",volume:2.5,rate:1.0,limit:45},
+  {name:"Preflush 2",volume:5.0,rate:1.0,limit:45},
+  {name:"Lead Cement",volume:23.76,rate:1.0,limit:45},
+  {name:"Tail Cement",volume:59.66,rate:1.0,limit:45},
+  {name:"Displacement",volume:36.79,rate:1.2,limit:32}
+];
+let cemLive={running:false,accumulatedMs:0,startedAt:null,basePumped:0};
+try{
+  const d=JSON.parse(localStorage.getItem(CEMLIVE_KEY)||"null");
+  if(d)cemLive={...cemLive,...d};
+}catch(e){}
+
+function saveCemJob(){
+  const d={};cemJobFields.forEach(id=>d[id]=q(id).value);
+  localStorage.setItem(CEMJOB_KEY,JSON.stringify(d));
+}
+function loadCemJob(){
+  try{const d=JSON.parse(localStorage.getItem(CEMJOB_KEY)||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k))q(k).value=v})}catch(e){}
+}
+function saveCemStages(){localStorage.setItem(CEMSTAGE_KEY,JSON.stringify(cementStages))}
+function saveCemLive(){localStorage.setItem(CEMLIVE_KEY,JSON.stringify(cemLive))}
+function casingInternalCap(){return circle(Math.max(0,n("cem2_id")))}
+function cemAnnCap(){return Math.max(0,circle(n("cem2_hole"))-circle(n("cem2_od")))}
+
+function calcCementProgram(){
+  const shoe=n("cem2_shoe"),toc=n("cem2_toc"),annCap=cemAnnCap(),base=Math.max(0,shoe-toc)*annCap,total=base*(1+n("cem2_excess")/100);
+  const tail=Math.min(total,Math.max(0,n("cem2_tail_vol"))),lead=Math.max(0,total-tail);
+  const ls=n("cem2_lead_yield")?lead*1000/n("cem2_lead_yield"):0;
+  const ts=n("cem2_tail_yield")?tail*1000/n("cem2_tail_yield"):0;
+  const cap=casingInternalCap();
+  const crossSurf=Math.max(0,n("cem2_cross"))*cap;
+  const floatCross=Math.max(0,n("cem2_float")-n("cem2_cross"))*cap;
+  const bumpVol=crossSurf+floatCross+n("cem2_shoe_vol")+n("cem2_surface_vol")+n("cem2_overdisp");
+  const out=n("cem2_output"),rate=n("cem2_rate"),strokes=out?bumpVol/out:0,time=rate?bumpVol/rate:0;
+  set("r_cem2_anncap",annCap,6);set("r_cem2_basevol",base,3);set("r_cem2_totalcem",total,3);set("r_cem2_leadvol",lead,3);set("r_cem2_tailvol",tail,3);
+  set("r_cem2_leadsacks",ls,1);set("r_cem2_tailsacks",ts,1);set("r_cem2_crosssurf",crossSurf,3);set("r_cem2_floatcross",floatCross,3);set("r_cem2_bumpvol",bumpVol,3);set("r_cem2_bumpstrokes",strokes,0);set("r_cem2_bumptime",time,1);
+  return {annCap,base,total,tail,lead,crossSurf,floatCross,bumpVol,strokes,time,cap};
+}
+function renderCemStages(){
+  const tb=q("cementStageTable").querySelector("tbody");tb.innerHTML="";
+  cementStages.forEach((s,i)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td><input data-cemstage="${i}" data-k="name" value="${s.name}"></td><td><input data-cemstage="${i}" data-k="volume" type="number" step="0.01" value="${s.volume}"></td><td><input data-cemstage="${i}" data-k="rate" type="number" step="0.01" value="${s.rate}"></td><td><input data-cemstage="${i}" data-k="limit" type="number" step="0.1" value="${s.limit}"></td><td><button data-del-cemstage="${i}">✕</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+function cemElapsedMs(){
+  if(!cemLive.running||!cemLive.startedAt)return cemLive.accumulatedMs;
+  return cemLive.accumulatedMs+Math.max(0,Date.now()-cemLive.startedAt);
+}
+function pumpedFromElapsed(){
+  let remainMin=cemElapsedMs()/60000,pumped=cemLive.basePumped||0;
+  for(const s of cementStages){
+    const vol=Math.max(0,Number(s.volume)||0),rate=Math.max(0,Number(s.rate)||0);
+    if(rate<=0)continue;
+    const mins=vol/rate;
+    if(remainMin>=mins){pumped+=vol;remainMin-=mins}
+    else{pumped+=remainMin*rate;remainMin=0;break}
+  }
+  return pumped;
+}
+function stageAtPumped(total){
+  let cum=0;
+  for(let i=0;i<cementStages.length;i++){
+    const v=Math.max(0,Number(cementStages[i].volume)||0);
+    if(total<cum+v||i===cementStages.length-1)return {index:i,stage:cementStages[i],stagePumped:Math.max(0,Math.min(v,total-cum)),cumBefore:cum};
+    cum+=v;
+  }
+  return {index:cementStages.length-1,stage:cementStages[cementStages.length-1],stagePumped:0,cumBefore:cum};
+}
+function totalScheduleVolume(){return cementStages.reduce((s,x)=>s+Math.max(0,Number(x.volume)||0),0)}
+function updateCemLive(){
+  const p=calcCementProgram(),total=pumpedFromElapsed(),sched=totalScheduleVolume(),info=stageAtPumped(Math.min(total,sched));
+  const remain=Math.max(0,p.bumpVol-total),out=n("cem2_output"),rate=Math.max(.0001,Number(info.stage?.rate)||n("cem2_rate")||1);
+  const strokes=out?remain/out:0,eta=remain/rate;
+  q("cemLiveState").textContent=cemLive.running?"Pumping":"Paused";
+  q("cemLivePulse").classList.toggle("running",cemLive.running);q("cemLivePulse").classList.toggle("paused",!cemLive.running);
+  q("cemLiveStage").textContent=info.stage?.name||"—";q("cemLiveStageVol").textContent=(info.stagePumped||0).toFixed(2)+" m³";q("cemLiveTotal").textContent=total.toFixed(2)+" m³";
+  q("cemLiveRemain").textContent=remain.toFixed(2)+" m³";q("cemLiveStrokes").textContent=strokes.toFixed(0);q("cemLiveEta").textContent=remain<=.001?"At bump":eta.toFixed(1)+" min";
+  const pct=p.bumpVol?Math.max(0,Math.min(100,total/p.bumpVol*100)):0;q("cemProgressFill").style.width=pct+"%";q("cemProgressMid").textContent=Math.round(pct)+"%";
+  const slowTrigger=Math.max(0,n("cem2_slow_trigger"));q("cemSlowAlert").classList.toggle("hidden",!(remain>0&&remain<=slowTrigger));
+  if(remain>0&&remain<=slowTrigger)q("cemSlowAlert").textContent=`SLOW RATE NOW — target ${n("cem2_slow_rate").toFixed(2)} m³/min`;
+  const cap=p.cap;
+  const frontMd=cap?Math.min(n("cem2_float"),Math.max(0,total-n("cem2_surface_vol"))/cap):0;
+  q("cemFrontMd").textContent=frontMd.toFixed(0);q("cemFrontRemain").textContent=Math.max(0,n("cem2_float")-frontMd).toFixed(0);
+  q("cemProgramStatus").textContent=remain<=.001?"Bump volume reached":remain<=slowTrigger?"Slow-rate zone":"Displacing";
+  q("cemStartBtn").disabled=cemLive.running;q("cemPauseBtn").disabled=!cemLive.running;
+}
+q("cemStartBtn").onclick=()=>{if(!cemLive.running){cemLive.running=true;cemLive.startedAt=Date.now();saveCemLive();updateCemLive()}};
+q("cemPauseBtn").onclick=()=>{if(cemLive.running){cemLive.accumulatedMs=cemElapsedMs();cemLive.running=false;cemLive.startedAt=null;saveCemLive();updateCemLive()}};
+q("cemResetBtn").onclick=()=>{cemLive={running:false,accumulatedMs:0,startedAt:null,basePumped:0};saveCemLive();updateCemLive()};
+q("saveCementJobBtn").onclick=()=>{saveCemJob();q("saveCementJobBtn").textContent="Saved";setTimeout(()=>q("saveCementJobBtn").textContent="Save",900)};
+q("addCemStageBtn").onclick=()=>{cementStages.push({name:"New stage",volume:1,rate:1,limit:0});saveCemStages();renderCemStages();updateCemLive()};
+document.addEventListener("change",e=>{
+  const a=e.target.dataset;
+  if(a.cemstage!==undefined){cementStages[+a.cemstage][a.k]=a.k==="name"?e.target.value:(+e.target.value||0);saveCemStages();renderCemStages();updateCemLive()}
+});
+document.addEventListener("click",e=>{
+  if(e.target.dataset.delCemstage!==undefined){cementStages.splice(+e.target.dataset.delCemstage,1);saveCemStages();renderCemStages();updateCemLive()}
+});
+cemJobFields.forEach(id=>q(id).addEventListener("input",()=>{calcCementProgram();updateCemLive()}));
+loadCemJob();renderCemStages();calcCementProgram();updateCemLive();setInterval(updateCemLive,500);

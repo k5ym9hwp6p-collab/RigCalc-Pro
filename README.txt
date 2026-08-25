@@ -1,10 +1,16 @@
-RigCalc Pro Version 1.5
+RigCalc Pro Version 1.6
 
-New:
-- Bit Hydraulics module with individual /32-inch jets, automatic TFA, nozzle velocity, estimated bit pressure drop, hydraulic power and jet impact force.
-- Mud Motor Performance module with saved manufacturer specs, flow range, rev/L, max differential, max torque and max RPM.
-- Live motor differential pressure, estimated motor RPM, total bit RPM, estimated torque/power and status indicators.
+New in v1.6 — Cement Job Planner & Live Displacement
+- Redesigned cementing module
+- Job setup for casing/hole geometry, shoe, float collar, crossover/tool depth, top of cement, excess, yields, shoe-track volume, surface-line volume and over-displacement
+- Automatic annular capacity, lead/tail volumes and estimated sacks
+- Displacement split into crossover-to-surface and float-collar-to-crossover components
+- Automatic total displacement to bump, strokes to bump and estimated time to bump
+- Editable pumping schedule with stage name, volume, rate and pressure limit
+- Live cement-job tracker with current stage, stage volume, total pumped, remaining-to-bump volume, strokes and ETA
+- Slow-rate warning zone before bump
+- Expected final pressure and bump-pressure inputs
+- Calculated displacement-front position in the casing/liner
 
 Important:
-Bit pressure drop uses a simplified orifice model and an entered discharge coefficient.
-Mud motor torque is a linear estimate using entered maximum torque and maximum differential pressure. Actual motor performance is manufacturer- and power-section-specific. Use actual performance curves and approved operating limits for operational decisions.
+This is a planning and tracking aid only. Use the approved cementing program, service-company procedure, actual pump totals and pressure response for operational decisions. Account for actual tool volumes, plug behavior, surface iron, compressibility, air entrainment and job-specific procedures.
