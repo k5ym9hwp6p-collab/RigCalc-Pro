@@ -15,7 +15,7 @@
 <body>
   <header class="app-header">
     <div>
-      <span class="eyebrow">VERSION 1.1</span>
+      <span class="eyebrow">VERSION 1.2</span>
       <h1>RigCalc Pro</h1>
       <p>Professional drilling calculations, simplified.</p>
     </div>
@@ -219,13 +219,27 @@
         </div>
       </div>
 
+      <div class="live-card">
+        <div class="live-head"><div><span class="live-kicker">CIRCULATE LIVE</span><strong id="liveStateText">Paused</strong></div><span id="livePulse" class="live-pulse paused"></span></div>
+        <div class="live-stats">
+          <div><span>Elapsed</span><strong id="liveElapsed">00:00</strong></div>
+          <div><span>Strokes pumped</span><strong id="liveStrokes">0</strong></div>
+          <div><span>Volume pumped</span><strong id="liveVolume">0.00 m³</strong></div>
+          <div><span>Front position</span><strong id="liveFront">3978 m MD</strong></div>
+          <div><span>Formation</span><strong id="liveFormation">—</strong></div>
+          <div><span>ETA surface</span><strong id="liveEta">—</strong></div>
+        </div>
+        <div class="live-actions"><button id="liveStartBtn" class="live-start">▶ Start</button><button id="livePauseBtn" class="live-pause">Ⅱ Pause</button><button id="liveResetBtn" class="live-reset">↺ Reset</button></div>
+        <p class="live-note">If pump speed or output changes, update the values below. The live tracker recalculates immediately.</p>
+      </div>
+
       <div class="input-card wp-controls">
         <label>Current bit depth <span>m MD</span><input id="wp_bit" type="number" inputmode="decimal" value="3978"></label>
         <label>Pump output <span>m³/stk</span><input id="wp_output" type="number" inputmode="decimal" value="0.0315"></label>
         <label>Pump speed <span>spm</span><input id="wp_spm" type="number" inputmode="decimal" value="55"></label>
-        <label>Pumped strokes <span>strokes</span><input id="wp_strokes" type="number" inputmode="numeric" value="0"></label>
-        <label>Elapsed circulation <span>min</span><input id="wp_minutes" type="number" inputmode="decimal" value="0"></label>
-        <label>Tracking mode <span>selection</span><select id="wp_mode"><option value="strokes">Use pumped strokes</option><option value="time">Use elapsed time</option></select></label>
+        <label>Manual pumped strokes <span>strokes</span><input id="wp_strokes" type="number" inputmode="numeric" value="0"></label>
+        <label>Manual elapsed circulation <span>min</span><input id="wp_minutes" type="number" inputmode="decimal" value="0"></label>
+        <label>Manual tracking mode <span>selection</span><select id="wp_mode"><option value="strokes">Use pumped strokes</option><option value="time">Use elapsed time</option></select></label>
       </div>
 
       <div class="profile-card">
