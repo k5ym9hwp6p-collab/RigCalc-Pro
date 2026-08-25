@@ -1,4 +1,4 @@
-RigCalc Pro Version 1.6
+RigCalc Pro Version 1.6.1
 
 New in v1.6 — Cement Job Planner & Live Displacement
 - Redesigned cementing module
@@ -14,3 +14,9 @@ New in v1.6 — Cement Job Planner & Live Displacement
 
 Important:
 This is a planning and tracking aid only. Use the approved cementing program, service-company procedure, actual pump totals and pressure response for operational decisions. Account for actual tool volumes, plug behavior, surface iron, compressibility, air entrainment and job-specific procedures.
+
+
+v1.6.1 hotfix
+- Prevents retired/missing calculator fields from stopping JavaScript initialization.
+- Restores Live Well Profile and Cementing outputs that could remain as dashes in v1.6.
+- Makes shared numeric/output helper functions null-safe.

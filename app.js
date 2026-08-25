@@ -1,6 +1,6 @@
 
-const q=id=>document.getElementById(id), n=id=>parseFloat(q(id).value)||0;
-const set=(id,v,d=3)=>q(id).textContent=Number.isFinite(v)?v.toFixed(d):"—";
+const q=id=>document.getElementById(id), n=id=>{const el=q(id);return el?(parseFloat(el.value)||0):0};
+const set=(id,v,d=3)=>{const el=q(id);if(el)el.textContent=Number.isFinite(v)?v.toFixed(d):"—"};
 const circle=d=>0.0000007853981634*d*d;
 function save(){const d={};document.querySelectorAll("input,select").forEach(e=>d[e.id]=e.value);localStorage.setItem("rigcalc-v1",JSON.stringify(d))}
 function load(){try{const d=JSON.parse(localStorage.getItem("rigcalc-v1")||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k))q(k).value=v})}catch(e){}}
@@ -11,7 +11,7 @@ function calcCem(){const h=n("cem_hole"),od=n("cem_od"),l=n("cem_len"),ex=n("cem
 function calcTrip(){const od=n("trip_od"),id=n("trip_id"),sl=n("trip_stand"),st=n("trip_stands"),mode=q("trip_mode").value,start=n("trip_start"),obs=n("trip_obs"),len=sl*st,disp=mode==="Wet"?circle(od):circle(od)-circle(id),fill=len*disp,exp=start-fill,chg=start-obs,diff=chg-fill;set("r_trip_len",len,2);set("r_trip_disp",disp,6);set("r_trip_fill",fill,3);set("r_trip_expected",exp,3);set("r_trip_change",chg,3);set("r_trip_diff",diff,3);const b=q("trip_status_box");b.classList.toggle("status-bad",Math.abs(diff)>.25);b.classList.toggle("status-good",Math.abs(diff)<=.25)}
 function stat(box,text,v,min,max){let t="Within window",g=true;if(v<min){t="Below minimum";g=false}if(v>max){t="Above maximum";g=false}q(text).textContent=t;q(box).classList.toggle("status-good",g);q(box).classList.toggle("status-bad",!g)}
 function calcMPD(){const r=n("mpd_density"),t=n("mpd_tvd"),sb=n("mpd_sbp"),af=n("mpd_afp"),tar=n("mpd_target"),pp=n("mpd_ppg"),fg=n("mpd_fg"),lm=n("mpd_lowmargin"),hm=n("mpd_highmargin"),hy=r*9.80665*t/1000,st=hy+sb,ci=hy+sb+af,min=pp*t+lm,max=fg*t-hm,win=Math.max(max-min,0),es=t?st*1000/(9.80665*t):0,ec=t?ci*1000/(9.80665*t):0;set("r_mpd_hydro",hy/1000,3);set("r_mpd_static",st/1000,3);set("r_mpd_circ",ci/1000,3);set("r_mpd_esd",es,1);set("r_mpd_ecd",ec,1);set("r_mpd_req_static",Math.max(tar-hy,0),0);set("r_mpd_req_circ",Math.max(tar-hy-af,0),0);set("r_mpd_window",win,0);stat("mpd_static_status_box","r_mpd_static_status",st,min,max);stat("mpd_circ_status_box","r_mpd_circ_status",ci,min,max);q("windowMin").textContent=(min/1000).toFixed(2)+" MPa";q("windowMax").textContent=(max/1000).toFixed(2)+" MPa";const pct=max>min?Math.max(0,Math.min(100,(ci-min)/(max-min)*100)):50;q("windowMarker").style.bottom=`calc(${pct}% - 12px)`;q("windowMarker").textContent=(ci/1000).toFixed(2)+" MPa"}
-function all(){calcCap();calcPump();calcWC();calcCem();calcTrip();calcMPD();save()}
+function all(){calcCap();calcPump();calcWC();if(q("cem_hole"))calcCem();calcTrip();calcMPD();save()}
 document.querySelectorAll("input,select").forEach(e=>e.addEventListener("input",all));
 document.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));q(b.dataset.open).classList.add("active");scrollTo(0,0)}));
 document.querySelectorAll(".back").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));q("dashboard").classList.add("active");scrollTo(0,0)}));
