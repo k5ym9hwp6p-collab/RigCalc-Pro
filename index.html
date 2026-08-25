@@ -15,7 +15,7 @@
 <body>
   <header class="app-header">
     <div>
-      <span class="eyebrow">VERSION 1.0</span>
+      <span class="eyebrow">VERSION 1.1</span>
       <h1>RigCalc Pro</h1>
       <p>Professional drilling calculations, simplified.</p>
     </div>
@@ -41,6 +41,7 @@
         <button class="tool-card" data-open="mpd"><b>🔵</b><span>MPD</span><small>BHP, ECD & window</small></button>
         <button class="tool-card" data-open="cementing"><b>🛢</b><span>Cementing</span><small>Volumes & sacks</small></button>
         <button class="tool-card" data-open="trip"><b>📋</b><span>Trip Sheet</span><small>Fill & tank check</small></button>
+        <button class="tool-card featured" data-open="wellprofile"><b>🧭</b><span>Well Profile</span><small>Live bottoms-up & formations</small></button>
       </div>
 
       <div class="disclaimer">
@@ -185,6 +186,66 @@
       </div>
       <div class="disclaimer danger"><strong>MPD warning</strong><p>Simplified calculations only. Use the approved MPD program, operating matrix and real-time hydraulics model.</p></div>
     </section>
+
+    <section id="wellprofile" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Live Well Profile</h2><p>Survey, formations & bottoms-up tracking</p></div></div>
+
+      <div class="profile-summary">
+        <div><span>Bit depth</span><strong id="wp_bit_md">—</strong><em>m MD</em></div>
+        <div><span>Returns front</span><strong id="wp_front_md">—</strong><em>m MD</em></div>
+        <div><span>Remaining annular volume</span><strong id="wp_rem_vol">—</strong><em>m³</em></div>
+        <div><span>Remaining strokes</span><strong id="wp_rem_strokes">—</strong><em>strokes</em></div>
+        <div><span>Time to surface</span><strong id="wp_rem_time">—</strong><em>min</em></div>
+        <div><span>Formation at front</span><strong id="wp_front_formation">—</strong><em></em></div>
+      </div>
+
+      <div class="profile-card">
+        <div class="profile-toolbar">
+          <div><strong>Well trajectory</strong><small>Blue marker is the calculated returns front.</small></div>
+          <button id="wpResetBtn">Reset circulation</button>
+        </div>
+        <svg id="wellSvg" viewBox="0 0 700 430">
+          <rect x="0" y="0" width="700" height="430" class="svg-bg"></rect>
+          <g id="formationBands"></g>
+          <polyline id="wellPath" points="" class="well-path"></polyline>
+          <circle id="bitMarker" r="8" class="bit-marker"></circle>
+          <circle id="frontMarker" r="9" class="front-marker"></circle>
+          <text id="frontLabel" class="front-label">Returns front</text>
+        </svg>
+        <div class="legend">
+          <span><i class="legend-bit"></i> Bit</span>
+          <span><i class="legend-front"></i> Returns front</span>
+          <span><i class="legend-formation"></i> Formations</span>
+        </div>
+      </div>
+
+      <div class="input-card wp-controls">
+        <label>Current bit depth <span>m MD</span><input id="wp_bit" type="number" inputmode="decimal" value="3978"></label>
+        <label>Pump output <span>m³/stk</span><input id="wp_output" type="number" inputmode="decimal" value="0.0315"></label>
+        <label>Pump speed <span>spm</span><input id="wp_spm" type="number" inputmode="decimal" value="55"></label>
+        <label>Pumped strokes <span>strokes</span><input id="wp_strokes" type="number" inputmode="numeric" value="0"></label>
+        <label>Elapsed circulation <span>min</span><input id="wp_minutes" type="number" inputmode="decimal" value="0"></label>
+        <label>Tracking mode <span>selection</span><select id="wp_mode"><option value="strokes">Use pumped strokes</option><option value="time">Use elapsed time</option></select></label>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Survey stations</strong><small>MD / TVD points drive the plotted trajectory.</small></div><button id="addSurveyBtn">+ Add</button></div>
+        <div class="table-wrap"><table id="surveyTable"><thead><tr><th>MD (m)</th><th>TVD (m)</th><th></th></tr></thead><tbody></tbody></table></div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Hole / annulus sections</strong><small>Used for cumulative annular volume from bit to surface.</small></div><button id="addHoleBtn">+ Add</button></div>
+        <div class="table-wrap"><table id="holeTable"><thead><tr><th>From MD</th><th>To MD</th><th>Hole/ID mm</th><th>Pipe OD mm</th><th></th></tr></thead><tbody></tbody></table></div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Formation tops & expected pressure</strong><small>Pressure = gradient × interpolated TVD at top.</small></div><button id="addFormationBtn">+ Add</button></div>
+        <div class="table-wrap"><table id="formationTable"><thead><tr><th>Formation</th><th>Top MD</th><th>Gradient kPa/m</th><th>Est. pressure</th><th></th></tr></thead><tbody></tbody></table></div>
+      </div>
+
+      <div class="disclaimer danger"><strong>Operational limitation</strong><p>The returns-front position is an annular-volume estimate. Real transport can differ because of compressibility, cuttings loading, washout, temperature, multiphase flow, surge/swab and changing geometry. Do not use this display as a substitute for pit, flow, gas, MPD or well-control monitoring.</p></div>
+    </section>
+
   </main>
 
   <div id="installModal" class="modal hidden">

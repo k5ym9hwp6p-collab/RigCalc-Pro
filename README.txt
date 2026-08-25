@@ -1,18 +1,15 @@
-RigCalc Pro Version 1.0
+RigCalc Pro Version 1.1
 
-Included modules:
-- Capacities
-- Pumps and circulation
-- Well control
-- Managed pressure drilling
-- Cementing
-- Trip sheet
+New:
+- Live Well Profile
+- Editable survey stations (MD/TVD)
+- Editable hole/annulus sections
+- Formation tops and expected pressure gradients
+- Returns/bottoms-up front by pumped strokes or elapsed time
+- Remaining annular volume, strokes, and minutes to surface
+- Formation-at-front indicator
+- Visual well trajectory and formation bands
 
-Installation:
-1. Upload all files in this folder to an HTTPS web host.
-2. Open the hosted index.html link in Safari.
-3. Tap Share > Add to Home Screen.
-4. Open once while online to cache the app for offline use.
+The included profile values are starter/sample values only and should be replaced with the approved well program.
 
-Important:
-This software is a field calculation aid only. Verify critical calculations independently and follow approved company, well-control, cementing and MPD procedures.
+Field aid only. Verify critical calculations independently and use approved operating, MPD and well-control procedures.
