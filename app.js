@@ -310,3 +310,68 @@ setInterval(()=>{if(!q("wellZoomModal").classList.contains("hidden"))clonePlotFo
 ["wp_bit","wp_output","wp_spm"].forEach(id=>q(id).addEventListener("input",()=>{renderString();renderFluidList()}));
 renderString();
 renderFluidList();
+
+// ===== RigCalc Pro v1.5: Bit Hydraulics + Mud Motor =====
+const JET_KEY="rigcalc-jets-v15";
+let jetData=[];
+try{jetData=JSON.parse(localStorage.getItem(JET_KEY)||"[]")||[]}catch(e){jetData=[]}
+if(!jetData.length)jetData=[{size:12},{size:12},{size:12}];
+function saveJets(){localStorage.setItem(JET_KEY,JSON.stringify(jetData))}
+function jetDiameterMm(size32){return (Math.max(0,Number(size32)||0)/32)*25.4}
+function jetAreaMm2(size32){const d=jetDiameterMm(size32);return Math.PI*d*d/4}
+function totalTfaMm2(){return jetData.reduce((s,j)=>s+jetAreaMm2(j.size),0)}
+function renderJets(){
+  const tb=q("jetTable").querySelector("tbody");tb.innerHTML="";
+  jetData.forEach((j,i)=>{
+    const d=jetDiameterMm(j.size),a=jetAreaMm2(j.size),tr=document.createElement("tr");
+    tr.innerHTML=`<td>J${i+1}</td><td><input data-jet="${i}" type="number" step="1" value="${j.size}"></td><td>${d.toFixed(3)}</td><td>${a.toFixed(2)}</td><td><button data-del-jet="${i}">✕</button></td>`;
+    tb.appendChild(tr);
+  });
+  calcBitHydraulics();
+}
+function calcBitHydraulics(){
+  const tfaMm2=totalTfaMm2(),tfaM2=tfaMm2/1e6,tfaIn2=tfaMm2/645.16;
+  const qM3Min=Math.max(0,n("bit_flow")),qM3s=qM3Min/60,rho=Math.max(0,n("bit_density")),cd=Math.max(.01,n("bit_cd"));
+  const velocity=tfaM2>0?qM3s/tfaM2:0;
+  const dpPa=tfaM2>0?(rho/2)*Math.pow(qM3s/(cd*tfaM2),2):0;
+  const kw=dpPa*qM3s/1000,hp=kw/0.745699872,impact=rho*qM3s*velocity;
+  set("r_bit_tfa_mm",tfaMm2,2);set("r_bit_tfa_in",tfaIn2,4);set("r_bit_velocity",velocity,1);
+  set("r_bit_dp",dpPa/1e6,2);set("r_bit_kw",kw,1);set("r_bit_hhp",hp,1);set("r_bit_force",impact,0);
+}
+q("addJetBtn").onclick=()=>{jetData.push({size:12});saveJets();renderJets()};
+document.addEventListener("change",e=>{
+  if(e.target.dataset.jet!==undefined){jetData[+e.target.dataset.jet].size=+e.target.value||0;saveJets();renderJets()}
+});
+document.addEventListener("click",e=>{
+  if(e.target.dataset.delJet!==undefined){jetData.splice(+e.target.dataset.delJet,1);saveJets();renderJets()}
+});
+["bit_size","bit_flow","bit_density","bit_cd"].forEach(id=>q(id).addEventListener("input",calcBitHydraulics));
+
+const MOTOR_KEY="rigcalc-motor-v15";
+const motorFields=["motor_make","motor_model","motor_od","motor_bend","motor_min_flow","motor_max_flow","motor_rev_l","motor_max_dp","motor_max_torque","motor_max_rpm"];
+function saveMotor(){const d={};motorFields.forEach(id=>d[id]=q(id).value);localStorage.setItem(MOTOR_KEY,JSON.stringify(d))}
+function loadMotor(){try{const d=JSON.parse(localStorage.getItem(MOTOR_KEY)||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k))q(k).value=v})}catch(e){}}
+function gaugeClass(id,status){const el=q(id);el.classList.remove("good","warn","bad");el.classList.add(status)}
+function calcMotor(){
+  const flow=Math.max(0,n("motor_flow")),minF=Math.max(0,n("motor_min_flow")),maxF=Math.max(minF,n("motor_max_flow"));
+  const revL=Math.max(0,n("motor_rev_l")),maxDp=Math.max(.001,n("motor_max_dp")),maxTorque=Math.max(0,n("motor_max_torque")),maxRpm=Math.max(.001,n("motor_max_rpm"));
+  const off=Math.max(0,n("motor_offbottom")),on=Math.max(0,n("motor_onbottom")),surface=Math.max(0,n("motor_surface_rpm"));
+  const dp=Math.max(0,on-off),rpm=flow*1000*revL,totalRpm=rpm+surface;
+  const torque=Math.min(maxTorque,maxTorque*(dp/maxDp)),power=torque*(2*Math.PI*rpm/60)/1000;
+  const flowPct=maxF>minF?((flow-minF)/(maxF-minF))*100:(flow/maxF*100),dpPct=dp/maxDp*100,rpmPct=rpm/maxRpm*100;
+  const flowStatus=flow<minF?"Below min":flow>maxF?"Above max":"Within range";
+  const dpStatus=dp>maxDp?"Above max":dpPct>=90?"Near max":"Within limit";
+  const rpmStatus=rpm>maxRpm?"Above max":rpmPct>=90?"Near max":"Within limit";
+  set("r_motor_dp",dp,2);set("r_motor_rpm",rpm,0);set("r_motor_total_rpm",totalRpm,0);set("r_motor_torque",torque,0);set("r_motor_power",power,1);
+  q("r_motor_flow_status").textContent=flowStatus;q("r_motor_dp_status").textContent=dpStatus;q("r_motor_rpm_status").textContent=rpmStatus;
+  q("r_motor_flow_pct").textContent=(maxF?Math.max(0,flowPct):0).toFixed(0)+"%";
+  q("r_motor_dp_pct").textContent=dpPct.toFixed(0)+"%";q("r_motor_rpm_pct").textContent=rpmPct.toFixed(0)+"%";
+  gaugeClass("motorFlowGauge",flowStatus==="Within range"?"good":"bad");
+  gaugeClass("motorDpGauge",dpStatus==="Above max"?"bad":dpStatus==="Near max"?"warn":"good");
+  gaugeClass("motorRpmGauge",rpmStatus==="Above max"?"bad":rpmStatus==="Near max"?"warn":"good");
+}
+q("saveMotorBtn").onclick=()=>{saveMotor();q("saveMotorBtn").textContent="Saved";setTimeout(()=>q("saveMotorBtn").textContent="Save",900)};
+[...motorFields,"motor_flow","motor_offbottom","motor_onbottom","motor_surface_rpm"].forEach(id=>q(id).addEventListener("input",calcMotor));
+q("bit_flow").addEventListener("change",()=>{q("motor_flow").value=q("bit_flow").value;calcMotor()});
+q("motor_flow").addEventListener("change",()=>{q("bit_flow").value=q("motor_flow").value;calcBitHydraulics()});
+loadMotor();renderJets();calcMotor();

@@ -64,3 +64,8 @@ h2{margin:20px 0 12px}.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:
 .zoom-footer{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:var(--card);border-top:1px solid var(--border);padding:9px 12px;font-size:.75rem;color:var(--muted)}
 .zoom-footer i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px}.zoom-fluid{background:#7f56d9}.zoom-footer #zoomReadout{margin-left:auto}
 @media(max-width:560px){.string-summary{grid-template-columns:1fr}.zoom-topbar{align-items:flex-start}.zoom-actions{gap:4px}.zoom-actions button{min-width:36px}}
+
+.embedded{border:0;padding:0;margin-top:10px}.motor-profile{margin-top:0}.motor-live{margin-top:14px}
+.motor-gauges{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:14px}.motor-gauge{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column}.motor-gauge span{font-size:.76rem;color:var(--muted);font-weight:750}.motor-gauge strong{font-size:1.15rem;margin-top:4px}.motor-gauge em{font-style:normal;color:var(--muted);font-size:.72rem;margin-top:2px}
+.motor-gauge.good{background:var(--good);border-color:#63a663}.motor-gauge.warn{background:#fff4cc;border-color:#f79009}.motor-gauge.bad{background:var(--bad);border-color:#d44}
+@media(max-width:620px){.motor-gauges{grid-template-columns:1fr}}

@@ -15,7 +15,7 @@
 <body>
   <header class="app-header">
     <div>
-      <span class="eyebrow">VERSION 1.4</span>
+      <span class="eyebrow">VERSION 1.5</span>
       <h1>RigCalc Pro</h1>
       <p>Professional drilling calculations, simplified.</p>
     </div>
@@ -42,6 +42,8 @@
         <button class="tool-card" data-open="cementing"><b>🛢</b><span>Cementing</span><small>Volumes & sacks</small></button>
         <button class="tool-card" data-open="trip"><b>📋</b><span>Trip Sheet</span><small>Fill & tank check</small></button>
         <button class="tool-card featured" data-open="wellprofile"><b>🧭</b><span>Well Profile</span><small>Live bottoms-up & formations</small></button>
+        <button class="tool-card" data-open="bithydraulics"><b>💦</b><span>Bit Hydraulics</span><small>Jets, TFA & nozzle performance</small></button>
+        <button class="tool-card" data-open="mudmotor"><b>🌀</b><span>Mud Motor</span><small>RPM, differential & performance</small></button>
       </div>
 
       <div class="disclaimer">
@@ -187,6 +189,71 @@
       <div class="disclaimer danger"><strong>MPD warning</strong><p>Simplified calculations only. Use the approved MPD program, operating matrix and real-time hydraulics model.</p></div>
     </section>
 
+
+    <section id="bithydraulics" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Bit Hydraulics</h2><p>Jet sizing, TFA and nozzle performance</p></div></div>
+      <div class="input-card">
+        <label>Bit size <span>mm</span><input id="bit_size" type="number" inputmode="decimal" value="171.45"></label>
+        <label>Flow rate <span>m³/min</span><input id="bit_flow" type="number" inputmode="decimal" value="1.80"></label>
+        <label>Mud density <span>kg/m³</span><input id="bit_density" type="number" inputmode="decimal" value="1200"></label>
+        <label>Nozzle discharge coefficient <span>Cd</span><input id="bit_cd" type="number" inputmode="decimal" value="0.95"></label>
+      </div>
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Bit jets / nozzles</strong><small>Enter jet size as thirty-seconds of an inch, e.g. 12 = 12/32".</small></div><button id="addJetBtn">+ Add</button></div>
+        <div class="table-wrap"><table id="jetTable"><thead><tr><th>Jet</th><th>Size /32"</th><th>Diameter mm</th><th>Area mm²</th><th></th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="results">
+        <div><span>Total Flow Area</span><strong id="r_bit_tfa_mm">—</strong><em>mm²</em></div>
+        <div><span>Total Flow Area</span><strong id="r_bit_tfa_in">—</strong><em>in²</em></div>
+        <div><span>Nozzle velocity</span><strong id="r_bit_velocity">—</strong><em>m/s</em></div>
+        <div><span>Estimated bit pressure drop</span><strong id="r_bit_dp">—</strong><em>MPa</em></div>
+        <div><span>Hydraulic power at bit</span><strong id="r_bit_kw">—</strong><em>kW</em></div>
+        <div><span>Hydraulic horsepower</span><strong id="r_bit_hhp">—</strong><em>hp</em></div>
+        <div><span>Jet impact force</span><strong id="r_bit_force">—</strong><em>N</em></div>
+      </div>
+      <div class="disclaimer"><strong>Model note</strong><p>Pressure drop uses a simplified orifice model. Verify against the approved hydraulics program before operational use.</p></div>
+    </section>
+
+    <section id="mudmotor" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Mud Motor Performance</h2><p>Manufacturer-limit based operating estimate</p></div></div>
+      <div class="profile-card motor-profile">
+        <div class="section-heading"><div><strong>Motor profile</strong><small>Enter actual manufacturer/spec-sheet values for the motor being run.</small></div><button id="saveMotorBtn">Save</button></div>
+        <div class="input-card embedded">
+          <label>Manufacturer <span>text</span><input id="motor_make" value="Custom"></label>
+          <label>Model <span>text</span><input id="motor_model" value="Motor 1"></label>
+          <label>Motor OD <span>mm</span><input id="motor_od" type="number" value="120.7"></label>
+          <label>Bend setting <span>°</span><input id="motor_bend" type="number" value="1.5"></label>
+          <label>Minimum flow <span>m³/min</span><input id="motor_min_flow" type="number" value="1.20"></label>
+          <label>Maximum flow <span>m³/min</span><input id="motor_max_flow" type="number" value="2.20"></label>
+          <label>Motor speed factor <span>rev/L</span><input id="motor_rev_l" type="number" value="0.145"></label>
+          <label>Max differential pressure <span>MPa</span><input id="motor_max_dp" type="number" value="6.0"></label>
+          <label>Max torque <span>N·m</span><input id="motor_max_torque" type="number" value="9000"></label>
+          <label>Max motor RPM <span>rpm</span><input id="motor_max_rpm" type="number" value="320"></label>
+        </div>
+      </div>
+      <div class="input-card motor-live">
+        <label>Flow rate <span>m³/min</span><input id="motor_flow" type="number" value="1.80"></label>
+        <label>Off-bottom standpipe pressure <span>MPa</span><input id="motor_offbottom" type="number" value="14.0"></label>
+        <label>On-bottom standpipe pressure <span>MPa</span><input id="motor_onbottom" type="number" value="17.5"></label>
+        <label>Surface rotary speed <span>rpm</span><input id="motor_surface_rpm" type="number" value="60"></label>
+      </div>
+      <div class="motor-gauges">
+        <div id="motorFlowGauge" class="motor-gauge"><span>Flow</span><strong id="r_motor_flow_pct">—</strong><em>of operating range</em></div>
+        <div id="motorDpGauge" class="motor-gauge"><span>Differential</span><strong id="r_motor_dp_pct">—</strong><em>of max differential</em></div>
+        <div id="motorRpmGauge" class="motor-gauge"><span>Motor RPM</span><strong id="r_motor_rpm_pct">—</strong><em>of max RPM</em></div>
+      </div>
+      <div class="results">
+        <div><span>Motor differential pressure</span><strong id="r_motor_dp">—</strong><em>MPa</em></div>
+        <div><span>Estimated motor RPM</span><strong id="r_motor_rpm">—</strong><em>rpm</em></div>
+        <div><span>Total bit RPM</span><strong id="r_motor_total_rpm">—</strong><em>rpm</em></div>
+        <div><span>Estimated motor torque</span><strong id="r_motor_torque">—</strong><em>N·m</em></div>
+        <div><span>Estimated mechanical power</span><strong id="r_motor_power">—</strong><em>kW</em></div>
+        <div><span>Flow status</span><strong id="r_motor_flow_status">—</strong><em></em></div>
+        <div><span>Differential status</span><strong id="r_motor_dp_status">—</strong><em></em></div>
+        <div><span>RPM status</span><strong id="r_motor_rpm_status">—</strong><em></em></div>
+      </div>
+      <div class="disclaimer danger"><strong>Mud motor limitation</strong><p>RPM is calculated from the entered rev/L factor. Torque is a linear estimate from entered max torque vs max differential and is not a substitute for the manufacturer's performance curve.</p></div>
+    </section>
     <section id="wellprofile" class="screen calculator">
       <div class="screen-title"><button class="back">‹</button><div><h2>Live Well Profile</h2><p>Survey, formations & bottoms-up tracking</p></div></div>
 
