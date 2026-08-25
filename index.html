@@ -15,7 +15,7 @@
 <body>
   <header class="app-header">
     <div>
-      <span class="eyebrow">VERSION 1.6.1</span>
+      <span class="eyebrow">VERSION 1.7</span>
       <h1>RigCalc Pro</h1>
       <p>Professional drilling calculations, simplified.</p>
     </div>
@@ -160,6 +160,91 @@
             <thead><tr><th>Stage</th><th>Volume m³</th><th>Rate m³/min</th><th>Pressure limit MPa</th><th></th></tr></thead>
             <tbody></tbody>
           </table>
+        </div>
+      </div>
+
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Annular cement sections</strong><small>Model each interval separately with its own geometry and excess.</small></div>
+          <button id="addCemSectionBtn">+ Add section</button>
+        </div>
+        <div class="table-wrap">
+          <table id="cementSectionTable">
+            <thead><tr><th>Section</th><th>From MD</th><th>To MD</th><th>Outer ID / hole mm</th><th>Casing OD mm</th><th>Excess %</th><th>m³/m</th><th>Slurry m³</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Slurry program</strong><small>Separate scavenger, lead/fill and tail slurry properties.</small></div>
+        </div>
+        <div class="input-card embedded">
+          <label>Scavenger volume <span>m³</span><input id="cem_scav_vol" type="number" value="3.0"></label>
+          <label>Scavenger yield <span>m³/t</span><input id="cem_scav_yield" type="number" value="1.45"></label>
+          <label>Scavenger mix water <span>m³/t</span><input id="cem_scav_water" type="number" value="2.45"></label>
+
+          <label>Lead / fill volume <span>m³</span><input id="cem_adv_lead_vol" type="number" value="23.76"></label>
+          <label>Lead / fill yield <span>m³/t</span><input id="cem_adv_lead_yield" type="number" value="1.779"></label>
+          <label>Lead / fill mix water <span>m³/t</span><input id="cem_adv_lead_water" type="number" value="1.401"></label>
+
+          <label>Tail volume <span>m³</span><input id="cem_adv_tail_vol" type="number" value="7.41"></label>
+          <label>Tail yield <span>m³/t</span><input id="cem_adv_tail_yield" type="number" value="0.829"></label>
+          <label>Tail mix water <span>m³/t</span><input id="cem_adv_tail_water" type="number" value="0.492"></label>
+
+          <label>Preflush / spacer water <span>m³</span><input id="cem_adv_preflush_water" type="number" value="10"></label>
+          <label>Displacement water <span>m³</span><input id="cem_adv_disp_water" type="number" value="77.74"></label>
+          <label>Cleanup water <span>m³</span><input id="cem_adv_cleanup_water" type="number" value="20"></label>
+        </div>
+
+        <div class="results compact-results">
+          <div><span>Scavenger dry cement</span><strong id="r_cem_scav_t">—</strong><em>t</em></div>
+          <div><span>Lead dry cement</span><strong id="r_cem_lead_t">—</strong><em>t</em></div>
+          <div><span>Tail dry cement</span><strong id="r_cem_tail_t">—</strong><em>t</em></div>
+          <div><span>Total dry cement</span><strong id="r_cem_total_t">—</strong><em>t</em></div>
+          <div><span>Scavenger mix water</span><strong id="r_cem_scav_w">—</strong><em>m³</em></div>
+          <div><span>Lead mix water</span><strong id="r_cem_lead_w">—</strong><em>m³</em></div>
+          <div><span>Tail mix water</span><strong id="r_cem_tail_w">—</strong><em>m³</em></div>
+          <div><span>Total water required</span><strong id="r_cem_total_water">—</strong><em>m³</em></div>
+        </div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Placement / reverse calculation</strong><small>Ask where a known slurry or spacer volume will end up in the annulus.</small></div>
+        </div>
+        <div class="input-card embedded">
+          <label>Starting depth <span>m MD</span><input id="cem_place_start" type="number" value="3978"></label>
+          <label>Volume to place <span>m³</span><input id="cem_place_vol" type="number" value="10"></label>
+          <label>Direction <span>selection</span>
+            <select id="cem_place_dir"><option value="up">Up annulus</option><option value="down">Down annulus</option></select>
+          </label>
+        </div>
+        <div class="cement-front-card">
+          <div><span>Calculated interface depth</span><strong id="r_cem_place_md">—</strong><em>m MD</em></div>
+          <div><span>Calculated height</span><strong id="r_cem_place_height">—</strong><em>m</em></div>
+          <div><span>Section at interface</span><strong id="r_cem_place_section">—</strong><em></em></div>
+        </div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Fluid train schematic</strong><small>Approximate placement of displacement, spacer, lead and tail fluids.</small></div>
+        </div>
+        <div class="cement-train">
+          <div class="train-col">
+            <div id="trainDispl" class="train-segment train-displ"><span>Displacement</span></div>
+            <div id="trainSpacer" class="train-segment train-spacer"><span>Spacer / preflush</span></div>
+            <div id="trainLead" class="train-segment train-lead"><span>Lead / fill</span></div>
+            <div id="trainTail" class="train-segment train-tail"><span>Tail</span></div>
+          </div>
+          <div class="train-labels">
+            <div><span>Top of tail</span><strong id="trainTailTop">—</strong></div>
+            <div><span>Top of lead</span><strong id="trainLeadTop">—</strong></div>
+            <div><span>Top of spacer</span><strong id="trainSpacerTop">—</strong></div>
+          </div>
         </div>
       </div>
 

@@ -487,3 +487,125 @@ document.addEventListener("click",e=>{
 });
 cemJobFields.forEach(id=>q(id).addEventListener("input",()=>{calcCementProgram();updateCemLive()}));
 loadCemJob();renderCemStages();calcCementProgram();updateCemLive();setInterval(updateCemLive,500);
+
+// ===== RigCalc Pro v1.7: Advanced Cement Placement =====
+const CEMSECTION_KEY="rigcalc-cemsections-v17";
+const CEMADV_KEY="rigcalc-cemadv-v17";
+let cemSections=[];
+try{cemSections=JSON.parse(localStorage.getItem(CEMSECTION_KEY)||"[]")||[]}catch(e){cemSections=[]}
+if(!cemSections.length)cemSections=[
+  {name:"Surface casing annulus",from:0,to:638,outer:226.6,od:193.7,excess:0},
+  {name:"Open hole fill",from:638,to:2659,outer:222.2,od:193.7,excess:120},
+  {name:"Open hole tail",from:2659,to:3189.89,outer:222.2,od:193.7,excess:50}
+];
+const cemAdvFields=["cem_scav_vol","cem_scav_yield","cem_scav_water","cem_adv_lead_vol","cem_adv_lead_yield","cem_adv_lead_water","cem_adv_tail_vol","cem_adv_tail_yield","cem_adv_tail_water","cem_adv_preflush_water","cem_adv_disp_water","cem_adv_cleanup_water","cem_place_start","cem_place_vol","cem_place_dir"];
+function saveCemSections(){localStorage.setItem(CEMSECTION_KEY,JSON.stringify(cemSections))}
+function saveCemAdv(){const d={};cemAdvFields.forEach(id=>d[id]=q(id).value);localStorage.setItem(CEMADV_KEY,JSON.stringify(d))}
+function loadCemAdv(){try{const d=JSON.parse(localStorage.getItem(CEMADV_KEY)||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k))q(k).value=v})}catch(e){}}
+function cemSectionCap(s){return Math.max(0,circle(Number(s.outer)||0)-circle(Number(s.od)||0))}
+function cemSectionBaseVol(s){return Math.max(0,(Number(s.to)-Number(s.from))*cemSectionCap(s))}
+function cemSectionSlurryVol(s){return cemSectionBaseVol(s)*(1+(Number(s.excess)||0)/100)}
+function renderCemSections(){
+  const tb=q("cementSectionTable").querySelector("tbody");tb.innerHTML="";
+  cemSections.sort((a,b)=>a.from-b.from).forEach((s,i)=>{
+    const cap=cemSectionCap(s),vol=cemSectionSlurryVol(s),tr=document.createElement("tr");
+    tr.innerHTML=`<td><input data-cemsec="${i}" data-k="name" value="${s.name}"></td>
+      <td><input data-cemsec="${i}" data-k="from" type="number" value="${s.from}"></td>
+      <td><input data-cemsec="${i}" data-k="to" type="number" value="${s.to}"></td>
+      <td><input data-cemsec="${i}" data-k="outer" type="number" value="${s.outer}"></td>
+      <td><input data-cemsec="${i}" data-k="od" type="number" value="${s.od}"></td>
+      <td><input data-cemsec="${i}" data-k="excess" type="number" value="${s.excess}"></td>
+      <td>${cap.toFixed(5)}</td><td>${vol.toFixed(2)}</td><td><button data-del-cemsec="${i}">✕</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+q("addCemSectionBtn").onclick=()=>{
+  const last=cemSections[cemSections.length-1]||{to:0,outer:222.2,od:193.7,excess:0};
+  cemSections.push({name:"New section",from:Number(last.to)||0,to:(Number(last.to)||0)+500,outer:Number(last.outer)||222.2,od:Number(last.od)||193.7,excess:Number(last.excess)||0});
+  saveCemSections();renderCemSections();updateAdvancedCement();
+};
+document.addEventListener("change",e=>{
+  const a=e.target.dataset;
+  if(a.cemsec!==undefined){
+    cemSections[+a.cemsec][a.k]=a.k==="name"?e.target.value:(+e.target.value||0);
+    saveCemSections();renderCemSections();updateAdvancedCement();
+  }
+});
+document.addEventListener("click",e=>{
+  if(e.target.dataset.delCemsec!==undefined){
+    cemSections.splice(+e.target.dataset.delCemsec,1);saveCemSections();renderCemSections();updateAdvancedCement();
+  }
+});
+function tonnes(vol,yieldVal){return yieldVal>0?vol/yieldVal:0}
+function placeVolume(start,vol,dir){
+  let remaining=Math.max(0,vol),pos=start;
+  const secs=[...cemSections].sort((a,b)=>a.from-b.from);
+  if(dir==="up"){
+    for(let i=secs.length-1;i>=0;i--){
+      const s=secs[i],top=Number(s.from),bot=Number(s.to);
+      if(pos<top||pos>bot)continue;
+      const cap=cemSectionCap(s)*(1+(Number(s.excess)||0)/100);
+      const available=(pos-top)*cap;
+      if(remaining<=available)return {md:pos-(cap?remaining/cap:0),section:s.name};
+      remaining-=available;pos=top;
+    }
+    for(let i=secs.length-1;i>=0;i--){
+      const s=secs[i],bot=Number(s.to),top=Number(s.from);
+      if(bot>=start)continue;
+      const cap=cemSectionCap(s)*(1+(Number(s.excess)||0)/100),available=(bot-top)*cap;
+      if(remaining<=available)return {md:bot-(cap?remaining/cap:0),section:s.name};
+      remaining-=available;
+    }
+    return {md:0,section:"Surface"};
+  } else {
+    for(const s of secs){
+      const top=Number(s.from),bot=Number(s.to);
+      if(pos<top||pos>bot)continue;
+      const cap=cemSectionCap(s)*(1+(Number(s.excess)||0)/100),available=(bot-pos)*cap;
+      if(remaining<=available)return {md:pos+(cap?remaining/cap:0),section:s.name};
+      remaining-=available;pos=bot;
+    }
+    for(const s of secs){
+      const top=Number(s.from),bot=Number(s.to);
+      if(top<=start)continue;
+      const cap=cemSectionCap(s)*(1+(Number(s.excess)||0)/100),available=(bot-top)*cap;
+      if(remaining<=available)return {md:top+(cap?remaining/cap:0),section:s.name};
+      remaining-=available;
+    }
+    return {md:secs.length?Number(secs[secs.length-1].to):start,section:"Bottom"};
+  }
+}
+function calcInterfaceFromBottom(vol){
+  const bottom=cemSections.length?Math.max(...cemSections.map(s=>Number(s.to)||0)):n("cem2_shoe");
+  return placeVolume(bottom,vol,"up");
+}
+function updateFluidTrain(){
+  const tail=Math.max(0,n("cem_adv_tail_vol")),lead=Math.max(0,n("cem_adv_lead_vol")),spacer=Math.max(0,n("cem_adv_preflush_water"));
+  const tailTop=calcInterfaceFromBottom(tail),leadTop=calcInterfaceFromBottom(tail+lead),spacerTop=calcInterfaceFromBottom(tail+lead+spacer);
+  q("trainTailTop").textContent=tailTop.md.toFixed(0)+" m MD";
+  q("trainLeadTop").textContent=leadTop.md.toFixed(0)+" m MD";
+  q("trainSpacerTop").textContent=spacerTop.md.toFixed(0)+" m MD";
+  const total=Math.max(.001,tail+lead+spacer+n("cem_adv_disp_water"));
+  q("trainTail").style.flexGrow=Math.max(.2,tail/total*10);
+  q("trainLead").style.flexGrow=Math.max(.2,lead/total*10);
+  q("trainSpacer").style.flexGrow=Math.max(.2,spacer/total*10);
+  q("trainDispl").style.flexGrow=Math.max(.2,n("cem_adv_disp_water")/total*10);
+}
+function updateAdvancedCement(){
+  const sv=n("cem_scav_vol"),sy=n("cem_scav_yield"),sw=n("cem_scav_water");
+  const lv=n("cem_adv_lead_vol"),ly=n("cem_adv_lead_yield"),lw=n("cem_adv_lead_water");
+  const tv=n("cem_adv_tail_vol"),ty=n("cem_adv_tail_yield"),tw=n("cem_adv_tail_water");
+  const st=tonnes(sv,sy),lt=tonnes(lv,ly),tt=tonnes(tv,ty);
+  const sWater=st*sw,lWater=lt*lw,tWater=tt*tw,totalWater=sWater+lWater+tWater+n("cem_adv_preflush_water")+n("cem_adv_disp_water")+n("cem_adv_cleanup_water");
+  set("r_cem_scav_t",st,2);set("r_cem_lead_t",lt,2);set("r_cem_tail_t",tt,2);set("r_cem_total_t",st+lt+tt,2);
+  set("r_cem_scav_w",sWater,2);set("r_cem_lead_w",lWater,2);set("r_cem_tail_w",tWater,2);set("r_cem_total_water",totalWater,2);
+  const start=n("cem_place_start"),vol=n("cem_place_vol"),dir=q("cem_place_dir").value,res=placeVolume(start,vol,dir);
+  q("r_cem_place_md").textContent=res.md.toFixed(1);
+  q("r_cem_place_height").textContent=Math.abs(start-res.md).toFixed(1);
+  q("r_cem_place_section").textContent=res.section;
+  updateFluidTrain();
+  saveCemAdv();
+}
+cemAdvFields.forEach(id=>q(id).addEventListener("input",updateAdvancedCement));
+q("cem_place_dir").addEventListener("change",updateAdvancedCement);
+loadCemAdv();renderCemSections();updateAdvancedCement();
