@@ -1,6 +1,8 @@
-RigCalc Pro Version 1.2
+RigCalc Pro Version 1.2.1
 
-New in v1.2 — Circulate Live:
+v1.2.1 fixes a JavaScript loading issue that prevented dashboard tiles from opening.
+
+Circulate Live:
 - Start / Pause / Reset live circulation tracking
 - Live elapsed circulation time
 - Live strokes and pumped volume
