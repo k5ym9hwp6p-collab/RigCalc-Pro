@@ -1,17 +1,15 @@
-RigCalc Pro Version 1.7
+RigCalc Pro Version 1.8
 
-New in v1.7 — Advanced Cement Placement
-- Multiple annular cement sections with individual From/To depth, hole/outer ID, casing OD, capacity and excess %
-- Separate slurry model for scavenger, lead/fill and tail cement
-- Dry cement tonnes from entered slurry yield (m³/t)
-- Mix-water requirements by slurry
-- Preflush/spacer, displacement and cleanup water totals
-- Total water required for job
-- Reverse placement calculator: enter a known volume and calculate where its interface lands in the annulus
-- Fluid-train schematic for displacement, spacer/preflush, lead/fill and tail cement
-- Interface depths for top of tail, top of lead and top of spacer
+New in v1.8 — Advanced Well Control
+- Shut-in / kick data inputs: mud density, TVD/MD, SIDPP, SICP, pit gain, SCR, pump output, drill-string and annular volumes
+- Kill mud density and SG
+- ICP and FCP
+- Strokes and circulation time surface-to-bit, bit-to-surface and total
+- MAASP / shoe-limit section using shoe TVD and LOT/FIT equivalent density
+- Working-MAASP limit check
+- Driller's Method and Wait & Weight kill-sheet schedule generation
+- Influx height/top estimate from entered pit gain and representative annular capacity
+- Saved well-control job inputs
 
-The default cement-section and slurry values are illustrative examples based on the field calculation sheets provided and should be replaced with the approved program for the actual job.
-
-Operational limitation:
-This remains a planning and tracking aid. Use the approved cementing program, service-company procedure, actual pump totals and pressure response for operational decisions. Account for tool volumes, actual surface iron, plug behavior, compressibility, air entrainment, temperature and job-specific procedures.
+Important:
+This is a calculation/checking aid only. It does not replace certified well-control training, operator/company procedures, approved kill sheets, choke schedules, actual rig instrumentation or verified casing/shoe limits. All inputs and outputs must be independently validated before operational use.

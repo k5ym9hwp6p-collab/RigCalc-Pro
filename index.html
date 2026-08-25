@@ -15,7 +15,7 @@
 <body>
   <header class="app-header">
     <div>
-      <span class="eyebrow">VERSION 1.7</span>
+      <span class="eyebrow">VERSION 1.8</span>
       <h1>RigCalc Pro</h1>
       <p>Professional drilling calculations, simplified.</p>
     </div>
@@ -93,25 +93,99 @@
       </div>
     </section>
 
-    <section id="wellcontrol" class="screen calculator">
-      <div class="screen-title"><button class="back">‹</button><div><h2>Well Control</h2><p>Static pressure tools</p></div></div>
-      <div class="input-card">
-        <label>Current mud density <span>kg/m³</span><input id="wc_density" type="number" inputmode="decimal" value="1200"></label>
-        <label>True vertical depth <span>m</span><input id="wc_tvd" type="number" inputmode="decimal" value="2500"></label>
-        <label>SIDPP <span>kPa</span><input id="wc_sidpp" type="number" inputmode="decimal" value="3500"></label>
-        <label>Safety margin <span>kPa</span><input id="wc_margin" type="number" inputmode="decimal" value="0"></label>
-        <label>Surface pressure for equivalent density <span>kPa</span><input id="wc_surface" type="number" inputmode="decimal" value="0"></label>
-      </div>
-      <div class="results">
-        <div><span>Hydrostatic pressure</span><strong id="r_wc_hydro">—</strong><em>MPa</em></div>
-        <div><span>Required density increase</span><strong id="r_wc_inc">—</strong><em>kg/m³</em></div>
-        <div><span>Kill mud density</span><strong id="r_wc_kmd">—</strong><em>kg/m³</em></div>
-        <div><span>Kill mud SG</span><strong id="r_wc_sg">—</strong><em>SG</em></div>
-        <div><span>Equivalent density</span><strong id="r_wc_eqd">—</strong><em>kg/m³</em></div>
-      </div>
-      <div class="disclaimer danger"><strong>Well-control warning</strong><p>Use an approved kill sheet and certified procedure.</p></div>
-    </section>
 
+    <section id="wellcontrol" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Well Control</h2><p>Kill-sheet planning & pressure checks</p></div></div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Shut-in / kick data</strong><small>Enter verified shut-in values from the approved well-control procedure.</small></div><button id="saveWcJobBtn">Save</button></div>
+        <div class="input-card embedded">
+          <label>Current mud density <span>kg/m³</span><input id="wc2_mw" type="number" value="1200"></label>
+          <label>TVD <span>m</span><input id="wc2_tvd" type="number" value="2500"></label>
+          <label>MD <span>m</span><input id="wc2_md" type="number" value="3200"></label>
+          <label>SIDPP <span>kPa</span><input id="wc2_sidpp" type="number" value="3500"></label>
+          <label>SICP <span>kPa</span><input id="wc2_sicp" type="number" value="4200"></label>
+          <label>Pit gain <span>m³</span><input id="wc2_gain" type="number" value="2.5"></label>
+          <label>Safety margin <span>kPa</span><input id="wc2_margin" type="number" value="0"></label>
+          <label>SCR / slow circulating pressure <span>kPa</span><input id="wc2_scr" type="number" value="5000"></label>
+          <label>SCR pump rate <span>spm</span><input id="wc2_scr_spm" type="number" value="30"></label>
+          <label>Pump output <span>m³/stk</span><input id="wc2_output" type="number" value="0.0315"></label>
+          <label>Drill-string internal volume to bit <span>m³</span><input id="wc2_stringvol" type="number" value="31.0"></label>
+          <label>Annular volume bit → surface <span>m³</span><input id="wc2_annvol" type="number" value="55.0"></label>
+        </div>
+      </div>
+
+      <div class="results">
+        <div><span>Hydrostatic pressure</span><strong id="r_wc2_hydro">—</strong><em>MPa</em></div>
+        <div><span>Required density increase</span><strong id="r_wc2_inc">—</strong><em>kg/m³</em></div>
+        <div><span>Kill mud density</span><strong id="r_wc2_kmw">—</strong><em>kg/m³</em></div>
+        <div><span>Kill mud SG</span><strong id="r_wc2_kmw_sg">—</strong><em>SG</em></div>
+        <div><span>ICP</span><strong id="r_wc2_icp">—</strong><em>kPa</em></div>
+        <div><span>FCP</span><strong id="r_wc2_fcp">—</strong><em>kPa</em></div>
+        <div><span>Strokes surface → bit</span><strong id="r_wc2_stk_bit">—</strong><em>strokes</em></div>
+        <div><span>Strokes bit → surface</span><strong id="r_wc2_stk_ann">—</strong><em>strokes</em></div>
+        <div><span>Total circulation strokes</span><strong id="r_wc2_stk_total">—</strong><em>strokes</em></div>
+        <div><span>Time to bit at SCR</span><strong id="r_wc2_time_bit">—</strong><em>min</em></div>
+        <div><span>Time bit → surface</span><strong id="r_wc2_time_ann">—</strong><em>min</em></div>
+        <div><span>Total circulation time</span><strong id="r_wc2_time_total">—</strong><em>min</em></div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>MAASP / shoe limit</strong><small>Use the approved LOT/FIT or fracture-gradient basis.</small></div></div>
+        <div class="input-card embedded">
+          <label>Shoe TVD <span>m</span><input id="wc2_shoe_tvd" type="number" value="1200"></label>
+          <label>LOT/FIT equivalent density <span>kg/m³</span><input id="wc2_lot_density" type="number" value="1650"></label>
+          <label>Additional safety margin <span>kPa</span><input id="wc2_maasp_margin" type="number" value="500"></label>
+          <label>Entered working MAASP <span>kPa</span><input id="wc2_work_maasp" type="number" value="4500"></label>
+        </div>
+        <div class="results compact-results">
+          <div><span>Calculated shoe fracture pressure</span><strong id="r_wc2_fracp">—</strong><em>kPa</em></div>
+          <div><span>Mud hydrostatic at shoe</span><strong id="r_wc2_shoe_hydro">—</strong><em>kPa</em></div>
+          <div><span>Calculated MAASP</span><strong id="r_wc2_maasp">—</strong><em>kPa</em></div>
+          <div id="wc2MaaspStatusBox"><span>Working MAASP status</span><strong id="r_wc2_maasp_status">—</strong><em></em></div>
+        </div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Kill method</strong><small>Pressure schedule is generated from the entered SCR, SIDPP and kill mud density.</small></div></div>
+        <div class="input-card embedded">
+          <label>Method <span>selection</span>
+            <select id="wc2_method">
+              <option value="drillers">Driller's Method</option>
+              <option value="waitweight">Wait & Weight</option>
+            </select>
+          </label>
+          <label>Schedule steps <span>count</span><input id="wc2_steps" type="number" value="10"></label>
+        </div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Generated kill sheet</strong><small>Reference schedule only; verify against the approved company/operator kill sheet.</small></div></div>
+        <div class="table-wrap">
+          <table id="killSheetTable">
+            <thead><tr><th>Step</th><th>Strokes</th><th>Pump pressure kPa</th><th>Target description</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Influx estimate</strong><small>Simple volumetric estimate using the current annular capacity.</small></div></div>
+        <div class="input-card embedded">
+          <label>Representative annular capacity <span>m³/m</span><input id="wc2_anncap" type="number" value="0.055"></label>
+        </div>
+        <div class="results compact-results">
+          <div><span>Estimated influx height</span><strong id="r_wc2_influx_h">—</strong><em>m</em></div>
+          <div><span>Estimated top of influx</span><strong id="r_wc2_influx_top">—</strong><em>m MD</em></div>
+          <div><span>Estimated hydrostatic shortfall</span><strong id="r_wc2_shortfall">—</strong><em>kPa</em></div>
+        </div>
+      </div>
+
+      <div class="disclaimer danger">
+        <strong>Well-control limitation</strong>
+        <p>This module is a calculation/checking aid only. It does not replace certified well-control training, the approved kill sheet, operator procedures, choke schedules, casing/shoe limits, influx identification, or real-time rig instrumentation. Validate all inputs and outputs independently before operational use.</p>
+      </div>
+    </section>
 
     <section id="cementing" class="screen calculator">
       <div class="screen-title"><button class="back">‹</button><div><h2>Cementing</h2><p>Job planning & live displacement tracking</p></div></div>

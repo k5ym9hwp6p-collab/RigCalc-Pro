@@ -11,7 +11,7 @@ function calcCem(){const h=n("cem_hole"),od=n("cem_od"),l=n("cem_len"),ex=n("cem
 function calcTrip(){const od=n("trip_od"),id=n("trip_id"),sl=n("trip_stand"),st=n("trip_stands"),mode=q("trip_mode").value,start=n("trip_start"),obs=n("trip_obs"),len=sl*st,disp=mode==="Wet"?circle(od):circle(od)-circle(id),fill=len*disp,exp=start-fill,chg=start-obs,diff=chg-fill;set("r_trip_len",len,2);set("r_trip_disp",disp,6);set("r_trip_fill",fill,3);set("r_trip_expected",exp,3);set("r_trip_change",chg,3);set("r_trip_diff",diff,3);const b=q("trip_status_box");b.classList.toggle("status-bad",Math.abs(diff)>.25);b.classList.toggle("status-good",Math.abs(diff)<=.25)}
 function stat(box,text,v,min,max){let t="Within window",g=true;if(v<min){t="Below minimum";g=false}if(v>max){t="Above maximum";g=false}q(text).textContent=t;q(box).classList.toggle("status-good",g);q(box).classList.toggle("status-bad",!g)}
 function calcMPD(){const r=n("mpd_density"),t=n("mpd_tvd"),sb=n("mpd_sbp"),af=n("mpd_afp"),tar=n("mpd_target"),pp=n("mpd_ppg"),fg=n("mpd_fg"),lm=n("mpd_lowmargin"),hm=n("mpd_highmargin"),hy=r*9.80665*t/1000,st=hy+sb,ci=hy+sb+af,min=pp*t+lm,max=fg*t-hm,win=Math.max(max-min,0),es=t?st*1000/(9.80665*t):0,ec=t?ci*1000/(9.80665*t):0;set("r_mpd_hydro",hy/1000,3);set("r_mpd_static",st/1000,3);set("r_mpd_circ",ci/1000,3);set("r_mpd_esd",es,1);set("r_mpd_ecd",ec,1);set("r_mpd_req_static",Math.max(tar-hy,0),0);set("r_mpd_req_circ",Math.max(tar-hy-af,0),0);set("r_mpd_window",win,0);stat("mpd_static_status_box","r_mpd_static_status",st,min,max);stat("mpd_circ_status_box","r_mpd_circ_status",ci,min,max);q("windowMin").textContent=(min/1000).toFixed(2)+" MPa";q("windowMax").textContent=(max/1000).toFixed(2)+" MPa";const pct=max>min?Math.max(0,Math.min(100,(ci-min)/(max-min)*100)):50;q("windowMarker").style.bottom=`calc(${pct}% - 12px)`;q("windowMarker").textContent=(ci/1000).toFixed(2)+" MPa"}
-function all(){calcCap();calcPump();calcWC();if(q("cem_hole"))calcCem();calcTrip();calcMPD();save()}
+function all(){calcCap();calcPump();if(q("wc_density"))calcWC();if(q("cem_hole"))calcCem();calcTrip();calcMPD();save()}
 document.querySelectorAll("input,select").forEach(e=>e.addEventListener("input",all));
 document.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));q(b.dataset.open).classList.add("active");scrollTo(0,0)}));
 document.querySelectorAll(".back").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));q("dashboard").classList.add("active");scrollTo(0,0)}));
@@ -609,3 +609,80 @@ function updateAdvancedCement(){
 cemAdvFields.forEach(id=>q(id).addEventListener("input",updateAdvancedCement));
 q("cem_place_dir").addEventListener("change",updateAdvancedCement);
 loadCemAdv();renderCemSections();updateAdvancedCement();
+
+// ===== RigCalc Pro v1.8: Advanced Well Control =====
+const WCJOB_KEY="rigcalc-wcjob-v18";
+const wcJobFields=["wc2_mw","wc2_tvd","wc2_md","wc2_sidpp","wc2_sicp","wc2_gain","wc2_margin","wc2_scr","wc2_scr_spm","wc2_output","wc2_stringvol","wc2_annvol","wc2_shoe_tvd","wc2_lot_density","wc2_maasp_margin","wc2_work_maasp","wc2_method","wc2_steps","wc2_anncap"];
+function saveWcJob(){const d={};wcJobFields.forEach(id=>d[id]=q(id).value);localStorage.setItem(WCJOB_KEY,JSON.stringify(d))}
+function loadWcJob(){try{const d=JSON.parse(localStorage.getItem(WCJOB_KEY)||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k))q(k).value=v})}catch(e){}}
+function calcWcAdvanced(){
+  const mw=Math.max(0,n("wc2_mw")),tvd=Math.max(.001,n("wc2_tvd")),sidpp=Math.max(0,n("wc2_sidpp")),margin=Math.max(0,n("wc2_margin"));
+  const scr=Math.max(0,n("wc2_scr")),out=Math.max(.000001,n("wc2_output")),spm=Math.max(.001,n("wc2_scr_spm"));
+  const stringVol=Math.max(0,n("wc2_stringvol")),annVol=Math.max(0,n("wc2_annvol"));
+  const hydro=mw*9.80665*tvd/1000;
+  const inc=(sidpp+margin)*1000/(9.80665*tvd);
+  const kmw=mw+inc;
+  const icp=scr+sidpp;
+  const fcp=mw>0?scr*(kmw/mw):0;
+  const stkBit=stringVol/out,stkAnn=annVol/out,stkTotal=stkBit+stkAnn;
+  const timeBit=stkBit/spm,timeAnn=stkAnn/spm,timeTotal=stkTotal/spm;
+
+  set("r_wc2_hydro",hydro/1000,3);set("r_wc2_inc",inc,1);set("r_wc2_kmw",kmw,1);set("r_wc2_kmw_sg",kmw/1000,3);
+  set("r_wc2_icp",icp,0);set("r_wc2_fcp",fcp,0);set("r_wc2_stk_bit",stkBit,0);set("r_wc2_stk_ann",stkAnn,0);set("r_wc2_stk_total",stkTotal,0);
+  set("r_wc2_time_bit",timeBit,1);set("r_wc2_time_ann",timeAnn,1);set("r_wc2_time_total",timeTotal,1);
+
+  const shoeTvd=Math.max(.001,n("wc2_shoe_tvd")),lotD=Math.max(0,n("wc2_lot_density")),maaspMargin=Math.max(0,n("wc2_maasp_margin")),workMaasp=Math.max(0,n("wc2_work_maasp"));
+  const fracP=lotD*9.80665*shoeTvd/1000;
+  const shoeHyd=mw*9.80665*shoeTvd/1000;
+  const maasp=Math.max(0,fracP-shoeHyd-maaspMargin);
+  set("r_wc2_fracp",fracP,0);set("r_wc2_shoe_hydro",shoeHyd,0);set("r_wc2_maasp",maasp,0);
+  q("r_wc2_maasp_status").textContent=workMaasp<=maasp?"Within calculated limit":"Above calculated limit";
+  q("wc2MaaspStatusBox").classList.toggle("status-good",workMaasp<=maasp);
+  q("wc2MaaspStatusBox").classList.toggle("status-bad",workMaasp>maasp);
+
+  const gain=Math.max(0,n("wc2_gain")),anncap=Math.max(.000001,n("wc2_anncap")),height=gain/anncap,top=Math.max(0,n("wc2_md")-height);
+  set("r_wc2_influx_h",height,1);set("r_wc2_influx_top",top,0);set("r_wc2_shortfall",sidpp,0);
+
+  renderKillSheet({mw,kmw,icp,fcp,stkBit,stkAnn,stkTotal});
+  saveWcJob();
+}
+function renderKillSheet(c){
+  const tb=q("killSheetTable").querySelector("tbody");tb.innerHTML="";
+  const steps=Math.max(2,Math.min(50,Math.round(n("wc2_steps")||10)));
+  const method=q("wc2_method").value;
+
+  if(method==="drillers"){
+    // First circulation: maintain ICP while circulating influx out.
+    let tr=document.createElement("tr");
+    tr.innerHTML=`<td>1A</td><td>0</td><td>${c.icp.toFixed(0)}</td><td>Start first circulation at ICP</td>`;
+    tb.appendChild(tr);
+    tr=document.createElement("tr");
+    tr.innerHTML=`<td>1B</td><td>${c.stkAnn.toFixed(0)}</td><td>${c.icp.toFixed(0)}</td><td>End first circulation / influx circulated out</td>`;
+    tb.appendChild(tr);
+    // Second circulation: pressure decreases as kill mud travels to bit.
+    for(let i=0;i<=steps;i++){
+      const f=i/steps,st=f*c.stkBit,p=c.icp+(c.fcp-c.icp)*f;
+      const row=document.createElement("tr");
+      row.innerHTML=`<td>2-${i+1}</td><td>${st.toFixed(0)}</td><td>${p.toFixed(0)}</td><td>${i===0?"Start kill mud":i===steps?"Kill mud at bit / FCP":"Reduce pump pressure on schedule"}</td>`;
+      tb.appendChild(row);
+    }
+    const row=document.createElement("tr");
+    row.innerHTML=`<td>2-END</td><td>${c.stkTotal.toFixed(0)}</td><td>${c.fcp.toFixed(0)}</td><td>Kill mud circulated to surface</td>`;
+    tb.appendChild(row);
+  } else {
+    // Wait & Weight: ICP to FCP while KMW moves down string.
+    for(let i=0;i<=steps;i++){
+      const f=i/steps,st=f*c.stkBit,p=c.icp+(c.fcp-c.icp)*f;
+      const row=document.createElement("tr");
+      row.innerHTML=`<td>${i+1}</td><td>${st.toFixed(0)}</td><td>${p.toFixed(0)}</td><td>${i===0?"Start at ICP":i===steps?"Kill mud at bit / FCP":"Pressure schedule to bit"}</td>`;
+      tb.appendChild(row);
+    }
+    const row=document.createElement("tr");
+    row.innerHTML=`<td>END</td><td>${c.stkTotal.toFixed(0)}</td><td>${c.fcp.toFixed(0)}</td><td>Hold FCP until kill mud reaches surface</td>`;
+    tb.appendChild(row);
+  }
+}
+q("saveWcJobBtn").onclick=()=>{saveWcJob();q("saveWcJobBtn").textContent="Saved";setTimeout(()=>q("saveWcJobBtn").textContent="Save",900)};
+wcJobFields.forEach(id=>q(id).addEventListener("input",calcWcAdvanced));
+q("wc2_method").addEventListener("change",calcWcAdvanced);
+loadWcJob();calcWcAdvanced();
