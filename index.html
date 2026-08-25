@@ -15,7 +15,7 @@
 <body>
   <header class="app-header">
     <div>
-      <span class="eyebrow">VERSION 1.2.1</span>
+      <span class="eyebrow">VERSION 1.3</span>
       <h1>RigCalc Pro</h1>
       <p>Professional drilling calculations, simplified.</p>
     </div>
@@ -208,6 +208,7 @@
           <rect x="0" y="0" width="700" height="430" class="svg-bg"></rect>
           <g id="formationBands"></g>
           <polyline id="wellPath" points="" class="well-path"></polyline>
+          <g id="fluidMarkers"></g>
           <circle id="bitMarker" r="8" class="bit-marker"></circle>
           <circle id="frontMarker" r="9" class="front-marker"></circle>
           <text id="frontLabel" class="front-label">Returns front</text>
@@ -231,6 +232,44 @@
         </div>
         <div class="live-actions"><button id="liveStartBtn" class="live-start">▶ Start</button><button id="livePauseBtn" class="live-pause">Ⅱ Pause</button><button id="liveResetBtn" class="live-reset">↺ Reset</button></div>
         <p class="live-note">If pump speed or output changes, update the values below. The live tracker recalculates immediately.</p>
+      </div>
+
+      
+      <div class="fluid-card">
+        <div class="fluid-head">
+          <div>
+            <span class="live-kicker">FLUID TRACKER</span>
+            <strong>Track sweeps & pills through the full circulation path</strong>
+          </div>
+          <button id="addFluidBtn">+ Add fluid</button>
+        </div>
+
+        <div class="fluid-new">
+          <label>Type
+            <select id="fluidType">
+              <option value="Sweep">Sweep</option>
+              <option value="Pill">Pill</option>
+              <option value="LCM Pill">LCM Pill</option>
+              <option value="Spacer">Spacer</option>
+              <option value="Custom">Custom</option>
+            </select>
+          </label>
+          <label>Label
+            <input id="fluidLabel" value="Sweep 1">
+          </label>
+          <label>Volume <span>m³</span>
+            <input id="fluidVolume" type="number" inputmode="decimal" value="5">
+          </label>
+          <label>Pipe internal capacity <span>m³/m</span>
+            <input id="fluidPipeCap" type="number" inputmode="decimal" value="0.00926">
+          </label>
+        </div>
+
+        <div class="fluid-list-head">
+          <span>Active tracked fluids</span>
+          <button id="clearFluidsBtn">Clear all</button>
+        </div>
+        <div id="fluidList" class="fluid-list"></div>
       </div>
 
       <div class="input-card wp-controls">

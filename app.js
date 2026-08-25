@@ -67,3 +67,113 @@ q("liveResetBtn").onclick=()=>{liveState={running:false,accumulatedMs:0,startedA
 const oldWpReset=q("wpResetBtn");if(oldWpReset){oldWpReset.addEventListener("click",()=>{liveState={running:false,accumulatedMs:0,startedAt:null};saveLive();setLiveButtons();renderLive()})}
 ["wp_bit","wp_output","wp_spm"].forEach(id=>q(id).addEventListener("input",()=>renderLive()));
 setLiveButtons();renderLive();setInterval(renderLive,500);
+
+// ===== RigCalc Pro v1.3: Fluid Tracker =====
+const FLUID_KEY="rigcalc-fluidtracker-v13";
+let fluidEvents=[];
+try{fluidEvents=JSON.parse(localStorage.getItem(FLUID_KEY)||"[]")||[]}catch(e){fluidEvents=[]}
+function saveFluids(){localStorage.setItem(FLUID_KEY,JSON.stringify(fluidEvents))}
+function liveTotalPumpedVolume(){return getLiveComputed().pumped}
+
+// Approximate total internal drill-string volume using user-entered average pipe capacity.
+function pipeInternalVolumeToBit(bitMD,pipeCap){return Math.max(0,bitMD*pipeCap)}
+function mdDownPipeFromVolume(bitMD,pipeCap,vol){
+  if(pipeCap<=0)return 0;
+  return Math.min(bitMD,Math.max(0,vol/pipeCap));
+}
+function annulusMDUpFromBit(bitMD,annVol){
+  return frontMDFromPumped(bitMD,annVol);
+}
+function fluidEdgeState(event,edgeStartOffset){
+  const bit=Math.max(0,n("wp_bit"));
+  const pipeCap=Math.max(0,Number(event.pipeCap)||0);
+  const pipeVol=pipeInternalVolumeToBit(bit,pipeCap);
+  const currentPumped=liveTotalPumpedVolume();
+  const edgePumped=currentPumped-(Number(event.startPumpVol)||0)-edgeStartOffset;
+  if(edgePumped<=0){
+    return {phase:"At surface",md:0,progress:0,formation:"Surface",etaBit:pipeCap&&n("wp_spm")&&n("wp_output")?pipeVol/(n("wp_spm")*n("wp_output")):0,etaSurface:null};
+  }
+  if(edgePumped<pipeVol){
+    const downMD=mdDownPipeFromVolume(bit,pipeCap,edgePumped);
+    const remainingPipe=pipeVol-edgePumped;
+    const rate=n("wp_spm")*n("wp_output");
+    return {phase:"Down drill pipe",md:downMD,progress:pipeVol?edgePumped/pipeVol:0,formation:formationAtMD(downMD),etaBit:rate?remainingPipe/rate:0,etaSurface:null};
+  }
+  const annVol=edgePumped-pipeVol;
+  const annTotal=totalAnnulusToBit(bit);
+  const used=Math.min(annTotal,annVol);
+  const md=annulusMDUpFromBit(bit,used);
+  const rem=Math.max(0,annTotal-used);
+  const rate=n("wp_spm")*n("wp_output");
+  return {phase:rem<=0.0001?"At surface":"Up annulus",md,progress:annTotal?used/annTotal:1,formation:formationAtMD(md),etaBit:0,etaSurface:rate?rem/rate:0};
+}
+function fluidStates(event){
+  const front=fluidEdgeState(event,0);
+  const tail=fluidEdgeState(event,Number(event.volume)||0);
+  return {front,tail};
+}
+function fmtEta(min){
+  if(min===null||!Number.isFinite(min))return "—";
+  if(min<=0)return "Now";
+  return min.toFixed(1)+" min";
+}
+function fluidOverallStatus(front,tail){
+  if(front.phase==="At surface"&&tail.phase==="At surface")return "Complete";
+  if(front.phase==="Up annulus"&&tail.phase==="Down drill pipe")return "Straddling bit";
+  if(front.phase==="Up annulus"||tail.phase==="Up annulus")return "Returning";
+  if(front.phase==="Down drill pipe"||tail.phase==="Down drill pipe")return "Going down";
+  return "Queued";
+}
+function renderFluidMarkers(){
+  const g=q("fluidMarkers"); if(!g)return;
+  g.innerHTML="";
+  const bit=Math.max(0,n("wp_bit"));
+  const pts=[...wpData.survey].sort((a,b)=>a.md-b.md).filter(x=>x.md<=bit);
+  if(!pts.length)return;
+  let xx=0,raw=[{md:pts[0].md,tvd:pts[0].tvd,x:0}],prev=pts[0];
+  for(let i=1;i<pts.length;i++){const dmd=pts[i].md-prev.md,dtvd=pts[i].tvd-prev.tvd;xx+=Math.sqrt(Math.max(0,dmd*dmd-dtvd*dtvd));raw.push({md:pts[i].md,tvd:pts[i].tvd,x:xx});prev=pts[i]}
+  if(raw[raw.length-1].md<bit)raw.push(surveyXY(bit));
+  const maxX=Math.max(...raw.map(p=>p.x),100),maxT=Math.max(...raw.map(p=>p.tvd),100),sx=v=>60+v/maxX*580,sy=v=>35+v/maxT*350;
+  fluidEvents.forEach((ev,idx)=>{
+    const st=fluidStates(ev),pf=surveyXY(st.front.md),pt=surveyXY(st.tail.md);
+    const line=document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1",sx(pf.x));line.setAttribute("y1",sy(pf.tvd));line.setAttribute("x2",sx(pt.x));line.setAttribute("y2",sy(pt.tvd));line.setAttribute("class","fluid-svg-line");g.appendChild(line);
+    const cf=document.createElementNS("http://www.w3.org/2000/svg","circle");cf.setAttribute("cx",sx(pf.x));cf.setAttribute("cy",sy(pf.tvd));cf.setAttribute("r","7");cf.setAttribute("class","fluid-svg-front");g.appendChild(cf);
+    const ct=document.createElementNS("http://www.w3.org/2000/svg","circle");ct.setAttribute("cx",sx(pt.x));ct.setAttribute("cy",sy(pt.tvd));ct.setAttribute("r","6");ct.setAttribute("class","fluid-svg-tail");g.appendChild(ct);
+    const lab=document.createElementNS("http://www.w3.org/2000/svg","text");lab.setAttribute("x",Math.min(610,sx(pf.x)+10));lab.setAttribute("y",Math.max(16,sy(pf.tvd)-8));lab.setAttribute("class","fluid-svg-label");lab.textContent=ev.label||ev.type;g.appendChild(lab);
+  });
+}
+function renderFluidList(){
+  const host=q("fluidList"); if(!host)return;
+  host.innerHTML="";
+  if(!fluidEvents.length){host.innerHTML='<div class="fluid-item"><span style="color:var(--muted)">No fluids currently being tracked.</span></div>';renderFluidMarkers();return}
+  fluidEvents.forEach((ev,i)=>{
+    const st=fluidStates(ev),status=fluidOverallStatus(st.front,st.tail);
+    const eta = st.front.phase==="Down drill pipe" ? st.front.etaBit : st.front.etaSurface;
+    const div=document.createElement("div");div.className="fluid-item";
+    div.innerHTML=`<div class="fluid-item-head"><div><strong>${ev.label||ev.type}</strong><div style="font-size:.75rem;color:var(--muted);margin-top:2px">${ev.type} • ${Number(ev.volume).toFixed(2)} m³ • ${status}</div></div><button data-fluid-del="${i}">✕</button></div>
+      <div class="fluid-meta">
+        <div><span>Front</span><strong>${st.front.md.toFixed(0)} m MD</strong></div>
+        <div><span>Front phase</span><strong>${st.front.phase}</strong></div>
+        <div><span>Tail</span><strong>${st.tail.md.toFixed(0)} m MD</strong></div>
+        <div><span>Tail phase</span><strong>${st.tail.phase}</strong></div>
+        <div><span>Formation</span><strong>${st.front.formation}</strong></div>
+        <div><span>Front ETA</span><strong>${fmtEta(eta)}</strong></div>
+      </div>
+      <div class="fluid-progress"><i style="width:${Math.max(0,Math.min(100,(st.front.phase==="Up annulus"?50+st.front.progress*50:st.front.phase==="At surface"?100:st.front.progress*50)))}%"></i></div>`;
+    host.appendChild(div);
+  });
+  renderFluidMarkers();
+}
+q("addFluidBtn").onclick=()=>{
+  const type=q("fluidType").value,label=q("fluidLabel").value.trim()||type,volume=Math.max(0,n("fluidVolume")),pipeCap=Math.max(0,n("fluidPipeCap"));
+  if(volume<=0||pipeCap<=0){alert("Enter a fluid volume and drill-pipe internal capacity greater than zero.");return}
+  fluidEvents.push({type,label,volume,pipeCap,startPumpVol:liveTotalPumpedVolume(),createdAt:Date.now()});
+  saveFluids();renderFluidList();
+  const m=label.match(/(\d+)$/);if(m)q("fluidLabel").value=label.replace(/\d+$/,(Number(m[1])+1).toString());
+};
+q("clearFluidsBtn").onclick=()=>{fluidEvents=[];saveFluids();renderFluidList()};
+document.addEventListener("click",e=>{if(e.target.dataset.fluidDel!==undefined){fluidEvents.splice(+e.target.dataset.fluidDel,1);saveFluids();renderFluidList()}});
+setInterval(renderFluidList,500);
+["wp_bit","wp_output","wp_spm","fluidPipeCap"].forEach(id=>{if(q(id))q(id).addEventListener("input",renderFluidList)});
+renderFluidList();
