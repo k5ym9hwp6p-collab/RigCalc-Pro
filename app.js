@@ -727,3 +727,118 @@ q("saveWcJobBtn").onclick=()=>{saveWcJob();q("saveWcJobBtn").textContent="Saved"
 wcJobFields.forEach(id=>q(id).addEventListener("input",calcWcAdvanced));
 q("wc2_method").addEventListener("change",calcWcAdvanced);
 loadWcJob();calcWcAdvanced();
+
+
+// ===== RigCalc Pro v1.9: trajectory mode + Well Control / Live Profile integration =====
+const WP_TRAJECTORY_KEY="rigcalc-wp-trajectory-v19";
+const WC_PROFILE_STATE_KEY="rigcalc-wc-profile-state-v19";
+let wcProfileState={tracking:false,startPumpVol:0};
+try{wcProfileState={...wcProfileState,...JSON.parse(localStorage.getItem(WC_PROFILE_STATE_KEY)||"{}")}}catch(e){}
+function saveWcProfileState(){localStorage.setItem(WC_PROFILE_STATE_KEY,JSON.stringify(wcProfileState))}
+function trajectoryMode(){return q("wp_trajectory_type")?.value||"deviated"}
+function saveTrajectoryMode(){localStorage.setItem(WP_TRAJECTORY_KEY,trajectoryMode())}
+function loadTrajectoryMode(){const v=localStorage.getItem(WP_TRAJECTORY_KEY);if(v&&q("wp_trajectory_type"))q("wp_trajectory_type").value=v}
+function displayXY(md){return trajectoryMode()==="vertical"?{md,tvd:md,x:0}:surveyXY(md)}
+function profilePlotGeometry(bitMD){
+  if(trajectoryMode()==="vertical"){
+    const maxT=Math.max(bitMD,100);
+    return{sx:()=>350,sy:v=>35+Math.max(0,Math.min(maxT,v))/maxT*350,maxT,maxX:0};
+  }
+  const raw0=[...wpData.survey].sort((a,b)=>a.md-b.md).filter(x=>x.md<=bitMD);
+  let maxX=100,maxT=100;
+  if(raw0.length){
+    let x=0,prev=raw0[0],xs=[0],ts=[raw0[0].tvd];
+    for(let i=1;i<raw0.length;i++){const dmd=raw0[i].md-prev.md,dtvd=raw0[i].tvd-prev.tvd;x+=Math.sqrt(Math.max(0,dmd*dmd-dtvd*dtvd));xs.push(x);ts.push(raw0[i].tvd);prev=raw0[i]}
+    const end=surveyXY(bitMD);xs.push(end.x);ts.push(end.tvd);maxX=Math.max(...xs,100);maxT=Math.max(...ts,100);
+  }
+  return{sx:v=>60+v/maxX*580,sy:v=>35+v/maxT*350,maxT,maxX};
+}
+plotWell=function(bitMD,frontMD){
+  const geom=profilePlotGeometry(bitMD),sx=geom.sx,sy=geom.sy;
+  let raw=[];
+  if(trajectoryMode()==="vertical")raw=[{md:0,tvd:0,x:0},{md:bitMD,tvd:bitMD,x:0}];
+  else{
+    const raw0=[...wpData.survey].sort((a,b)=>a.md-b.md).filter(x=>x.md<=bitMD);if(!raw0.length)return;
+    let x=0;raw=[{md:raw0[0].md,tvd:raw0[0].tvd,x:0}];let prev=raw0[0];
+    for(let i=1;i<raw0.length;i++){const dmd=raw0[i].md-prev.md,dtvd=raw0[i].tvd-prev.tvd;x+=Math.sqrt(Math.max(0,dmd*dmd-dtvd*dtvd));raw.push({md:raw0[i].md,tvd:raw0[i].tvd,x});prev=raw0[i]}
+    if(raw[raw.length-1].md<bitMD)raw.push(surveyXY(bitMD));
+  }
+  q("wellPath").setAttribute("points",raw.map(p=>`${sx(p.x)},${sy(p.tvd)}`).join(" "));
+  const bit=displayXY(bitMD),front=displayXY(frontMD);
+  q("bitMarker").setAttribute("cx",sx(bit.x));q("bitMarker").setAttribute("cy",sy(bit.tvd));
+  q("frontMarker").setAttribute("cx",sx(front.x));q("frontMarker").setAttribute("cy",sy(front.tvd));
+  q("frontLabel").setAttribute("x",Math.min(610,sx(front.x)+14));q("frontLabel").setAttribute("y",Math.max(20,sy(front.tvd)-12));q("frontLabel").textContent=`Returns ${frontMD.toFixed(0)} m MD`;
+  const g=q("formationBands");g.innerHTML="";const colors=["#2f75b5","#12b76a","#f79009","#7f56d9","#ee46bc","#6172f3"],fs=[...wpData.formations].sort((a,b)=>a.md-b.md);
+  fs.forEach((f,i)=>{if(f.md>bitMD)return;const topT=trajectoryMode()==="vertical"?f.md:interpTVD(f.md),nextMd=fs[i+1]&&fs[i+1].md<=bitMD?fs[i+1].md:bitMD,nextT=trajectoryMode()==="vertical"?nextMd:interpTVD(nextMd),y=sy(topT),h=Math.max(5,sy(nextT)-y),r=document.createElementNS("http://www.w3.org/2000/svg","rect");r.setAttribute("x","0");r.setAttribute("y",y);r.setAttribute("width","700");r.setAttribute("height",h);r.setAttribute("fill",colors[i%colors.length]);r.setAttribute("class","formation-band");g.appendChild(r);const t=document.createElementNS("http://www.w3.org/2000/svg","text");t.setAttribute("x","10");t.setAttribute("y",y+14);t.setAttribute("class","formation-text");t.textContent=f.name;g.appendChild(t)});
+  renderWellControlOverlay();
+};
+renderFluidMarkers=function(){
+  const g=q("fluidMarkers");if(!g)return;g.innerHTML="";const bit=Math.max(0,n("wp_bit"));if(bit<=0)return;
+  const geom=profilePlotGeometry(bit),sx=geom.sx,sy=geom.sy;
+  fluidEvents.forEach(ev=>{const st=fluidStates(ev),pf=displayXY(st.front.md),pt=displayXY(st.tail.md);const line=document.createElementNS("http://www.w3.org/2000/svg","line");line.setAttribute("x1",sx(pf.x));line.setAttribute("y1",sy(pf.tvd));line.setAttribute("x2",sx(pt.x));line.setAttribute("y2",sy(pt.tvd));line.setAttribute("class","fluid-svg-line");g.appendChild(line);const cf=document.createElementNS("http://www.w3.org/2000/svg","circle");cf.setAttribute("cx",sx(pf.x));cf.setAttribute("cy",sy(pf.tvd));cf.setAttribute("r","7");cf.setAttribute("class","fluid-svg-front");g.appendChild(cf);const ct=document.createElementNS("http://www.w3.org/2000/svg","circle");ct.setAttribute("cx",sx(pt.x));ct.setAttribute("cy",sy(pt.tvd));ct.setAttribute("r","6");ct.setAttribute("class","fluid-svg-tail");g.appendChild(ct);const lab=document.createElementNS("http://www.w3.org/2000/svg","text");lab.setAttribute("x",Math.min(610,sx(pf.x)+10));lab.setAttribute("y",Math.max(16,sy(pf.tvd)-8));lab.setAttribute("class","fluid-svg-label");lab.textContent=ev.label||ev.type;g.appendChild(lab)});
+};
+function mdAtTVD(tvd){const s=[...wpData.survey].sort((a,b)=>a.md-b.md);if(!s.length)return tvd;if(tvd<=s[0].tvd)return s[0].md;for(let i=1;i<s.length;i++){const a=s[i-1],b=s[i];if((tvd>=a.tvd&&tvd<=b.tvd)||(tvd<=a.tvd&&tvd>=b.tvd)){const f=(tvd-a.tvd)/((b.tvd-a.tvd)||1);return a.md+f*(b.md-a.md)}}return s[s.length-1].md}
+function holeAtMD(md){return [...wpData.holes].find(h=>md>=Number(h.from)&&md<=Number(h.to))||wpData.holes[wpData.holes.length-1]||null}
+function effectiveAnnCapAtMD(md){const h=holeAtMD(md);return h?annCapM3m(Number(h.id)||0,Number(h.od)||0)*(1+(Number(h.over)||0)/100):0}
+function refreshWcGeometrySummary(){const bit=Math.max(0,n("wp_bit")),tvd=interpTVD(bit),sv=detailedPipeVolumeToBit(bit),av=totalAnnulusToBit(bit);if(q("wcGeomMd"))q("wcGeomMd").textContent=bit.toFixed(0);if(q("wcGeomTvd"))q("wcGeomTvd").textContent=tvd.toFixed(0);if(q("wcGeomString"))q("wcGeomString").textContent=sv.toFixed(3);if(q("wcGeomAnn"))q("wcGeomAnn").textContent=av.toFixed(3)}
+function syncWellControlGeometry(force=false){
+  if(!force&&q("wcUseGeometry")&&!q("wcUseGeometry").checked){refreshWcGeometrySummary();return}
+  const bit=Math.max(0,n("wp_bit")),tvd=interpTVD(bit),stringVol=detailedPipeVolumeToBit(bit),annVol=totalAnnulusToBit(bit),annCap=effectiveAnnCapAtMD(bit);
+  const values={wc2_md:bit,wc2_tvd:tvd,wc2_stringvol:stringVol,wc2_annvol:annVol,wc2_anncap:annCap,wc2_output:Math.max(0,n("wp_output")),wc2_scr_spm:Math.max(0,n("wp_spm"))};
+  Object.entries(values).forEach(([id,v])=>{if(q(id))q(id).value=Number(v).toFixed(id==="wc2_md"||id==="wc2_tvd"?0:4)});
+  refreshWcGeometrySummary();if(typeof calcWcAdvanced==="function")calcWcAdvanced();
+}
+function wcComputed(){
+  const bit=Math.max(0,n("wp_bit")),gain=Math.max(0,n("wc2_gain")),stringVol=detailedPipeVolumeToBit(bit),annVol=totalAnnulusToBit(bit),out=Math.max(.000001,n("wp_output")||n("wc2_output"));
+  const livePump=liveTotalPumpedVolume(),pumped=wcProfileState.tracking?Math.max(0,livePump-(Number(wcProfileState.startPumpVol)||0)):0,strokes=pumped/out;
+  const influxTail=frontMDFromPumped(bit,Math.min(annVol,pumped)),influxFront=frontMDFromPumped(bit,Math.min(annVol,gain+pumped));
+  let killMd=0,killPhase="At surface";
+  if(pumped>0&&pumped<stringVol){killMd=pipeMDFromDetailedVolume(bit,pumped);killPhase="Down drill string"}
+  else if(pumped>=stringVol){const annPumped=Math.min(annVol,pumped-stringVol);killMd=frontMDFromPumped(bit,annPumped);killPhase=annPumped>=annVol-.0001?"At surface":"Up annulus"}
+  const mw=Math.max(0,n("wc2_mw")),sidpp=Math.max(0,n("wc2_sidpp")),scr=Math.max(0,n("wc2_scr")),kmw=Math.max(mw,Number(q("r_wc2_kmw")?.textContent)||mw),icp=scr+sidpp,fcp=mw>0?scr*(kmw/mw):0,stkBit=stringVol/out,stkAnn=annVol/out;
+  let target=icp;
+  if(q("wc2_method")?.value==="waitweight"){const f=Math.max(0,Math.min(1,strokes/(stkBit||1)));target=icp+(fcp-icp)*f}
+  else if(strokes>stkAnn){const f=Math.max(0,Math.min(1,(strokes-stkAnn)/(stkBit||1)));target=icp+(fcp-icp)*f}
+  const maasp=Number(q("r_wc2_maasp")?.textContent)||0;
+  return{bit,gain,stringVol,annVol,pumped,strokes,influxFront,influxTail,killMd,killPhase,target,maasp};
+}
+function renderWellControlOverlay(){
+  const g=q("wellControlMarkers");if(!g)return;g.innerHTML="";if(!q("wcProfileOverlay")?.checked)return;
+  const bit=Math.max(0,n("wp_bit"));if(bit<=0)return;const c=wcComputed(),geom=profilePlotGeometry(bit),sx=geom.sx,sy=geom.sy,pf=displayXY(c.influxFront),pt=displayXY(c.influxTail);
+  const line=document.createElementNS("http://www.w3.org/2000/svg","line");line.setAttribute("x1",sx(pf.x));line.setAttribute("y1",sy(pf.tvd));line.setAttribute("x2",sx(pt.x));line.setAttribute("y2",sy(pt.tvd));line.setAttribute("class","wc-influx-line");g.appendChild(line);
+  const f=document.createElementNS("http://www.w3.org/2000/svg","circle");f.setAttribute("cx",sx(pf.x));f.setAttribute("cy",sy(pf.tvd));f.setAttribute("r","8");f.setAttribute("class","wc-influx-front");g.appendChild(f);
+  const t=document.createElementNS("http://www.w3.org/2000/svg","circle");t.setAttribute("cx",sx(pt.x));t.setAttribute("cy",sy(pt.tvd));t.setAttribute("r","7");t.setAttribute("class","wc-influx-tail");g.appendChild(t);
+  const lab=document.createElementNS("http://www.w3.org/2000/svg","text");lab.setAttribute("x",Math.min(600,sx(pf.x)+12));lab.setAttribute("y",Math.max(16,sy(pf.tvd)-10));lab.setAttribute("class","wc-svg-label");lab.textContent="Influx";g.appendChild(lab);
+  if(c.pumped>0){const pk=displayXY(c.killMd),k=document.createElementNS("http://www.w3.org/2000/svg","circle");k.setAttribute("cx",sx(pk.x));k.setAttribute("cy",sy(pk.tvd));k.setAttribute("r","8");k.setAttribute("class","wc-kill-front");g.appendChild(k);const kl=document.createElementNS("http://www.w3.org/2000/svg","text");kl.setAttribute("x",Math.min(600,sx(pk.x)+12));kl.setAttribute("y",Math.max(16,sy(pk.tvd)-10));kl.setAttribute("class","wc-svg-label");kl.textContent="Kill mud";g.appendChild(kl)}
+  const shoeMd=Math.max(0,mdAtTVD(Math.max(0,n("wc2_shoe_tvd"))));if(shoeMd<=bit){const ps=displayXY(shoeMd),shoe=document.createElementNS("http://www.w3.org/2000/svg","rect");shoe.setAttribute("x",sx(ps.x)-7);shoe.setAttribute("y",sy(ps.tvd)-7);shoe.setAttribute("width","14");shoe.setAttribute("height","14");shoe.setAttribute("class","wc-shoe-marker");g.appendChild(shoe);const sl=document.createElementNS("http://www.w3.org/2000/svg","text");sl.setAttribute("x",Math.min(610,sx(ps.x)+12));sl.setAttribute("y",Math.max(16,sy(ps.tvd)-9));sl.setAttribute("class","wc-limit-label");sl.textContent=`Shoe / MAASP ${c.maasp.toFixed(0)} kPa`;g.appendChild(sl)}
+}
+function updateWellControlLive(){
+  if(q("wcUseGeometry")?.checked)syncWellControlGeometry(false);else refreshWcGeometrySummary();
+  const c=wcComputed();
+  if(q("wcLiveState"))q("wcLiveState").textContent=wcProfileState.tracking?"Tracking from circulation reference":"Not tracking";
+  if(q("wcLivePulse")){q("wcLivePulse").classList.toggle("running",wcProfileState.tracking);q("wcLivePulse").classList.toggle("paused",!wcProfileState.tracking)}
+  if(q("wcInfluxFrontLive"))q("wcInfluxFrontLive").textContent=`${c.influxFront.toFixed(0)} m MD`;
+  if(q("wcInfluxTailLive"))q("wcInfluxTailLive").textContent=`${c.influxTail.toFixed(0)} m MD`;
+  if(q("wcInfluxFormationLive"))q("wcInfluxFormationLive").textContent=formationAtMD(c.influxFront);
+  if(q("wcKillFrontLive"))q("wcKillFrontLive").textContent=c.pumped>0?`${c.killMd.toFixed(0)} m MD`:"Surface";
+  if(q("wcKillPhaseLive"))q("wcKillPhaseLive").textContent=c.pumped>0?c.killPhase:"Not started";
+  if(q("wcTargetPressureLive"))q("wcTargetPressureLive").textContent=`${c.target.toFixed(0)} kPa`;
+  if(q("wcStrokesLive"))q("wcStrokesLive").textContent=c.strokes.toFixed(0);
+  if(q("wcMaaspLive"))q("wcMaaspLive").textContent=`${c.maasp.toFixed(0)} kPa`;
+  renderWellControlOverlay();renderFluidMarkers();
+}
+function startWcTracking(){wcProfileState={tracking:true,startPumpVol:liveTotalPumpedVolume()};saveWcProfileState();updateWellControlLive()}
+function resetWcTracking(){wcProfileState={tracking:false,startPumpVol:liveTotalPumpedVolume()};saveWcProfileState();updateWellControlLive()}
+loadTrajectoryMode();
+q("wp_trajectory_type")?.addEventListener("change",()=>{saveTrajectoryMode();updateProfile();renderFluidList();updateWellControlLive();if(typeof clonePlotForZoom==="function")clonePlotForZoom()});
+if(q("wcTrackStartBtn"))q("wcTrackStartBtn").onclick=startWcTracking;
+if(q("wcTrackResetBtn"))q("wcTrackResetBtn").onclick=resetWcTracking;
+if(q("wcSyncGeometryBtn"))q("wcSyncGeometryBtn").onclick=()=>syncWellControlGeometry(true);
+if(q("wcPullProfileBtn"))q("wcPullProfileBtn").onclick=()=>syncWellControlGeometry(true);
+q("wcProfileOverlay")?.addEventListener("change",updateWellControlLive);
+q("wcUseGeometry")?.addEventListener("change",()=>{if(q("wcUseGeometry").checked)syncWellControlGeometry(true);updateWellControlLive()});
+["wp_bit","wp_output","wp_spm"].forEach(id=>q(id)?.addEventListener("input",()=>{refreshWcGeometrySummary();updateWellControlLive()}));
+["wc2_gain","wc2_mw","wc2_sidpp","wc2_scr","wc2_shoe_tvd"].forEach(id=>q(id)?.addEventListener("input",updateWellControlLive));
+q("wc2_method")?.addEventListener("change",updateWellControlLive);
+setInterval(()=>{if(q("wellprofile")?.classList.contains("active"))updateWellControlLive()},1000);
+refreshWcGeometrySummary();syncWellControlGeometry(false);updateWellControlLive();

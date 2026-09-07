@@ -15,7 +15,7 @@
 <body>
   <header class="app-header">
     <div>
-      <span class="eyebrow">VERSION 1.8.1</span>
+      <span class="eyebrow">VERSION 1.9</span>
       <h1>RigCalc Pro</h1>
       <p>Professional drilling calculations, simplified.</p>
     </div>
@@ -113,6 +113,21 @@
           <label>Drill-string internal volume to bit <span>m³</span><input id="wc2_stringvol" type="number" value="31.0"></label>
           <label>Annular volume bit → surface <span>m³</span><input id="wc2_annvol" type="number" value="55.0"></label>
         </div>
+      </div>
+
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Live Well Profile geometry</strong><small>Pull current MD/TVD, drill-string volume and annular volume from the profile.</small></div>
+          <button id="wcPullProfileBtn">Pull from profile</button>
+        </div>
+        <div class="wc-geometry-summary">
+          <div><span>Profile bit MD</span><strong id="wcGeomMd">—</strong><em>m</em></div>
+          <div><span>Profile TVD</span><strong id="wcGeomTvd">—</strong><em>m</em></div>
+          <div><span>String volume</span><strong id="wcGeomString">—</strong><em>m³</em></div>
+          <div><span>Annular volume</span><strong id="wcGeomAnn">—</strong><em>m³</em></div>
+        </div>
+        <p class="live-note">When geometry sync is enabled on Live Well Profile, these values stay synchronized automatically.</p>
       </div>
 
       <div class="results">
@@ -508,6 +523,21 @@
         <div><span>Formation at front</span><strong id="wp_front_formation">—</strong><em></em></div>
       </div>
 
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Well trajectory display</strong><small>Choose a straight vertical display or use the directional survey for a deviated / horizontal profile.</small></div>
+        </div>
+        <div class="input-card embedded">
+          <label>Trajectory type <span>display</span>
+            <select id="wp_trajectory_type">
+              <option value="deviated">Deviated / Horizontal</option>
+              <option value="vertical">Vertical</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
       <div class="profile-card profile-clickable" id="wellPlotCard">
         <div class="profile-toolbar">
           <div><strong>Well trajectory</strong><small>Blue marker is the calculated returns front. Tap plot for full-screen view.</small></div>
@@ -517,6 +547,7 @@
           <rect x="0" y="0" width="700" height="430" class="svg-bg"></rect>
           <g id="formationBands"></g>
           <polyline id="wellPath" points="" class="well-path"></polyline>
+          <g id="wellControlMarkers"></g>
           <g id="fluidMarkers"></g>
           <circle id="bitMarker" r="8" class="bit-marker"></circle>
           <circle id="frontMarker" r="9" class="front-marker"></circle>
@@ -526,6 +557,7 @@
           <span><i class="legend-bit"></i> Bit</span>
           <span><i class="legend-front"></i> Returns front</span>
           <span><i class="legend-formation"></i> Formations</span>
+          <span><i class="legend-wc"></i> Well control</span>
         </div>
       </div>
 
@@ -544,6 +576,34 @@
       </div>
 
       
+
+      <div class="wc-live-card">
+        <div class="live-head">
+          <div><span class="live-kicker">WELL CONTROL LIVE</span><strong id="wcLiveState">Not tracking</strong></div>
+          <span id="wcLivePulse" class="live-pulse paused"></span>
+        </div>
+        <div class="wc-live-toggle">
+          <label><input id="wcProfileOverlay" type="checkbox" checked> Show well-control overlay on profile</label>
+          <label><input id="wcUseGeometry" type="checkbox" checked> Use Live Well Profile geometry in Well Control</label>
+        </div>
+        <div class="live-stats wc-live-stats">
+          <div><span>Influx front</span><strong id="wcInfluxFrontLive">—</strong></div>
+          <div><span>Influx tail</span><strong id="wcInfluxTailLive">—</strong></div>
+          <div><span>Influx formation</span><strong id="wcInfluxFormationLive">—</strong></div>
+          <div><span>Kill mud front</span><strong id="wcKillFrontLive">—</strong></div>
+          <div><span>Kill mud phase</span><strong id="wcKillPhaseLive">—</strong></div>
+          <div><span>Target pump pressure</span><strong id="wcTargetPressureLive">—</strong></div>
+          <div><span>Strokes since WC start</span><strong id="wcStrokesLive">0</strong></div>
+          <div><span>MAASP</span><strong id="wcMaaspLive">—</strong></div>
+        </div>
+        <div class="live-actions">
+          <button id="wcTrackStartBtn" class="live-start">▶ Start WC tracking</button>
+          <button id="wcTrackResetBtn" class="live-reset">↺ Reset WC tracking</button>
+          <button id="wcSyncGeometryBtn">Sync geometry now</button>
+        </div>
+        <p class="live-note">Start WC tracking at the circulation reference point you want to use. It shares the Circulate Live pumped-volume counter and uses the detailed drill-string / annular geometry.</p>
+      </div>
+
       <div class="fluid-card">
         <div class="fluid-head">
           <div>
