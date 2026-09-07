@@ -1,15 +1,16 @@
-RigCalc Pro Version 1.8
+RigCalc Pro Version 1.8.1
 
-New in v1.8 — Advanced Well Control
-- Shut-in / kick data inputs: mud density, TVD/MD, SIDPP, SICP, pit gain, SCR, pump output, drill-string and annular volumes
-- Kill mud density and SG
-- ICP and FCP
-- Strokes and circulation time surface-to-bit, bit-to-surface and total
-- MAASP / shoe-limit section using shoe TVD and LOT/FIT equivalent density
-- Working-MAASP limit check
-- Driller's Method and Wait & Weight kill-sheet schedule generation
-- Influx height/top estimate from entered pit gain and representative annular capacity
-- Saved well-control job inputs
+Fixes:
+- Live Cement Job now follows every programmed pumping stage in sequence.
+- Each stage uses its own programmed volume and rate.
+- Current stage shows pumped / planned volume.
+- ETA includes all remaining programmed stages.
+- New live-state key prevents old saved elapsed time from jumping straight to Displacement.
+- Slow-rate warning activates only during a stage named Displacement.
+- Displacement-front tracking starts only when the job reaches a displacement stage.
 
-Important:
-This is a calculation/checking aid only. It does not replace certified well-control training, operator/company procedures, approved kill sheets, choke schedules, actual rig instrumentation or verified casing/shoe limits. All inputs and outputs must be independently validated before operational use.
+Live Well Profile:
+- Added % over hole to each hole / annulus section.
+- Bottoms-up, returns-front, remaining annular volume, ETA, and fluid tracking use the adjusted annular volume.
+- 0% = geometric annular volume; positive values increase volume for washout/enlargement.
+- Existing saved intervals default to 0% until edited.

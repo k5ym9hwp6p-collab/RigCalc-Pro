@@ -85,3 +85,5 @@ h2{margin:20px 0 12px}.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:
 
 #wc2MaaspStatusBox.status-good{background:var(--good)!important;border-color:#63a663!important}
 #wc2MaaspStatusBox.status-bad{background:var(--bad)!important;border-color:#d44!important}
+
+.model-note{margin:9px 0 0;color:var(--muted);font-size:.78rem;line-height:1.35}
