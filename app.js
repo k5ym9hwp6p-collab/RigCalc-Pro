@@ -842,3 +842,199 @@ q("wcUseGeometry")?.addEventListener("change",()=>{if(q("wcUseGeometry").checked
 q("wc2_method")?.addEventListener("change",updateWellControlLive);
 setInterval(()=>{if(q("wellprofile")?.classList.contains("active"))updateWellControlLive()},1000);
 refreshWcGeometrySummary();syncWellControlGeometry(false);updateWellControlLive();
+
+
+// ===== RigCalc Pro v1.10: Trip Pill / Weighted Pill Balance =====
+const TRIP_PILL_KEY="rigcalc-trip-pill-v110";
+const tripPillFields=["pill_mud_density","pill_density","pill_volume","pill_bit_md","pill_stand_len","pill_output","pill_use_profile"];
+
+function saveTripPill(){
+  const d={};
+  tripPillFields.forEach(id=>{
+    const el=q(id); if(!el)return;
+    d[id]=el.type==="checkbox"?el.checked:el.value;
+  });
+  localStorage.setItem(TRIP_PILL_KEY,JSON.stringify(d));
+}
+function loadTripPill(){
+  try{
+    const d=JSON.parse(localStorage.getItem(TRIP_PILL_KEY)||"{}");
+    Object.entries(d).forEach(([id,v])=>{
+      const el=q(id);if(!el)return;
+      if(el.type==="checkbox")el.checked=!!v;else el.value=v;
+    });
+  }catch(e){}
+}
+function tvdForPill(md){
+  return interpTVD(Math.max(0,md));
+}
+function stringCapacityAtMD(md){
+  const s=[...stringData].sort((a,b)=>a.from-b.from).find(x=>md>=Number(x.from)&&md<Number(x.to));
+  return s?stringCapM3m(Number(s.id)||0):0;
+}
+function stringVolumeBetween(fromMD,toMD){
+  const a=Math.max(0,Math.min(fromMD,toMD)),b=Math.max(fromMD,toMD);
+  let vol=0;
+  for(const s of [...stringData].sort((x,y)=>x.from-y.from)){
+    const lo=Math.max(a,Number(s.from)||0),hi=Math.min(b,Number(s.to)||0);
+    if(hi>lo)vol+=(hi-lo)*stringCapM3m(Number(s.id)||0);
+  }
+  return vol;
+}
+function mdAfterStringVolume(startMD,volume,bitMD){
+  let remaining=Math.max(0,volume),pos=Math.max(0,startMD);
+  const end=Math.max(pos,bitMD);
+  const sections=[...stringData].sort((a,b)=>a.from-b.from);
+  for(const s of sections){
+    const lo=Math.max(pos,Number(s.from)||0),hi=Math.min(end,Number(s.to)||0);
+    if(hi<=lo)continue;
+    const cap=stringCapM3m(Number(s.id)||0),sv=(hi-lo)*cap;
+    if(remaining<=sv+.000000001)return lo+(cap?remaining/cap:0);
+    remaining-=sv;pos=hi;
+  }
+  return null;
+}
+function tripPillResidual(topMD,vol,bitMD,mudD,pillD){
+  const bottom=mdAfterStringVolume(topMD,vol,bitMD);
+  if(bottom===null)return null;
+  const topT=tvdForPill(topMD),bottomT=tvdForPill(bottom);
+  return{
+    bottom,
+    topT,
+    bottomT,
+    residual:mudD*topT-(pillD-mudD)*(bottomT-topT)
+  };
+}
+function solveTripPill(){
+  const useProfile=q("pill_use_profile")?.checked;
+  const bitMD=Math.max(0,useProfile?n("wp_bit"):n("pill_bit_md"));
+  const mudD=Math.max(0,n("pill_mud_density")),pillD=Math.max(0,n("pill_density")),vol=Math.max(0,n("pill_volume"));
+  const stand=Math.max(.001,n("pill_stand_len")),out=Math.max(.000001,n("pill_output"));
+  const totalString=detailedPipeVolumeToBit(bitMD);
+  const initialBottom=mdAfterStringVolume(0,vol,bitMD);
+  let result={status:"",detail:"",kind:"warn",bitMD,mudD,pillD,vol,totalString,initialBottom,balanced:false,top:0,bottom:initialBottom||0};
+
+  if(bitMD<=0||mudD<=0||pillD<=0||vol<=0){
+    result.status="Need valid inputs";result.detail="Enter positive bit depth, mud density, pill density and pill volume.";result.kind="warn";return result;
+  }
+  if(vol>totalString+.000001||initialBottom===null){
+    result.status="Pill volume exceeds string capacity";
+    result.detail=`Pill volume ${vol.toFixed(3)} m³ is greater than the modeled string capacity to bit (${totalString.toFixed(3)} m³).`;
+    result.kind="bad";return result;
+  }
+  if(pillD<=mudD){
+    result.status="No positive weighted-pill drop";
+    result.detail="Pill density must be greater than active mud density for this dry-pipe balance model.";
+    result.kind="warn";return result;
+  }
+
+  // Root of: mud density × TVD(top) = density difference × vertical pill height.
+  // Find the largest top MD for which the full pill still fits above the bit.
+  let maxTop=bitMD;
+  // Binary-search max top that can still contain the pill volume before bit.
+  let loFit=0,hiFit=bitMD;
+  for(let i=0;i<70;i++){
+    const mid=(loFit+hiFit)/2;
+    if(mdAfterStringVolume(mid,vol,bitMD)!==null)loFit=mid;else hiFit=mid;
+  }
+  maxTop=loFit;
+
+  const f0=tripPillResidual(0,vol,bitMD,mudD,pillD);
+  const f1=tripPillResidual(maxTop,vol,bitMD,mudD,pillD);
+  if(!f0||!f1){
+    result.status="Geometry solution unavailable";result.detail="Check detailed drill-string sections for gaps or invalid IDs.";result.kind="bad";return result;
+  }
+
+  // At surface the residual should normally be negative for a weighted pill.
+  // Balance is reached when residual crosses zero.
+  if(f1.residual<0){
+    result.status="Balance not reached before pill reaches bit";
+    result.detail="The modeled string does not provide enough TVD / internal volume for this pill to hydrostatically balance before its bottom reaches the bit.";
+    result.kind="bad";result.top=maxTop;result.bottom=f1.bottom;return result;
+  }
+
+  let low=0,high=maxTop;
+  for(let i=0;i<80;i++){
+    const mid=(low+high)/2;
+    const r=tripPillResidual(mid,vol,bitMD,mudD,pillD);
+    if(!r)high=mid;
+    else if(r.residual<0)low=mid;
+    else high=mid;
+  }
+  const top=(low+high)/2;
+  const r=tripPillResidual(top,vol,bitMD,mudD,pillD);
+  result.balanced=true;result.top=top;result.bottom=r.bottom;
+  result.topT=r.topT;result.bottomT=r.bottomT;
+  result.status="Static balance found";
+  result.detail="Balanced pill position solved from the detailed string capacity and survey TVD.";
+  result.kind="good";
+  return result;
+}
+function setPillText(id,value,d=1){
+  const el=q(id);if(!el)return;
+  el.textContent=Number.isFinite(value)?Number(value).toFixed(d):"—";
+}
+function renderTripPillSchematic(r){
+  const rect=q("pillSlugRect"),level=q("pillFluidLevel"),topLab=q("pillTopLabel"),botLab=q("pillBottomLabel"),bitLab=q("pillBitLabel");
+  if(!rect||!level)return;
+  const bit=Math.max(1,r.bitMD||1);
+  const top=Math.max(0,Math.min(bit,r.top||0)),bottom=Math.max(top,Math.min(bit,r.bottom||top));
+  const y=m=>35+(m/bit)*350;
+  const yt=y(top),yb=y(bottom);
+  rect.setAttribute("y",yt);rect.setAttribute("height",Math.max(5,yb-yt));
+  level.setAttribute("y1",yt);level.setAttribute("y2",yt);
+  topLab.setAttribute("y",Math.max(45,yt+4));topLab.textContent=`Top ${top.toFixed(0)} m MD`;
+  botLab.setAttribute("y",Math.min(395,yb+4));botLab.textContent=`Bottom ${bottom.toFixed(0)} m MD`;
+  bitLab.textContent=`Bit ${bit.toFixed(0)} m MD`;
+}
+function updateTripPill(){
+  if(q("pill_use_profile")?.checked){
+    q("pill_bit_md").value=Math.max(0,n("wp_bit")).toFixed(0);
+    q("pill_output").value=Math.max(0,n("wp_output")).toFixed(4);
+  }
+  const bit=Math.max(0,n("pill_bit_md")),tvd=interpTVD(bit),stringVol=detailedPipeVolumeToBit(bit);
+  if(q("pillGeomMd"))q("pillGeomMd").textContent=bit.toFixed(0);
+  if(q("pillGeomTvd"))q("pillGeomTvd").textContent=tvd.toFixed(0);
+  if(q("pillGeomVol"))q("pillGeomVol").textContent=stringVol.toFixed(3);
+  if(q("pillGeomType"))q("pillGeomType").textContent=trajectoryMode()==="vertical"?"Vertical display / survey TVD calc":"Deviated / Horizontal";
+
+  const r=solveTripPill(),status=q("pillStatusCard");
+  if(status){status.classList.remove("good","warn","bad");status.classList.add(r.kind)}
+  if(q("pillStatus"))q("pillStatus").textContent=r.status;
+  if(q("pillStatusDetail"))q("pillStatusDetail").textContent=r.detail;
+
+  const strokes=r.vol/Math.max(.000001,n("pill_output"));
+  setPillText("r_pill_strokes",strokes,0);
+  setPillText("r_pill_initial_bottom",r.initialBottom,0);
+
+  if(r.balanced){
+    const length=r.bottom-r.top,drop=r.top,stands=drop/Math.max(.001,n("pill_stand_len")),whole=Math.floor(stands),remainder=drop-whole*Math.max(.001,n("pill_stand_len"));
+    setPillText("r_pill_top_md",r.top,0);setPillText("r_pill_bottom_md",r.bottom,0);setPillText("r_pill_length_md",length,0);
+    setPillText("r_pill_drop_md",drop,1);setPillText("r_pill_dry_stands",stands,2);setPillText("r_pill_whole_stands",whole,0);setPillText("r_pill_remainder",remainder,1);
+    setPillText("r_pill_top_tvd",r.topT,0);setPillText("r_pill_bottom_tvd",r.bottomT,0);
+    const initBottomT=tvdForPill(r.initialBottom||0);
+    const initialDp=(r.pillD-r.mudD)*9.80665*initBottomT/1000;
+    setPillText("r_pill_initial_dp",initialDp,0);
+  }else{
+    ["r_pill_top_md","r_pill_bottom_md","r_pill_length_md","r_pill_drop_md","r_pill_dry_stands","r_pill_whole_stands","r_pill_remainder","r_pill_top_tvd","r_pill_bottom_tvd"].forEach(id=>{if(q(id))q(id).textContent="—"});
+    const initBottomT=r.initialBottom!==null&&r.initialBottom!==undefined?tvdForPill(r.initialBottom):0;
+    const initialDp=(r.pillD-r.mudD)*9.80665*initBottomT/1000;
+    setPillText("r_pill_initial_dp",initialDp,0);
+  }
+  renderTripPillSchematic(r);
+  saveTripPill();
+}
+function pullTripPillFromProfile(){
+  if(q("pill_use_profile"))q("pill_use_profile").checked=true;
+  if(q("pill_bit_md"))q("pill_bit_md").value=Math.max(0,n("wp_bit")).toFixed(0);
+  if(q("pill_output"))q("pill_output").value=Math.max(0,n("wp_output")).toFixed(4);
+  updateTripPill();
+}
+loadTripPill();
+tripPillFields.forEach(id=>{
+  const el=q(id);if(!el)return;
+  el.addEventListener(el.type==="checkbox"?"change":"input",updateTripPill);
+});
+if(q("pillPullProfileBtn"))q("pillPullProfileBtn").onclick=pullTripPillFromProfile;
+["wp_bit","wp_output"].forEach(id=>q(id)?.addEventListener("input",()=>{if(q("pill_use_profile")?.checked)updateTripPill()}));
+updateTripPill();

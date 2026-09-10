@@ -15,7 +15,7 @@
 <body>
   <header class="app-header">
     <div>
-      <span class="eyebrow">VERSION 1.9</span>
+      <span class="eyebrow">VERSION 1.10</span>
       <h1>RigCalc Pro</h1>
       <p>Professional drilling calculations, simplified.</p>
     </div>
@@ -41,6 +41,7 @@
         <button class="tool-card" data-open="mpd"><b>🔵</b><span>MPD</span><small>BHP, ECD & window</small></button>
         <button class="tool-card" data-open="cementing"><b>🛢</b><span>Cementing</span><small>Volumes & sacks</small></button>
         <button class="tool-card" data-open="trip"><b>📋</b><span>Trip Sheet</span><small>Fill & tank check</small></button>
+        <button class="tool-card" data-open="trippill"><b>🧪</b><span>Trip Pill</span><small>Weighted pill balance & dry pipe</small></button>
         <button class="tool-card featured" data-open="wellprofile"><b>🧭</b><span>Well Profile</span><small>Live bottoms-up & formations</small></button>
         <button class="tool-card" data-open="bithydraulics"><b>💦</b><span>Bit Hydraulics</span><small>Jets, TFA & nozzle performance</small></button>
         <button class="tool-card" data-open="mudmotor"><b>🌀</b><span>Mud Motor</span><small>RPM, differential & performance</small></button>
@@ -408,6 +409,85 @@
         <div><span>Expected tank volume</span><strong id="r_trip_expected">—</strong><em>m³</em></div>
         <div><span>Observed change</span><strong id="r_trip_change">—</strong><em>m³</em></div>
         <div id="trip_status_box"><span>Observed vs expected</span><strong id="r_trip_diff">—</strong><em>m³</em></div>
+      </div>
+    </section>
+
+
+    <section id="trippill" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Trip Pill</h2><p>Weighted pill balance & dry-pipe estimate</p></div></div>
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Geometry source</strong><small>Use the detailed drill-string IDs and directional survey already entered in Live Well Profile.</small></div>
+          <button id="pillPullProfileBtn">Pull from profile</button>
+        </div>
+        <div class="pill-toggle">
+          <label><input id="pill_use_profile" type="checkbox" checked> Use Live Well Profile geometry</label>
+        </div>
+        <div class="pill-geometry-summary">
+          <div><span>Bit depth</span><strong id="pillGeomMd">—</strong><em>m MD</em></div>
+          <div><span>Bit TVD</span><strong id="pillGeomTvd">—</strong><em>m TVD</em></div>
+          <div><span>String capacity</span><strong id="pillGeomVol">—</strong><em>m³</em></div>
+          <div><span>Trajectory</span><strong id="pillGeomType">—</strong><em></em></div>
+        </div>
+      </div>
+
+      <div class="input-card">
+        <label>Active mud density <span>kg/m³</span><input id="pill_mud_density" type="number" inputmode="decimal" value="1200"></label>
+        <label>Pill density <span>kg/m³</span><input id="pill_density" type="number" inputmode="decimal" value="1600"></label>
+        <label>Pill volume <span>m³</span><input id="pill_volume" type="number" inputmode="decimal" value="2.0"></label>
+        <label>Bit depth <span>m MD</span><input id="pill_bit_md" type="number" inputmode="decimal" value="3978"></label>
+        <label>Stand length <span>m</span><input id="pill_stand_len" type="number" inputmode="decimal" value="28.5"></label>
+        <label>Pump output <span>m³/stk</span><input id="pill_output" type="number" inputmode="decimal" value="0.0315"></label>
+      </div>
+
+      <div id="pillStatusCard" class="pill-status-card">
+        <span>Balance status</span>
+        <strong id="pillStatus">—</strong>
+        <p id="pillStatusDetail">Enter verified mud, pill and string data.</p>
+      </div>
+
+      <div class="results">
+        <div><span>Pill strokes</span><strong id="r_pill_strokes">—</strong><em>strokes</em></div>
+        <div><span>Initial pill bottom</span><strong id="r_pill_initial_bottom">—</strong><em>m MD</em></div>
+        <div><span>Balanced fluid level / pill top</span><strong id="r_pill_top_md">—</strong><em>m MD</em></div>
+        <div><span>Balanced pill bottom</span><strong id="r_pill_bottom_md">—</strong><em>m MD</em></div>
+        <div><span>Pill length at balance</span><strong id="r_pill_length_md">—</strong><em>m MD</em></div>
+        <div><span>Dry-pipe drop</span><strong id="r_pill_drop_md">—</strong><em>m MD</em></div>
+        <div><span>Dry stands</span><strong id="r_pill_dry_stands">—</strong><em>stands</em></div>
+        <div><span>Dry whole stands</span><strong id="r_pill_whole_stands">—</strong><em>stands</em></div>
+        <div><span>Remainder after whole stands</span><strong id="r_pill_remainder">—</strong><em>m</em></div>
+        <div><span>Pill top TVD</span><strong id="r_pill_top_tvd">—</strong><em>m TVD</em></div>
+        <div><span>Pill bottom TVD</span><strong id="r_pill_bottom_tvd">—</strong><em>m TVD</em></div>
+        <div><span>Initial hydrostatic excess</span><strong id="r_pill_initial_dp">—</strong><em>kPa</em></div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Balanced pill schematic</strong><small>Not to scale laterally. Depth positions follow the calculated MD/TVD model.</small></div></div>
+        <svg id="pillSvg" viewBox="0 0 700 420" class="pill-svg">
+          <rect x="0" y="0" width="700" height="420" class="svg-bg"></rect>
+          <line x1="210" y1="35" x2="210" y2="385" class="pill-annulus-line"></line>
+          <line x1="490" y1="35" x2="490" y2="385" class="pill-string-line"></line>
+          <text x="155" y="24" class="pill-svg-heading">Annulus</text>
+          <text x="443" y="24" class="pill-svg-heading">Drill string</text>
+          <rect id="pillSlugRect" x="465" y="100" width="50" height="100" rx="10" class="pill-slug"></rect>
+          <line id="pillFluidLevel" x1="445" y1="100" x2="535" y2="100" class="pill-level-line"></line>
+          <text id="pillTopLabel" x="545" y="105" class="pill-svg-label">Pill top</text>
+          <text id="pillBottomLabel" x="545" y="205" class="pill-svg-label">Pill bottom</text>
+          <text id="pillSurfaceLabel" x="30" y="52" class="pill-svg-muted">Surface</text>
+          <text id="pillBitLabel" x="30" y="385" class="pill-svg-muted">Bit</text>
+        </svg>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Calculation basis</strong><small>Useful for weighted pills / slugs intended to lower the fluid level inside the drill string before pulling pipe.</small></div></div>
+        <p class="pill-explain">RigCalc solves hydrostatic balance using the fixed pill volume, actual variable drill-string ID sections, and the directional survey TVD. At balance, the missing active-mud head above the pill equals the pill’s extra hydrostatic head relative to the active mud.</p>
+        <div class="formula-box">ρmud × TVDtop = (ρpill − ρmud) × (TVDbottom − TVDtop)</div>
+      </div>
+
+      <div class="disclaimer danger">
+        <strong>Trip-pill limitation</strong>
+        <p>This is a static hydrostatic balance estimate only. It does not model gel strength, pipe restrictions, tool joints, float valves, trapped pressure, compressibility, temperature, dynamic U-tubing, swab/surge, losses, influx, or actual pill mixing quality. Use verified field volumes/densities, the approved drilling program and site procedures before operational decisions.</p>
       </div>
     </section>
 
