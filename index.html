@@ -13,32 +13,25 @@
   <title>RigCalc Pro Beta</title>
 </head>
 <body>
-  <header class="app-header">
-    <div>
-      <span class="eyebrow">BETA 1.01</span>
-      <h1>RigCalc Pro</h1>
-      <p>Core drilling calculations. Fast, clear, field-ready.</p>
+  <header class="app-header hero-header">
+    <div class="hero-shade"></div>
+    <div class="hero-content">
+      <span class="eyebrow">BETA 1.02</span>
+      <h1><span>RigCalc</span> <b>Pro</b></h1>
+      <div class="hero-rule"></div>
+      <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
+      <p>Core drilling calculations.<br>Fast. Clear. Field-ready.</p>
+      <div class="hero-offline">
+        <svg class="status-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16.5a3.5 3.5 0 0 1 .8-6.9A6.5 6.5 0 0 1 18.2 8a4.25 4.25 0 0 1 .8 8.42"/><path d="M8 17h8M12 13v7m-2.5-2.5L12 20l2.5-2.5"/></svg>
+        <span>OFFLINE READY</span>
+      </div>
     </div>
-    <button id="themeBtn" class="icon-btn" aria-label="Toggle dark mode">◐</button>
+    <div class="hero-field-mark">BUILT<br>FOR THE<br>FIELD</div>
+    <button id="themeBtn" class="icon-btn hero-theme" aria-label="Toggle dark mode">◐</button>
   </header>
 
   <main>
     <section id="dashboard" class="screen active beta-dashboard">
-      <div class="beta-status-compact" aria-label="Offline status">
-        <div class="offline-badge">
-          <svg class="status-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16.5a3.5 3.5 0 0 1 .8-6.9A6.5 6.5 0 0 1 18.2 8a4.25 4.25 0 0 1 .8 8.42"/><path d="M8 17h8M12 13v7m-2.5-2.5L12 20l2.5-2.5"/></svg>
-          <span>OFFLINE READY</span>
-        </div>
-        <span class="device-save-note">Saves on this device</span>
-        <button id="installHelpBtn" class="install-link">Install</button>
-      </div>
-
-      <div class="beta-intro">
-        <span class="beta-kicker">FIELD CALCULATOR</span>
-        <h2>What do you need?</h2>
-        <p>Fast access to the calculations used most often on the rig.</p>
-      </div>
-
       <div class="tool-grid beta-core-grid">
         <button class="tool-card beta-core-card" data-open="capacities"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M10 30 29 11l9 9-19 19H10z"/><path d="m28 12 8 8M12 30l7 7M17 25l6 6"/><circle cx="15" cy="34" r="3.5"/></svg><span>Capacities</span><small>Hole, pipe, annulus & displacement</small></button>
         <button class="tool-card beta-core-card" data-open="pump"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 17h20v17H14zM18 12h12v5H18zM8 21h6v9H8zM34 21h6v9h-6z"/><path d="M18 34v4h12v-4M20 22h8m-8 5h8"/></svg><span>Pumps & Circulation</span><small>Output, strokes & bottoms-up</small></button>
