@@ -1,8 +1,8 @@
-RigCalc Pro — Beta 1.03
+RigCalc Pro — Beta 1.04
 
 Based on RigCalc Pro v1.10.
 
-Beta 1.03 objective
+Beta 1.04 objective
 - Simplify the first-use experience without changing the underlying calculation engines.
 - Put the most frequently used field tools on the home screen.
 - Preserve the complete v1.10 feature set under a cleaner navigation structure.
@@ -21,11 +21,13 @@ Advanced Tools
 - Mud Motor
 
 Technical note
-- app.js is unchanged from v1.10 in this Beta 1.03 navigation pass.
+- app.js is unchanged from v1.10 in this Beta 1.04 navigation pass.
 - The service-worker cache key was changed so the Beta does not reuse a stale v1.10 shell.
 - Calculation validation and Show Calculation/explainability are separate later beta steps.
 
 Safety
 RigCalc Pro is a field calculation aid. Verify critical calculations independently and follow approved company, operator, well-control and MPD procedures.
 
-Beta 1.03 UI update: compact Offline Ready status and RigCalc-style SVG line icons. Recent Jobs intentionally not included. Calculation engine unchanged from v1.10.
+Beta 1.04 UI update: compact Offline Ready status and RigCalc-style SVG line icons. Recent Jobs intentionally not included. Calculation engine unchanged from v1.10.
+
+Beta 1.04 hotfix: restored the installHelpBtn UI hook by assigning it to the compact Offline Ready badge. This prevents startup JavaScript from aborting before load()/all() and restores calculation outputs. No calculation formulas changed.
