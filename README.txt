@@ -1,45 +1,29 @@
-RigCalc Pro Version 1.10
+RigCalc Pro — Beta 1.0
 
-New — Trip Pill / Weighted Pill Balance
+Based on RigCalc Pro v1.10.
 
-Purpose
-- Estimate how far a weighted pill / slug can lower the fluid level inside the drill string before static hydrostatic balance.
-- Designed as a planning/checking aid for tripping out of hole and estimating dry pipe.
+Beta 1.0 objective
+- Simplify the first-use experience without changing the underlying calculation engines.
+- Put the most frequently used field tools on the home screen.
+- Preserve the complete v1.10 feature set under a cleaner navigation structure.
 
-Inputs
-- Active mud density
-- Pill density
-- Pill volume
-- Current bit MD
-- Stand length
-- Pump output
-- Optional direct link to Live Well Profile geometry
+Core home-screen tools
+- Capacities
+- Pumps & Circulation
+- Tripping (Trip Sheet + Trip Pill)
+- Well Control
+- Live Well Profile
 
-Geometry integration
-- Uses the detailed drill-string internal diameter sections already entered in Live Well Profile.
-- Uses the directional survey TVD for hydrostatic balance.
-- Handles changing internal capacities as the pill moves through drill pipe / HWDP / collars / BHA.
-- Can pull current bit depth and pump output from Live Well Profile.
+Advanced Tools
+- MPD
+- Cementing
+- Bit Hydraulics
+- Mud Motor
 
-Outputs
-- Pill strokes
-- Initial pill bottom
-- Balanced fluid level / pill top
-- Balanced pill bottom
-- Pill MD length at balance
-- Dry-pipe drop in metres
-- Dry stands, whole stands and remaining metres
-- Pill top/bottom TVD
-- Initial hydrostatic excess
-- Static balance status and schematic
+Technical note
+- app.js is unchanged from v1.10 in this Beta 1.0 navigation pass.
+- The service-worker cache key was changed so the Beta does not reuse a stale v1.10 shell.
+- Calculation validation and Show Calculation/explainability are separate later beta steps.
 
-Calculation basis
-RigCalc solves:
-mud density × TVD(top)
-=
-(pill density − mud density) × [TVD(bottom) − TVD(top)]
-
-The pill bottom is solved from fixed pill volume through the actual variable drill-string internal capacities.
-
-Important limitations
-This is a static hydrostatic estimate only. It does not model gel strength, restrictions, float valves, trapped pressure, compressibility, temperature, dynamic U-tubing, swab/surge, losses, influx, or pill mixing quality. Verify against approved drilling procedures and field measurements before operational use.
+Safety
+RigCalc Pro is a field calculation aid. Verify critical calculations independently and follow approved company, operator, well-control and MPD procedures.

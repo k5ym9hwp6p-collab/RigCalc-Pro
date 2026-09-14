@@ -10,46 +10,72 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
-  <title>RigCalc Pro</title>
+  <title>RigCalc Pro Beta</title>
 </head>
 <body>
   <header class="app-header">
     <div>
-      <span class="eyebrow">VERSION 1.10</span>
+      <span class="eyebrow">BETA 1.0</span>
       <h1>RigCalc Pro</h1>
-      <p>Professional drilling calculations, simplified.</p>
+      <p>Core drilling calculations. Fast, clear, field-ready.</p>
     </div>
     <button id="themeBtn" class="icon-btn" aria-label="Toggle dark mode">◐</button>
   </header>
 
   <main>
-    <section id="dashboard" class="screen active">
-      <div class="status-card">
+    <section id="dashboard" class="screen active beta-dashboard">
+      <div class="status-card beta-status">
         <div>
           <span class="status-dot"></span>
-          <strong>Offline ready</strong>
-          <p>Inputs save on this device.</p>
+          <strong>Beta 1.0 • Offline ready</strong>
+          <p>Core drilling tools, simplified. Inputs save on this device.</p>
         </div>
         <button id="installHelpBtn">Install</button>
       </div>
 
-      <h2>Rig Tools</h2>
-      <div class="tool-grid">
-        <button class="tool-card" data-open="capacities"><b>📏</b><span>Capacities</span><small>Volumes & displacement</small></button>
-        <button class="tool-card" data-open="pump"><b>🔧</b><span>Pumps</span><small>Output & bottoms-up</small></button>
-        <button class="tool-card" data-open="wellcontrol"><b>🚨</b><span>Well Control</span><small>Hydrostatic & kill density</small></button>
-        <button class="tool-card" data-open="mpd"><b>🔵</b><span>MPD</span><small>BHP, ECD & window</small></button>
-        <button class="tool-card" data-open="cementing"><b>🛢</b><span>Cementing</span><small>Volumes & sacks</small></button>
-        <button class="tool-card" data-open="trip"><b>📋</b><span>Trip Sheet</span><small>Fill & tank check</small></button>
-        <button class="tool-card" data-open="trippill"><b>🧪</b><span>Trip Pill</span><small>Weighted pill balance & dry pipe</small></button>
-        <button class="tool-card featured" data-open="wellprofile"><b>🧭</b><span>Well Profile</span><small>Live bottoms-up & formations</small></button>
-        <button class="tool-card" data-open="bithydraulics"><b>💦</b><span>Bit Hydraulics</span><small>Jets, TFA & nozzle performance</small></button>
-        <button class="tool-card" data-open="mudmotor"><b>🌀</b><span>Mud Motor</span><small>RPM, differential & performance</small></button>
+      <div class="beta-intro">
+        <span class="beta-kicker">FIELD CALCULATOR</span>
+        <h2>What do you need?</h2>
+        <p>Fast access to the calculations used most often on the rig.</p>
       </div>
+
+      <div class="tool-grid beta-core-grid">
+        <button class="tool-card beta-core-card" data-open="capacities"><b>📏</b><span>Capacities</span><small>Hole, pipe, annulus & displacement</small></button>
+        <button class="tool-card beta-core-card" data-open="pump"><b>🔧</b><span>Pumps & Circulation</span><small>Output, strokes & bottoms-up</small></button>
+        <button class="tool-card beta-core-card" data-open="trippinghub"><b>📋</b><span>Tripping</span><small>Trip sheet, fill checks & Trip Pill</small></button>
+        <button class="tool-card beta-core-card" data-open="wellcontrol"><b>🚨</b><span>Well Control</span><small>Hydrostatic, kill density & pressure checks</small></button>
+        <button class="tool-card featured beta-profile-card" data-open="wellprofile"><b>🧭</b><span>Live Well Profile</span><small>Trajectory, formations, fluids & live returns tracking</small><em>FEATURED</em></button>
+      </div>
+
+      <details class="advanced-tools">
+        <summary><span>Advanced Tools</span><small>MPD, cementing, hydraulics & motors</small></summary>
+        <div class="tool-grid advanced-grid">
+          <button class="tool-card compact-tool-card" data-open="mpd"><b>🔵</b><span>MPD</span><small>BHP, ECD & window</small></button>
+          <button class="tool-card compact-tool-card" data-open="cementing"><b>🛢</b><span>Cementing</span><small>Planning & displacement</small></button>
+          <button class="tool-card compact-tool-card" data-open="bithydraulics"><b>💦</b><span>Bit Hydraulics</span><small>Jets, TFA & nozzle performance</small></button>
+          <button class="tool-card compact-tool-card" data-open="mudmotor"><b>🌀</b><span>Mud Motor</span><small>RPM, differential & performance</small></button>
+        </div>
+      </details>
 
       <div class="disclaimer">
         <strong>Field aid only</strong>
         <p>Verify critical calculations independently and follow approved company, well-control and MPD procedures.</p>
+      </div>
+    </section>
+
+    <section id="trippinghub" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Tripping</h2><p>Choose the tool you need</p></div></div>
+      <div class="trip-launch-grid">
+        <button class="trip-launch-card" data-open="trip">
+          <b>📋</b><div><span>Trip Sheet</span><small>Track theoretical fill, actual fill and tank change while tripping.</small></div><i>›</i>
+        </button>
+        <button class="trip-launch-card" data-open="trippill">
+          <b>🧪</b><div><span>Trip Pill</span><small>Weighted pill balance, dry-pipe drop and pill placement.</small></div><i>›</i>
+        </button>
+      </div>
+      <div class="disclaimer">
+        <strong>Use verified well geometry</strong>
+        <p>Confirm current depths, capacities, mud properties and pump output before using tripping calculations operationally.</p>
       </div>
     </section>
 
