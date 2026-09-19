@@ -26,7 +26,7 @@ function calcMPD(){
   const banner=q("mpdWindowBanner"),text=q("mpdWindowBannerText"),detail=q("mpdWindowBannerDetail");
   if(banner&&text&&detail){
     banner.classList.remove("good","warn","bad");
-    if(max<=min){banner.classList.add("bad");text.textContent="No usable operating window";detail.textContent="Entered pore/fracture limits and safety margins overlap."; }
+    if(max<=min){banner.classList.add("bad");text.textContent="No usable operating window";detail.textContent="Entered pore/fracture limits and safety margins overlap."}
     else if(ci<min||ci>max||st<min||st>max){
       banner.classList.add("bad");text.textContent="One or more modeled pressures are outside the entered window";
       detail.textContent=`Static ${(st/1000).toFixed(2)} MPa; circulating ${(ci/1000).toFixed(2)} MPa.`;
@@ -1067,7 +1067,7 @@ if(q("pillPullProfileBtn"))q("pillPullProfileBtn").onclick=pullTripPillFromProfi
 updateTripPill();
 
 
-// ===== RigCalc Pro v1.11: Trip Pill independent cross-check =====
+// ===== RigCalc Pro Beta 1.05: Trip Pill independent cross-check =====
 const TRIP_PILL_X_FIELDS=["pill_x_form_grad","pill_x_csg_cap","pill_x_metal_disp","pill_x_overbalance"];
 function tripPillCrossCheck(geometryDrop){
   const mudD=Math.max(0,n("pill_mud_density")),bitMD=Math.max(0,n("pill_bit_md")),stand=Math.max(.001,n("pill_stand_len"));
@@ -1089,6 +1089,5 @@ function tripPillCrossCheck(geometryDrop){
   set("r_pill_x_mud_grad",mudGrad,3);set("r_pill_x_ob",ob,0);set("r_pill_x_length",length,1);set("r_pill_x_stands",stands,2);set("r_pill_x_diff",diff,1);
   if(q("r_pill_x_status"))q("r_pill_x_status").textContent=status;
   const box=q("pillCrossStatusBox");if(box){box.classList.remove("status-good","status-warn","status-bad");box.classList.add(kind)}
-  return{mudGrad,autoOB,ob,length,stands,diff,status};
 }
 TRIP_PILL_X_FIELDS.forEach(id=>q(id)?.addEventListener("input",()=>{const g=solveTripPill();tripPillCrossCheck(g.balanced?g.top:NaN);saveTripPill()}));

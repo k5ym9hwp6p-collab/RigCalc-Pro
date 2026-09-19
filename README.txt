@@ -1,20 +1,33 @@
-RigCalc Pro Version 1.11
+RigCalc Pro Beta 1.05
 
-Trip Pill refinement
-- Added an independent dry-pipe engineering cross-check based on:
-  overbalance × (wellbore/casing capacity − tubular metal displacement)
-  ÷ (mud gradient × tubular metal displacement)
-- Metric inputs: formation pressure gradient in kPa/m, wellbore/casing capacity in m³/m, metal displacement in m³/m.
-- Automatic overbalance is calculated from active mud gradient vs formation gradient at current TVD.
-- Optional manual overbalance override.
-- Cross-check dry length and stands are displayed beside the full geometry-based pill-balance result.
-- Percentage difference between the two methods is shown with a review flag when assumptions/models differ materially.
+Polished Beta 1.04 interface retained:
+- Derrick-at-sunset hero/header
+- RigCalc Pro field branding
+- DRILL SMARTER | WORK SAFER | GET RESULTS
+- Clean line-icon dashboard
+- Featured Live Well Profile
+- Collapsible Advanced Tools
+- Offline-ready PWA behavior
 
-MPD refinement
-- Added pore pressure and fracture pressure summary.
-- Added lower and upper operating limits after entered safety margins.
-- Added static and circulating margins to both pore and fracture limits.
-- Added a clear operating-window banner indicating inside-window, limited-margin, outside-window, or overlapping-limit conditions.
+New refinements integrated:
+1. Trip Pill dry-pipe engineering cross-check
+   - Formation pressure gradient (kPa/m)
+   - Wellbore/casing capacity (m³/m)
+   - Tubular metal displacement (m³/m)
+   - Optional manual overbalance override
+   - Mud gradient and overbalance
+   - Cross-check dry length and stands
+   - Percentage difference versus the detailed geometry-based pill balance model
+   - Review flag when the two models differ materially
 
-Important
-These additions are engineering calculation/checking aids, not operating instructions. The trip-pill cross-check is a simplified independent formula and will not necessarily match the variable-ID hydrostatic model exactly. MPD outputs depend entirely on verified gradients, friction pressure, backpressure and safety margins. Use approved field procedures, instrumentation and engineering limits.
+2. MPD operating-window refinement
+   - Pore and fracture pressures
+   - Lower and upper operating limits
+   - Static margins to pore/fracture limits
+   - Circulating margins to pore/fracture limits
+   - Clear operating-window status banner
+
+All existing Beta 1.04 features are retained, including Trip Pill, Live Well Profile, vertical/deviated trajectory display, Well Control integration, cementing, MPD, bit hydraulics and mud motor tools.
+
+Important:
+These are calculation/checking aids only. Verify critical values against approved well programs, company procedures, field instrumentation and engineering limits before operational use.
