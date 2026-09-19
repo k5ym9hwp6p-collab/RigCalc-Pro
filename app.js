@@ -1091,3 +1091,122 @@ function tripPillCrossCheck(geometryDrop){
   const box=q("pillCrossStatusBox");if(box){box.classList.remove("status-good","status-warn","status-bad");box.classList.add(kind)}
 }
 TRIP_PILL_X_FIELDS.forEach(id=>q(id)?.addEventListener("input",()=>{const g=solveTripPill();tripPillCrossCheck(g.balanced?g.top:NaN);saveTripPill()}));
+
+
+// ===== RigCalc Pro Beta 1.06: Education Layer =====
+const EDU_MODE_KEY="rigcalc-education-mode-v106";
+function eduInput(id){const el=q(id);const v=el?parseFloat(el.value):NaN;return Number.isFinite(v)?v:NaN}
+function eduOut(id){const el=q(id);return el?el.textContent.trim():"—"}
+function eduFmt(v,d=2){return Number.isFinite(v)?Number(v).toFixed(d):"—"}
+
+function educationTopic(topic){
+  const output=eduInput("wp_output"),spm=eduInput("wp_spm"),bit=eduInput("wp_bit");
+  const pillMud=eduInput("pill_mud_density"),pillD=eduInput("pill_density"),pillV=eduInput("pill_volume");
+  const mw=eduInput("wc2_mw"),tvd=eduInput("wc2_tvd"),sidpp=eduInput("wc2_sidpp"),scr=eduInput("wc2_scr");
+  const mpdD=eduInput("mpd_density"),mpdT=eduInput("mpd_tvd"),sbp=eduInput("mpd_sbp"),afp=eduInput("mpd_afp");
+
+  const T={
+    capacities:{title:"Volumes & Capacities",html:`
+      <div class="edu-why"><strong>Why it matters</strong><p>Fluid placement depends on geometry. Pipe capacity tells you what fits inside the string; annular capacity tells you what fits between the string and the hole or casing.</p></div>
+      <h4>Pipe capacity</h4><div class="edu-formula">Capacity = π/4 × ID²</div>
+      <p>RigCalc converts the entered ID to metres, calculates cross-sectional area, then expresses it as m³/m. Volume is capacity × length.</p>
+      <h4>Annular capacity</h4><div class="edu-formula">Capacity = π/4 × (Hole ID² − Pipe OD²)</div>
+      <h4>% over hole</h4><div class="edu-formula">Adjusted volume = Geometric volume × (1 + % over hole ÷ 100)</div>
+      <p>This increases the calculated open-hole volume to account for washout/enlargement.</p>
+      <div class="edu-caution">Use caliper data or an approved excess assumption when available. % over hole is a volume correction, not a measured hole shape.</div>`},
+
+    pumps:{title:"Pumps & Bottoms-Up",html:`
+      <div class="edu-why"><strong>Why it matters</strong><p>Once RigCalc knows the volume to move and pump output, it can convert that volume into strokes and time.</p></div>
+      <h4>Strokes</h4><div class="edu-formula">Strokes = Required volume ÷ Pump output per stroke</div>
+      <h4>Time</h4><div class="edu-formula">Minutes = Strokes ÷ Strokes per minute</div>
+      <div class="edu-worked"><strong>Current pump inputs</strong><br>Output: ${eduFmt(output,4)} m³/stk<br>SPM: ${eduFmt(spm,0)}</div>
+      <h4>Bottoms-up</h4><p>RigCalc sums annular volume interval-by-interval from bit to surface, including % over hole. That volume is converted to strokes and ETA.</p>
+      <div class="edu-caution">Actual pump efficiency, compressibility, losses and cuttings loading can shift field returns from the theoretical value.</div>`},
+
+    profile:{title:"Live Well Profile",html:`
+      <div class="edu-why"><strong>Why it matters</strong><p>The profile turns calculated volumes into physical locations in the well.</p></div>
+      <h4>Measured depth vs TVD</h4><p><strong>MD</strong> follows the wellbore. <strong>TVD</strong> is vertical depth.</p>
+      <div class="edu-formula">Hydrostatic pressure is based on TVD, while fluid travel volume follows MD and local capacity.</div>
+      <div class="edu-worked"><strong>Current modeled bit</strong><br>Bit MD: ${eduFmt(bit,0)} m<br>RigCalc interpolates TVD from the directional survey for hydrostatic calculations.</div>
+      <h4>Fluid fronts</h4><p>Each pumped volume is marched through the detailed pipe or annular capacities. A smaller capacity means the same volume travels farther.</p>
+      <h4>Vertical vs deviated display</h4><p>The trajectory selector changes the visualization. Pressure calculations continue to use survey TVD.</p>`},
+
+    trippill:{title:"Trip Pill",html:`
+      <div class="edu-why"><strong>Why it matters</strong><p>A weighted pill adds hydrostatic head inside the string. The internal fluid level can fall until the extra pill head is balanced by the missing active-mud head.</p></div>
+      <h4>Static balance</h4><div class="edu-formula">ρmud × TVDtop = (ρpill − ρmud) × (TVDbottom − TVDtop)</div>
+      <div class="edu-worked"><strong>Current inputs</strong><br>Mud: ${eduFmt(pillMud,0)} kg/m³<br>Pill: ${eduFmt(pillD,0)} kg/m³<br>Volume: ${eduFmt(pillV,3)} m³<br>Calculated dry-pipe drop: ${eduOut("r_pill_drop_md")} m</div>
+      <h4>Why string IDs matter</h4><p>The pill occupies a different MD length in drill pipe, HWDP, collars and BHA. RigCalc solves its bottom through the actual variable internal capacities.</p>
+      <h4>Independent cross-check</h4><p>The second dry-pipe method uses overbalance, wellbore capacity and tubular metal displacement. It is intentionally independent so disagreement can expose bad assumptions.</p>
+      <div class="edu-caution">This is static hydrostatics only. Gel strength, float valves, restrictions, trapped pressure, swab/surge and dynamic U-tubing are not modeled.</div>`},
+
+    cement:{title:"Cementing",html:`
+      <div class="edu-why"><strong>Why it matters</strong><p>Cementing calculations answer two questions: how much slurry is needed, and how much displacement places each interface where the program requires.</p></div>
+      <h4>Annular slurry volume</h4><div class="edu-formula">Volume = Annular capacity × Interval length × (1 + Excess % ÷ 100)</div>
+      <h4>Dry cement</h4><div class="edu-formula">Dry cement mass = Slurry volume ÷ Yield</div>
+      <h4>Displacement</h4><p>RigCalc separates surface-line volume, casing/liner internal volume, shoe track and over-displacement, then follows the programmed stages sequentially in Live Cement.</p>
+      <div class="edu-caution">Verify casing tally, surface lines, yields, mix-water data, shoe track and service-company program before a job.</div>`},
+
+    wellcontrol:{title:"Well Control",html:`
+      <div class="edu-why"><strong>Why it matters</strong><p>Shut-in pressures are used to estimate formation pressure and the mud density needed to balance it.</p></div>
+      <h4>Kill mud density</h4><div class="edu-formula">KMW = MW + SIDPP ÷ (0.00980665 × TVD)</div>
+      <div class="edu-worked"><strong>Current values</strong><br>MW: ${eduFmt(mw,0)} kg/m³<br>SIDPP: ${eduFmt(sidpp,0)} kPa<br>TVD: ${eduFmt(tvd,0)} m<br>KMW: ${eduOut("r_wc2_kmw")} kg/m³</div>
+      <h4>Initial circulating pressure</h4><div class="edu-formula">ICP = Slow circulating pressure + SIDPP</div>
+      <div class="edu-worked">SCR: ${eduFmt(scr,0)} kPa → ICP: ${eduOut("r_wc2_icp")} kPa</div>
+      <h4>Final circulating pressure</h4><div class="edu-formula">FCP ≈ SCR × (KMW ÷ Original MW)</div>
+      <h4>MAASP</h4><p>RigCalc compares LOT/FIT-based shoe pressure with mud hydrostatic pressure at the shoe and the entered safety margin.</p>
+      <div class="edu-caution">These are calculation references, not operational choke instructions. Use approved kill sheets, procedures, certified training and actual instrumentation.</div>`},
+
+    mpd:{title:"Managed Pressure Drilling",html:`
+      <div class="edu-why"><strong>Why it matters</strong><p>MPD aims to keep bottom-hole pressure inside the selected pore/fracture operating window while drilling and circulating.</p></div>
+      <h4>Static BHP</h4><div class="edu-formula">Static BHP = Hydrostatic + Surface backpressure</div>
+      <h4>Circulating BHP</h4><div class="edu-formula">Circulating BHP = Hydrostatic + Surface backpressure + Annular friction pressure</div>
+      <h4>Equivalent circulating density</h4><div class="edu-formula">ECD = Circulating BHP ÷ (0.00980665 × TVD)</div>
+      <div class="edu-worked"><strong>Current inputs</strong><br>Mud: ${eduFmt(mpdD,0)} kg/m³<br>TVD: ${eduFmt(mpdT,0)} m<br>SBP: ${eduFmt(sbp,0)} kPa<br>AFP: ${eduFmt(afp,0)} kPa<br>ECD: ${eduOut("r_mpd_ecd")} kg/m³</div>
+      <h4>Operating window</h4><p>RigCalc applies the entered lower and upper safety margins to pore and fracture pressure and reports how far static and circulating BHP are from each limit.</p>
+      <div class="edu-caution">The display is only as reliable as the pore/fracture gradients, AFP model, surface pressure and safety margins entered.</div>`}
+  };
+  return T[topic]||T.capacities;
+}
+function openEducation(topic,contextLabel=""){
+  const d=educationTopic(topic);
+  q("eduTitle").textContent=contextLabel?`${d.title} — ${contextLabel}`:d.title;
+  q("eduBody").innerHTML=d.html;
+  q("eduOverlay").classList.remove("hidden");
+  document.body.style.overflow="hidden";
+}
+function closeEducation(){q("eduOverlay").classList.add("hidden");document.body.style.overflow=""}
+function setEducationMode(on){
+  document.body.classList.toggle("education-on",!!on);
+  if(q("educationModeToggle"))q("educationModeToggle").checked=!!on;
+  localStorage.setItem(EDU_MODE_KEY,on?"1":"0");
+}
+function addEduButton(card,topic){
+  if(!card||card.querySelector(".edu-learn-btn"))return;
+  const label=(card.querySelector("span")?.textContent||"").trim();
+  const b=document.createElement("button");
+  b.type="button";b.className="edu-learn-btn";b.textContent="ⓘ Learn";
+  b.dataset.eduTopic=topic;b.dataset.eduLabel=label;
+  card.appendChild(b);
+}
+function attachEducationButtons(){
+  const sections=[
+    ["capacities","capacities"],["pumps","pumps"],["livewell","profile"],["wellprofile","profile"],
+    ["trippill","trippill"],["cementing","cement"],["wellcontrol","wellcontrol"],["mpd","mpd"]
+  ];
+  sections.forEach(([sid,topic])=>{
+    const s=q(sid);if(!s)return;
+    s.querySelectorAll(".results > div, .compact-results > div").forEach(card=>addEduButton(card,topic));
+  });
+  addEduButton(q("wellPlotCard"),"profile");
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-edu-topic]");
+  if(!b)return;
+  e.preventDefault();
+  openEducation(b.dataset.eduTopic,b.dataset.eduLabel||"");
+});
+if(q("eduCloseBtn"))q("eduCloseBtn").onclick=closeEducation;
+if(q("eduOverlay"))q("eduOverlay").addEventListener("click",e=>{if(e.target===q("eduOverlay"))closeEducation()});
+if(q("educationModeToggle"))q("educationModeToggle").addEventListener("change",e=>setEducationMode(e.target.checked));
+attachEducationButtons();
+setEducationMode(localStorage.getItem(EDU_MODE_KEY)==="1");

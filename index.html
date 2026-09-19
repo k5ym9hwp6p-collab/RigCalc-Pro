@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.05</span>
+      <span class="eyebrow">BETA 1.06</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -32,12 +32,31 @@
 
   <main>
     <section id="dashboard" class="screen active beta-dashboard">
+      
+      <div class="education-toggle-card">
+        <div>
+          <strong>Education Mode</strong>
+          <small>Turn on contextual Learn buttons throughout RigCalc.</small>
+        </div>
+        <label class="edu-switch">
+          <input id="educationModeToggle" type="checkbox">
+          <span class="edu-slider"></span>
+        </label>
+      </div>
+
       <div class="tool-grid beta-core-grid">
         <button class="tool-card beta-core-card" data-open="capacities"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M10 30 29 11l9 9-19 19H10z"/><path d="m28 12 8 8M12 30l7 7M17 25l6 6"/><circle cx="15" cy="34" r="3.5"/></svg><span>Capacities</span><small>Hole, pipe, annulus & displacement</small></button>
         <button class="tool-card beta-core-card" data-open="pump"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 17h20v17H14zM18 12h12v5H18zM8 21h6v9H8zM34 21h6v9h-6z"/><path d="M18 34v4h12v-4M20 22h8m-8 5h8"/></svg><span>Pumps & Circulation</span><small>Output, strokes & bottoms-up</small></button>
         <button class="tool-card beta-core-card" data-open="trippinghub"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 8v10l-5 6 5 10h12l5-10-5-6V8"/><path d="M24 8v22m0 0c0 4-5 4-5 8a5 5 0 0 0 10 0c0-2-1-3-2-4"/></svg><span>Tripping</span><small>Trip sheet, fill checks & Trip Pill</small></button>
         <button class="tool-card beta-core-card" data-open="wellcontrol"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M19 8h10v6H19zM16 14h16v7H16zM18 21h12v8H18zM15 29h18v10H15z"/><path d="M7 24h11m12 0h11M9 20v8m30-8v8M20 34h8"/></svg><span>Well Control</span><small>Hydrostatic, kill density & pressure checks</small></button>
         <button class="tool-card featured beta-profile-card" data-open="wellprofile"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 8v32h32"/><path d="M12 14c8 0 5 8 12 10s3 10 16 10"/><circle cx="12" cy="14" r="2"/><circle cx="24" cy="24" r="2"/><circle cx="40" cy="34" r="2"/></svg><span>Live Well Profile</span><small>Trajectory, formations, fluids & live returns tracking</small><em>FEATURED</em></button>
+
+        <button class="tool-card beta-core-card" data-open="academy">
+          <svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true">
+            <path d="m6 18 18-9 18 9-18 9z"/><path d="M13 22v10c6 5 16 5 22 0V22"/><path d="M42 18v13"/>
+          </svg>
+          <span>RigCalc Academy</span><small>Formulas, worked examples & field theory</small>
+        </button>
       </div>
 
       <details class="advanced-tools">
@@ -532,6 +551,32 @@
       </div>
     </section>
 
+
+    <section id="academy" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>RigCalc Academy</h2><p>Understand the calculation, not just the answer</p></div></div>
+
+      <div class="academy-hero">
+        <span class="academy-kicker">FIELD EDUCATION</span>
+        <h3>See what a value means, why it matters, and how RigCalc calculated it.</h3>
+        <p>The lessons use the same metric formulas and, where practical, the values currently entered in your RigCalc job.</p>
+      </div>
+
+      <div class="academy-grid">
+        <button class="academy-topic" data-edu-topic="capacities"><b>01</b><span>Volumes & Capacities</span><small>Pipe, annulus, displacement and % over hole</small></button>
+        <button class="academy-topic" data-edu-topic="pumps"><b>02</b><span>Pumps & Bottoms-Up</span><small>Output, strokes, circulation volume and time</small></button>
+        <button class="academy-topic" data-edu-topic="profile"><b>03</b><span>Live Well Profile</span><small>MD/TVD, trajectory, formations and fluid fronts</small></button>
+        <button class="academy-topic" data-edu-topic="trippill"><b>04</b><span>Trip Pill</span><small>Hydrostatic balance and dry pipe</small></button>
+        <button class="academy-topic" data-edu-topic="cement"><b>05</b><span>Cementing</span><small>Slurry volumes, yields and displacement</small></button>
+        <button class="academy-topic" data-edu-topic="wellcontrol"><b>06</b><span>Well Control</span><small>KMW, ICP/FCP, MAASP and circulation</small></button>
+        <button class="academy-topic" data-edu-topic="mpd"><b>07</b><span>MPD</span><small>BHP, ECD and operating-window margins</small></button>
+      </div>
+
+      <div class="academy-note">
+        <strong>Training boundary</strong>
+        <p>RigCalc Academy explains the mathematics and assumptions used by the app. It does not replace approved drilling programs, company procedures, certified well-control training, MPD procedures, cement programs or verified field instrumentation.</p>
+      </div>
+    </section>
+
     <section id="mpd" class="screen calculator">
       <div class="screen-title"><button class="back">‹</button><div><h2>Managed Pressure Drilling</h2><p>BHP, ECD and operating window</p></div></div>
       <div class="input-card">
@@ -855,6 +900,17 @@
       <h3>Add RigCalc Pro to iPhone</h3>
       <ol><li>Open the hosted app in Safari.</li><li>Tap the Share button.</li><li>Select <b>Add to Home Screen</b>.</li><li>Open it once online to cache it for offline use.</li></ol>
       <button id="closeModal">Close</button>
+    </div>
+  </div>
+
+
+  <div id="eduOverlay" class="edu-overlay hidden">
+    <div class="edu-panel" role="dialog" aria-modal="true" aria-labelledby="eduTitle">
+      <div class="edu-panel-head">
+        <div><span class="academy-kicker">RIGCALC EDUCATION</span><h3 id="eduTitle">Learn</h3></div>
+        <button id="eduCloseBtn" class="edu-close" aria-label="Close education panel">✕</button>
+      </div>
+      <div id="eduBody" class="edu-body"></div>
     </div>
   </div>
 
