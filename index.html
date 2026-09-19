@@ -10,65 +10,46 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
-  <title>RigCalc Pro Beta</title>
+  <title>RigCalc Pro</title>
 </head>
 <body>
-  <header class="app-header hero-header">
-    <div class="hero-shade"></div>
-    <div class="hero-content">
-      <span class="eyebrow">BETA 1.04</span>
-      <h1><span>RigCalc</span> <b>Pro</b></h1>
-      <div class="hero-rule"></div>
-      <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
-      <p>Core drilling calculations.<br>Fast. Clear. Field-ready.</p>
-      <div id="installHelpBtn" class="hero-offline" role="button" tabindex="0" aria-label="Offline install help">
-        <svg class="status-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16.5a3.5 3.5 0 0 1 .8-6.9A6.5 6.5 0 0 1 18.2 8a4.25 4.25 0 0 1 .8 8.42"/><path d="M8 17h8M12 13v7m-2.5-2.5L12 20l2.5-2.5"/></svg>
-        <span>OFFLINE READY</span>
-      </div>
+  <header class="app-header">
+    <div>
+      <span class="eyebrow">VERSION 1.11</span>
+      <h1>RigCalc Pro</h1>
+      <p>Professional drilling calculations, simplified.</p>
     </div>
-    <div class="hero-field-mark">BUILT<br>FOR THE<br>FIELD</div>
-    <button id="themeBtn" class="icon-btn hero-theme" aria-label="Toggle dark mode">◐</button>
+    <button id="themeBtn" class="icon-btn" aria-label="Toggle dark mode">◐</button>
   </header>
 
   <main>
-    <section id="dashboard" class="screen active beta-dashboard">
-      <div class="tool-grid beta-core-grid">
-        <button class="tool-card beta-core-card" data-open="capacities"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M10 30 29 11l9 9-19 19H10z"/><path d="m28 12 8 8M12 30l7 7M17 25l6 6"/><circle cx="15" cy="34" r="3.5"/></svg><span>Capacities</span><small>Hole, pipe, annulus & displacement</small></button>
-        <button class="tool-card beta-core-card" data-open="pump"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 17h20v17H14zM18 12h12v5H18zM8 21h6v9H8zM34 21h6v9h-6z"/><path d="M18 34v4h12v-4M20 22h8m-8 5h8"/></svg><span>Pumps & Circulation</span><small>Output, strokes & bottoms-up</small></button>
-        <button class="tool-card beta-core-card" data-open="trippinghub"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 8v10l-5 6 5 10h12l5-10-5-6V8"/><path d="M24 8v22m0 0c0 4-5 4-5 8a5 5 0 0 0 10 0c0-2-1-3-2-4"/></svg><span>Tripping</span><small>Trip sheet, fill checks & Trip Pill</small></button>
-        <button class="tool-card beta-core-card" data-open="wellcontrol"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M19 8h10v6H19zM16 14h16v7H16zM18 21h12v8H18zM15 29h18v10H15z"/><path d="M7 24h11m12 0h11M9 20v8m30-8v8M20 34h8"/></svg><span>Well Control</span><small>Hydrostatic, kill density & pressure checks</small></button>
-        <button class="tool-card featured beta-profile-card" data-open="wellprofile"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 8v32h32"/><path d="M12 14c8 0 5 8 12 10s3 10 16 10"/><circle cx="12" cy="14" r="2"/><circle cx="24" cy="24" r="2"/><circle cx="40" cy="34" r="2"/></svg><span>Live Well Profile</span><small>Trajectory, formations, fluids & live returns tracking</small><em>FEATURED</em></button>
+    <section id="dashboard" class="screen active">
+      <div class="status-card">
+        <div>
+          <span class="status-dot"></span>
+          <strong>Offline ready</strong>
+          <p>Inputs save on this device.</p>
+        </div>
+        <button id="installHelpBtn">Install</button>
       </div>
 
-      <details class="advanced-tools">
-        <summary><span>Advanced Tools</span><small>MPD, cementing, hydraulics & motors</small></summary>
-        <div class="tool-grid advanced-grid">
-          <button class="tool-card compact-tool-card" data-open="mpd"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="14"/><path d="M24 24l7-7M14 31h20M24 10v4"/></svg><span>MPD</span><small>BHP, ECD & window</small></button>
-          <button class="tool-card compact-tool-card" data-open="cementing"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 9h16v7l4 6v17H12V22l4-6z"/><path d="M16 16h16M17 27h14M20 33h8"/></svg><span>Cementing</span><small>Planning & displacement</small></button>
-          <button class="tool-card compact-tool-card" data-open="bithydraulics"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 9h12v10l5 6-5 14H18l-5-14 5-6z"/><path d="M20 26l-4 8m12-8 4 8M24 26v10"/></svg><span>Bit Hydraulics</span><small>Jets, TFA & nozzle performance</small></button>
-          <button class="tool-card compact-tool-card" data-open="mudmotor"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 8h12v7l4 4v20H14V19l4-4z"/><path d="M20 19c8 3 0 8 8 11s0 6 0 6M18 39h12"/></svg><span>Mud Motor</span><small>RPM, differential & performance</small></button>
-        </div>
-      </details>
+      <h2>Rig Tools</h2>
+      <div class="tool-grid">
+        <button class="tool-card" data-open="capacities"><b>📏</b><span>Capacities</span><small>Volumes & displacement</small></button>
+        <button class="tool-card" data-open="pump"><b>🔧</b><span>Pumps</span><small>Output & bottoms-up</small></button>
+        <button class="tool-card" data-open="wellcontrol"><b>🚨</b><span>Well Control</span><small>Hydrostatic & kill density</small></button>
+        <button class="tool-card" data-open="mpd"><b>🔵</b><span>MPD</span><small>BHP, ECD & window</small></button>
+        <button class="tool-card" data-open="cementing"><b>🛢</b><span>Cementing</span><small>Volumes & sacks</small></button>
+        <button class="tool-card" data-open="trip"><b>📋</b><span>Trip Sheet</span><small>Fill & tank check</small></button>
+        <button class="tool-card" data-open="trippill"><b>🧪</b><span>Trip Pill</span><small>Weighted pill balance & dry pipe</small></button>
+        <button class="tool-card featured" data-open="wellprofile"><b>🧭</b><span>Well Profile</span><small>Live bottoms-up & formations</small></button>
+        <button class="tool-card" data-open="bithydraulics"><b>💦</b><span>Bit Hydraulics</span><small>Jets, TFA & nozzle performance</small></button>
+        <button class="tool-card" data-open="mudmotor"><b>🌀</b><span>Mud Motor</span><small>RPM, differential & performance</small></button>
+      </div>
 
       <div class="disclaimer">
         <strong>Field aid only</strong>
         <p>Verify critical calculations independently and follow approved company, well-control and MPD procedures.</p>
-      </div>
-    </section>
-
-    <section id="trippinghub" class="screen calculator">
-      <div class="screen-title"><button class="back">‹</button><div><h2>Tripping</h2><p>Choose the tool you need</p></div></div>
-      <div class="trip-launch-grid">
-        <button class="trip-launch-card" data-open="trip">
-          <svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M15 9h18v30H15z"/><path d="M20 9V6h8v3M20 18h8M20 24h8M20 30h6"/></svg><div><span>Trip Sheet</span><small>Track theoretical fill, actual fill and tank change while tripping.</small></div><i>›</i>
-        </button>
-        <button class="trip-launch-card" data-open="trippill">
-          <svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M19 7h10v8l5 8v13a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V23l5-8z"/><path d="M19 15h10M15 28h18M20 34h8"/></svg><div><span>Trip Pill</span><small>Weighted pill balance, dry-pipe drop and pill placement.</small></div><i>›</i>
-        </button>
-      </div>
-      <div class="disclaimer">
-        <strong>Use verified well geometry</strong>
-        <p>Confirm current depths, capacities, mud properties and pump output before using tripping calculations operationally.</p>
       </div>
     </section>
 
@@ -498,6 +479,28 @@
         </svg>
       </div>
 
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Dry-pipe engineering cross-check</strong><small>Independent field-style check using overbalance, casing capacity and tubular metal displacement.</small></div>
+        </div>
+        <div class="input-card embedded">
+          <label>Formation pressure gradient <span>kPa/m</span><input id="pill_x_form_grad" type="number" inputmode="decimal" value="10.50"></label>
+          <label>Casing / wellbore capacity <span>m³/m</span><input id="pill_x_csg_cap" type="number" inputmode="decimal" value="0.0150"></label>
+          <label>Tubular metal displacement <span>m³/m</span><input id="pill_x_metal_disp" type="number" inputmode="decimal" value="0.00076"></label>
+          <label>Manual overbalance override <span>kPa; 0 = auto</span><input id="pill_x_overbalance" type="number" inputmode="decimal" value="0"></label>
+        </div>
+        <div class="results compact-results">
+          <div><span>Mud gradient</span><strong id="r_pill_x_mud_grad">—</strong><em>kPa/m</em></div>
+          <div><span>Calculated overbalance</span><strong id="r_pill_x_ob">—</strong><em>kPa</em></div>
+          <div><span>Cross-check dry length</span><strong id="r_pill_x_length">—</strong><em>m</em></div>
+          <div><span>Cross-check stands</span><strong id="r_pill_x_stands">—</strong><em>stands</em></div>
+          <div><span>Difference vs geometry model</span><strong id="r_pill_x_diff">—</strong><em>%</em></div>
+          <div id="pillCrossStatusBox"><span>Cross-check status</span><strong id="r_pill_x_status">—</strong><em></em></div>
+        </div>
+        <p class="pill-explain">Metric form used: Dry length = Overbalance × (wellbore capacity − metal displacement) ÷ (mud gradient × metal displacement). This is a simplified independent check; it is not the same model as the full variable-ID hydrostatic solver above.</p>
+      </div>
+
       <div class="profile-card">
         <div class="section-heading"><div><strong>Calculation basis</strong><small>Useful for weighted pills / slugs intended to lower the fluid level inside the drill string before pulling pipe.</small></div></div>
         <p class="pill-explain">RigCalc solves hydrostatic balance using the fixed pill volume, actual variable drill-string ID sections, and the directional survey TVD. At balance, the missing active-mud head above the pill equals the pill’s extra hydrostatic head relative to the active mud.</p>
@@ -528,6 +531,24 @@
         <div class="window-labels"><span>Fracture limit</span><span id="windowMax">—</span></div>
         <div class="window-track"><div id="windowMarker" class="window-marker"></div></div>
         <div class="window-labels"><span>Pore-pressure minimum</span><span id="windowMin">—</span></div>
+      </div>
+
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Operating window summary</strong><small>Quick comparison of pore pressure, fracture limit and current static / circulating BHP.</small></div>
+        </div>
+        <div class="mpd-window-summary">
+          <div><span>Pore pressure</span><strong id="r_mpd_pp">—</strong><em>MPa</em></div>
+          <div><span>Fracture pressure</span><strong id="r_mpd_fp">—</strong><em>MPa</em></div>
+          <div><span>Lower operating limit</span><strong id="r_mpd_lowlim">—</strong><em>MPa</em></div>
+          <div><span>Upper operating limit</span><strong id="r_mpd_highlim">—</strong><em>MPa</em></div>
+          <div><span>Static margin to pore</span><strong id="r_mpd_static_low">—</strong><em>kPa</em></div>
+          <div><span>Static margin to fracture</span><strong id="r_mpd_static_high">—</strong><em>kPa</em></div>
+          <div><span>Circulating margin to pore</span><strong id="r_mpd_circ_low">—</strong><em>kPa</em></div>
+          <div><span>Circulating margin to fracture</span><strong id="r_mpd_circ_high">—</strong><em>kPa</em></div>
+        </div>
+        <div id="mpdWindowBanner" class="mpd-window-banner"><strong id="mpdWindowBannerText">—</strong><span id="mpdWindowBannerDetail"></span></div>
       </div>
 
       <div class="results">

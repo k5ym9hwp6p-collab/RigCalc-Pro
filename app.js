@@ -10,7 +10,33 @@ function calcWC(){const r=n("wc_density"),t=n("wc_tvd"),s=n("wc_sidpp"),m=n("wc_
 function calcCem(){const h=n("cem_hole"),od=n("cem_od"),l=n("cem_len"),ex=n("cem_excess")/100,ly=n("cem_lead_yield"),tv=n("cem_tail_vol"),ty=n("cem_tail_yield"),cap=circle(h)-circle(od),base=cap*l,total=base*(1+ex),tail=Math.min(tv,total),lead=Math.max(total-tail,0),s=(ly?lead*1000/ly:0)+(ty?tail*1000/ty:0);set("r_cem_cap",cap,6);set("r_cem_base",base,3);set("r_cem_total",total,3);set("r_cem_lead",lead,3);set("r_cem_tail",tail,3);set("r_cem_sacks",s,1)}
 function calcTrip(){const od=n("trip_od"),id=n("trip_id"),sl=n("trip_stand"),st=n("trip_stands"),mode=q("trip_mode").value,start=n("trip_start"),obs=n("trip_obs"),len=sl*st,disp=mode==="Wet"?circle(od):circle(od)-circle(id),fill=len*disp,exp=start-fill,chg=start-obs,diff=chg-fill;set("r_trip_len",len,2);set("r_trip_disp",disp,6);set("r_trip_fill",fill,3);set("r_trip_expected",exp,3);set("r_trip_change",chg,3);set("r_trip_diff",diff,3);const b=q("trip_status_box");b.classList.toggle("status-bad",Math.abs(diff)>.25);b.classList.toggle("status-good",Math.abs(diff)<=.25)}
 function stat(box,text,v,min,max){let t="Within window",g=true;if(v<min){t="Below minimum";g=false}if(v>max){t="Above maximum";g=false}q(text).textContent=t;q(box).classList.toggle("status-good",g);q(box).classList.toggle("status-bad",!g)}
-function calcMPD(){const r=n("mpd_density"),t=n("mpd_tvd"),sb=n("mpd_sbp"),af=n("mpd_afp"),tar=n("mpd_target"),pp=n("mpd_ppg"),fg=n("mpd_fg"),lm=n("mpd_lowmargin"),hm=n("mpd_highmargin"),hy=r*9.80665*t/1000,st=hy+sb,ci=hy+sb+af,min=pp*t+lm,max=fg*t-hm,win=Math.max(max-min,0),es=t?st*1000/(9.80665*t):0,ec=t?ci*1000/(9.80665*t):0;set("r_mpd_hydro",hy/1000,3);set("r_mpd_static",st/1000,3);set("r_mpd_circ",ci/1000,3);set("r_mpd_esd",es,1);set("r_mpd_ecd",ec,1);set("r_mpd_req_static",Math.max(tar-hy,0),0);set("r_mpd_req_circ",Math.max(tar-hy-af,0),0);set("r_mpd_window",win,0);stat("mpd_static_status_box","r_mpd_static_status",st,min,max);stat("mpd_circ_status_box","r_mpd_circ_status",ci,min,max);q("windowMin").textContent=(min/1000).toFixed(2)+" MPa";q("windowMax").textContent=(max/1000).toFixed(2)+" MPa";const pct=max>min?Math.max(0,Math.min(100,(ci-min)/(max-min)*100)):50;q("windowMarker").style.bottom=`calc(${pct}% - 12px)`;q("windowMarker").textContent=(ci/1000).toFixed(2)+" MPa"}
+function calcMPD(){
+  const r=n("mpd_density"),t=n("mpd_tvd"),sb=n("mpd_sbp"),af=n("mpd_afp"),tar=n("mpd_target"),pp=n("mpd_ppg"),fg=n("mpd_fg"),lm=n("mpd_lowmargin"),hm=n("mpd_highmargin"),
+  hy=r*9.80665*t/1000,st=hy+sb,ci=hy+sb+af,ppress=pp*t,fpress=fg*t,min=ppress+lm,max=fpress-hm,win=Math.max(max-min,0),
+  es=t?st*1000/(9.80665*t):0,ec=t?ci*1000/(9.80665*t):0;
+  set("r_mpd_hydro",hy/1000,3);set("r_mpd_static",st/1000,3);set("r_mpd_circ",ci/1000,3);set("r_mpd_esd",es,1);set("r_mpd_ecd",ec,1);
+  set("r_mpd_req_static",Math.max(tar-hy,0),0);set("r_mpd_req_circ",Math.max(tar-hy-af,0),0);set("r_mpd_window",win,0);
+  stat("mpd_static_status_box","r_mpd_static_status",st,min,max);stat("mpd_circ_status_box","r_mpd_circ_status",ci,min,max);
+  q("windowMin").textContent=(min/1000).toFixed(2)+" MPa";q("windowMax").textContent=(max/1000).toFixed(2)+" MPa";
+  const pct=max>min?Math.max(0,Math.min(100,(ci-min)/(max-min)*100)):50;q("windowMarker").style.bottom=`calc(${pct}% - 12px)`;q("windowMarker").textContent=(ci/1000).toFixed(2)+" MPa";
+
+  set("r_mpd_pp",ppress/1000,3);set("r_mpd_fp",fpress/1000,3);set("r_mpd_lowlim",min/1000,3);set("r_mpd_highlim",max/1000,3);
+  set("r_mpd_static_low",st-min,0);set("r_mpd_static_high",max-st,0);set("r_mpd_circ_low",ci-min,0);set("r_mpd_circ_high",max-ci,0);
+
+  const banner=q("mpdWindowBanner"),text=q("mpdWindowBannerText"),detail=q("mpdWindowBannerDetail");
+  if(banner&&text&&detail){
+    banner.classList.remove("good","warn","bad");
+    if(max<=min){banner.classList.add("bad");text.textContent="No usable operating window";detail.textContent="Entered pore/fracture limits and safety margins overlap."; }
+    else if(ci<min||ci>max||st<min||st>max){
+      banner.classList.add("bad");text.textContent="One or more modeled pressures are outside the entered window";
+      detail.textContent=`Static ${(st/1000).toFixed(2)} MPa; circulating ${(ci/1000).toFixed(2)} MPa.`;
+    }else{
+      const closest=Math.min(st-min,max-st,ci-min,max-ci);
+      if(closest<500){banner.classList.add("warn");text.textContent="Inside window with limited margin";detail.textContent=`Closest modeled margin is ${closest.toFixed(0)} kPa.`}
+      else{banner.classList.add("good");text.textContent="Modeled pressures are inside the entered operating window";detail.textContent=`Closest modeled margin is ${closest.toFixed(0)} kPa.`}
+    }
+  }
+}
 function all(){calcCap();calcPump();if(q("wc_density"))calcWC();if(q("cem_hole"))calcCem();calcTrip();calcMPD();save()}
 document.querySelectorAll("input,select").forEach(e=>e.addEventListener("input",all));
 document.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));q(b.dataset.open).classList.add("active");scrollTo(0,0)}));
@@ -846,7 +872,7 @@ refreshWcGeometrySummary();syncWellControlGeometry(false);updateWellControlLive(
 
 // ===== RigCalc Pro v1.10: Trip Pill / Weighted Pill Balance =====
 const TRIP_PILL_KEY="rigcalc-trip-pill-v110";
-const tripPillFields=["pill_mud_density","pill_density","pill_volume","pill_bit_md","pill_stand_len","pill_output","pill_use_profile"];
+const tripPillFields=["pill_mud_density","pill_density","pill_volume","pill_bit_md","pill_stand_len","pill_output","pill_use_profile","pill_x_form_grad","pill_x_csg_cap","pill_x_metal_disp","pill_x_overbalance"];
 
 function saveTripPill(){
   const d={};
@@ -1022,6 +1048,7 @@ function updateTripPill(){
     setPillText("r_pill_initial_dp",initialDp,0);
   }
   renderTripPillSchematic(r);
+  tripPillCrossCheck(r.balanced?r.top:NaN);
   saveTripPill();
 }
 function pullTripPillFromProfile(){
@@ -1038,3 +1065,30 @@ tripPillFields.forEach(id=>{
 if(q("pillPullProfileBtn"))q("pillPullProfileBtn").onclick=pullTripPillFromProfile;
 ["wp_bit","wp_output"].forEach(id=>q(id)?.addEventListener("input",()=>{if(q("pill_use_profile")?.checked)updateTripPill()}));
 updateTripPill();
+
+
+// ===== RigCalc Pro v1.11: Trip Pill independent cross-check =====
+const TRIP_PILL_X_FIELDS=["pill_x_form_grad","pill_x_csg_cap","pill_x_metal_disp","pill_x_overbalance"];
+function tripPillCrossCheck(geometryDrop){
+  const mudD=Math.max(0,n("pill_mud_density")),bitMD=Math.max(0,n("pill_bit_md")),stand=Math.max(.001,n("pill_stand_len"));
+  const tvd=Math.max(0,interpTVD(bitMD)),mudGrad=mudD*9.80665/1000,formGrad=Math.max(0,n("pill_x_form_grad"));
+  const csgCap=Math.max(0,n("pill_x_csg_cap")),metal=Math.max(0,n("pill_x_metal_disp")),manualOB=Math.max(0,n("pill_x_overbalance"));
+  const autoOB=Math.max(0,(mudGrad-formGrad)*tvd),ob=manualOB>0?manualOB:autoOB;
+  let length=NaN,stands=NaN,diff=NaN,status="Need valid inputs",kind="status-warn";
+  if(mudGrad>0&&metal>0&&csgCap>metal&&ob>=0){
+    length=ob*(csgCap-metal)/(mudGrad*metal);
+    stands=length/stand;
+    if(Number.isFinite(geometryDrop)&&geometryDrop>0){
+      diff=(length-geometryDrop)/geometryDrop*100;
+      const ad=Math.abs(diff);
+      if(ad<=10){status="Good agreement";kind="status-good"}
+      else if(ad<=25){status="Review assumptions";kind="status-warn"}
+      else{status="Large model difference";kind="status-bad"}
+    }else{status="Cross-check calculated";kind="status-warn"}
+  }
+  set("r_pill_x_mud_grad",mudGrad,3);set("r_pill_x_ob",ob,0);set("r_pill_x_length",length,1);set("r_pill_x_stands",stands,2);set("r_pill_x_diff",diff,1);
+  if(q("r_pill_x_status"))q("r_pill_x_status").textContent=status;
+  const box=q("pillCrossStatusBox");if(box){box.classList.remove("status-good","status-warn","status-bad");box.classList.add(kind)}
+  return{mudGrad,autoOB,ob,length,stands,diff,status};
+}
+TRIP_PILL_X_FIELDS.forEach(id=>q(id)?.addEventListener("input",()=>{const g=solveTripPill();tripPillCrossCheck(g.balanced?g.top:NaN);saveTripPill()}));

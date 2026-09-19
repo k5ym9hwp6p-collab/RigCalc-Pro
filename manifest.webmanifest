@@ -1,6 +1,6 @@
 {
-  "name": "RigCalc Pro Beta",
-  "short_name": "RigCalc Beta",
+  "name": "RigCalc Pro",
+  "short_name": "RigCalc Pro",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#101828",

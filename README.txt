@@ -1,33 +1,20 @@
-RigCalc Pro — Beta 1.04
+RigCalc Pro Version 1.11
 
-Based on RigCalc Pro v1.10.
+Trip Pill refinement
+- Added an independent dry-pipe engineering cross-check based on:
+  overbalance × (wellbore/casing capacity − tubular metal displacement)
+  ÷ (mud gradient × tubular metal displacement)
+- Metric inputs: formation pressure gradient in kPa/m, wellbore/casing capacity in m³/m, metal displacement in m³/m.
+- Automatic overbalance is calculated from active mud gradient vs formation gradient at current TVD.
+- Optional manual overbalance override.
+- Cross-check dry length and stands are displayed beside the full geometry-based pill-balance result.
+- Percentage difference between the two methods is shown with a review flag when assumptions/models differ materially.
 
-Beta 1.04 objective
-- Simplify the first-use experience without changing the underlying calculation engines.
-- Put the most frequently used field tools on the home screen.
-- Preserve the complete v1.10 feature set under a cleaner navigation structure.
+MPD refinement
+- Added pore pressure and fracture pressure summary.
+- Added lower and upper operating limits after entered safety margins.
+- Added static and circulating margins to both pore and fracture limits.
+- Added a clear operating-window banner indicating inside-window, limited-margin, outside-window, or overlapping-limit conditions.
 
-Core home-screen tools
-- Capacities
-- Pumps & Circulation
-- Tripping (Trip Sheet + Trip Pill)
-- Well Control
-- Live Well Profile
-
-Advanced Tools
-- MPD
-- Cementing
-- Bit Hydraulics
-- Mud Motor
-
-Technical note
-- app.js is unchanged from v1.10 in this Beta 1.04 navigation pass.
-- The service-worker cache key was changed so the Beta does not reuse a stale v1.10 shell.
-- Calculation validation and Show Calculation/explainability are separate later beta steps.
-
-Safety
-RigCalc Pro is a field calculation aid. Verify critical calculations independently and follow approved company, operator, well-control and MPD procedures.
-
-Beta 1.04 UI update: compact Offline Ready status and RigCalc-style SVG line icons. Recent Jobs intentionally not included. Calculation engine unchanged from v1.10.
-
-Beta 1.04 hotfix: restored the installHelpBtn UI hook by assigning it to the compact Offline Ready badge. This prevents startup JavaScript from aborting before load()/all() and restores calculation outputs. No calculation formulas changed.
+Important
+These additions are engineering calculation/checking aids, not operating instructions. The trip-pill cross-check is a simplified independent formula and will not necessarily match the variable-ID hydrostatic model exactly. MPD outputs depend entirely on verified gradients, friction pressure, backpressure and safety margins. Use approved field procedures, instrumentation and engineering limits.
