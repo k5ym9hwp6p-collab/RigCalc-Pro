@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.06</span>
+      <span class="eyebrow">BETA 1.07</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -747,16 +747,63 @@
 
       <div class="live-card">
         <div class="live-head"><div><span class="live-kicker">CIRCULATE LIVE</span><strong id="liveStateText">Paused</strong></div><span id="livePulse" class="live-pulse paused"></span></div>
+        <div class="live-mode-grid">
+          <label>Operating state
+            <select id="liveOperatingState">
+              <option value="normal">Normal circulation</option>
+              <option value="connection">Connection — pumps off</option>
+              <option value="continuous">Continuous circulation</option>
+              <option value="mpd">MPD choke returns</option>
+              <option value="displacing">Displacing / stripping</option>
+              <option value="partial">Partial returns / losses</option>
+              <option value="reverse">Reverse circulation</option>
+            </select>
+          </label>
+          <label>Active return path
+            <select id="liveFlowPath">
+              <option value="Flowline">Conventional flowline</option>
+              <option value="MPD choke manifold">MPD choke manifold</option>
+              <option value="Alternate returns line">Alternate returns line</option>
+              <option value="No surface returns">No surface returns</option>
+            </select>
+          </label>
+          <label>Tracking efficiency <span>%</span>
+            <input id="liveEfficiency" type="number" min="0" max="100" step="1" value="100">
+          </label>
+        </div>
+        <div id="liveModeNotice" class="live-mode-notice">Forward circulation through the conventional return path.</div>
         <div class="live-stats">
           <div><span>Elapsed</span><strong id="liveElapsed">00:00</strong></div>
           <div><span>Strokes pumped</span><strong id="liveStrokes">0</strong></div>
           <div><span>Volume pumped</span><strong id="liveVolume">0.00 m³</strong></div>
+          <div><span>Tracking volume</span><strong id="liveTrackingVolume">0.00 m³</strong></div>
           <div><span>Front position</span><strong id="liveFront">3978 m MD</strong></div>
           <div><span>Formation</span><strong id="liveFormation">—</strong></div>
+          <div><span>Volume remaining</span><strong id="liveRemaining">—</strong></div>
+          <div><span>Strokes remaining</span><strong id="liveRemainingStrokes">—</strong></div>
           <div><span>ETA surface</span><strong id="liveEta">—</strong></div>
         </div>
         <div class="live-actions"><button id="liveStartBtn" class="live-start">▶ Start</button><button id="livePauseBtn" class="live-pause">Ⅱ Pause</button><button id="liveResetBtn" class="live-reset">↺ Reset</button></div>
-        <p class="live-note">If pump speed or output changes, update the values below. The live tracker recalculates immediately.</p>
+        <p class="live-note">Rate and output changes create a new ledger segment. Earlier circulation keeps the values that were active when it occurred.</p>
+      </div>
+
+      <div class="profile-card circulation-ledger-card">
+        <div class="section-heading">
+          <div><strong>Circulation volume ledger</strong><small>Timestamped operating segments preserve actual rate changes, pauses and corrections.</small></div>
+          <button id="exportLedgerBtn">Export CSV</button>
+        </div>
+        <div class="ledger-correction">
+          <label>Volume correction <span>m³ (+/−)</span><input id="ledgerCorrectionVolume" type="number" step="0.01" value="0"></label>
+          <label>Reason <input id="ledgerCorrectionReason" placeholder="Meter correction, surface line fill…"></label>
+          <button id="addLedgerCorrectionBtn">Add correction</button>
+        </div>
+        <div class="ledger-totals">
+          <div><span>Ledger volume</span><strong id="ledgerTotalVolume">0.00 m³</strong></div>
+          <div><span>Tracking volume</span><strong id="ledgerTrackingVolume">0.00 m³</strong></div>
+          <div><span>Segments</span><strong id="ledgerSegmentCount">0</strong></div>
+        </div>
+        <div class="table-wrap"><table id="circulationLedgerTable"><thead><tr><th>Time</th><th>State / path</th><th>Duration</th><th>SPM</th><th>Output</th><th>Strokes</th><th>Volume</th><th>Tracking</th></tr></thead><tbody></tbody></table></div>
+        <p class="live-note ledger-note">The ledger is stored on this device. Reset circulation clears the active circulation session and its ledger.</p>
       </div>
 
       
@@ -864,8 +911,8 @@
       </div>
 
       <div class="profile-card">
-        <div class="section-heading"><div><strong>Formation tops & expected pressure</strong><small>Pressure = gradient × interpolated TVD at top.</small></div><button id="addFormationBtn">+ Add</button></div>
-        <div class="table-wrap"><table id="formationTable"><thead><tr><th>Formation</th><th>Top MD</th><th>Gradient kPa/m</th><th>Est. pressure</th><th></th></tr></thead><tbody></tbody></table></div>
+        <div class="section-heading"><div><strong>Formation tops & pressure range</strong><small>Low / expected / high gradients preserve uncertainty and source history.</small></div><button id="addFormationBtn">+ Add</button></div>
+        <div class="table-wrap"><table id="formationTable"><thead><tr><th>Formation</th><th>Top MD</th><th>Low</th><th>Expected</th><th>High</th><th>Pressure range</th><th>Source</th><th>Confidence</th><th></th></tr></thead><tbody></tbody></table></div>
       </div>
 
       <div class="disclaimer danger"><strong>Operational limitation</strong><p>The returns-front position is an annular-volume estimate. Real transport can differ because of compressibility, cuttings loading, washout, temperature, multiphase flow, surge/swab and changing geometry. Do not use this display as a substitute for pit, flow, gas, MPD or well-control monitoring.</p></div>
