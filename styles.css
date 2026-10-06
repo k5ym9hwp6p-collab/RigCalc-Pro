@@ -223,3 +223,5 @@ body.education-on .edu-learn-btn{display:inline-flex}
 @media(min-width:700px){.academy-grid{grid-template-columns:1fr 1fr}.edu-overlay{align-items:center;padding:24px}.edu-panel{border-radius:22px}}
 
 .returns-inputs{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end}.returns-inputs label{display:grid;gap:6px}.returns-inputs input,.returns-inputs select{min-width:0;width:100%}#returnsTable td{white-space:pre-line;min-width:110px}#returnsTable td:nth-child(2){min-width:200px}#returnError{color:#d92d20}#returnArrivals p{padding:12px;border-left:4px solid #12b76a;background:rgba(18,183,106,.08)}.returns-help{margin-top:16px;line-height:1.6}.returns-help summary{cursor:pointer;font-weight:700}@media(max-width:700px){.returns-inputs{grid-template-columns:1fr 1fr}.returns-inputs button{min-height:44px}}
+
+#stickImportResult{padding:12px;border:1px solid var(--border);border-radius:9px;font-size:.85rem;color:var(--text);overflow-wrap:anywhere}.stick-row-error{min-width:180px;color:#f79009!important;font-weight:700}

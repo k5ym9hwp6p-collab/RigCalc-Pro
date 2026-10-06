@@ -95,7 +95,7 @@ Stick diagram import update
 - Upload a JPEG/PNG photo or screenshot, drag over the formation table to crop, then Read photo. The Tesseract.js reader loads from a pinned public CDN and processes the photo locally on the device; no API key or external image upload is used. Photo reading requires internet.
 - This first photo parser supports the sample layout: MD, TVD, formation name, subsea elevation, offset kPa, expected kPa, planned mud density. Other layouts can be pasted as tab/semicolon-separated rows: Name;MD;TVD;Subsea;Offset;Expected;PlannedMud.
 - A blurry or angled photo may yield few/no usable rows. Your supplied blurry sample did not yield reliable automatic formation extraction in testing. Use a sharper, straight-on image; recognition is not an AI interpretation of the whole diagram.
-- Review all candidate values and select Keep. Unreviewed rows are shaded; missing name/depth values are highlighted. Import appends by default, rejects duplicate name+MD pairs, supports explicit table replacement and one-level persistent undo.
+- Review all candidate values and select Keep. Unreviewed rows are shaded; missing name/depth values are highlighted. Import appends valid selected rows by default, reports invalid/duplicate rows individually, supports optional matching name+MD updates, explicit table replacement and one-level persistent undo.
 - Depth datum and KB elevation are preserved in source details. MD, TVD and subsea are distinct; imported TVD supplies the pressure calculation's depth. Planned mud density and offset pressure never become expected formation pressure automatically.
 - Opt in to use reviewed expected pressure/TVD for expected gradient (kPa/m). Pressure-unit changes convert candidate values; low/high gradients remain blank unless manually entered. Missing pressure is displayed as unknown, not zero.
 - Deploy formation-import.js and all other app runtime files. Do not upload an ocr folder. The reader downloads when needed; the rest of the app and paste-table import remain available offline. Test files stay local.
@@ -106,3 +106,12 @@ Lightweight upload fix
 - The new ZIP omits the large ocr folder. Existing ocr files on your host can remain; this version does not use them.
 - Replace formation-import.js, index.html and service-worker.js with these updated files; the new service worker no longer requires OCR assets to install.
 - Photo recognition requires internet. No API key is required and photo pixels remain on your device.
+
+Formation import correction
+- Import results now appear beside the import action as well as above the photo.
+- Invalid or duplicate rows no longer block valid selected rows during Add. Problem rows remain selected with their correction message.
+- Correcting a field no longer clears its Keep checkbox or rebuilds the row while you are editing.
+- Optional Update matching formations replaces an existing entry with the same name and MD.
+- Replace entire table remains atomic: invalid selected rows prevent replacement. Undo still restores the previous table.
+- Browser regression checks cover partial import, displayed errors, correction then import, duplicate updates, undo and failed replacement preservation.
+- Upload formation-import.js, styles.css and service-worker.js for this fix. No ocr folder is required.

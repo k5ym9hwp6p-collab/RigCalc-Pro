@@ -28,7 +28,20 @@ const FormationImport=(()=>{
     const grad=useExpected&&expected!==null?expected*(pressureUnit==='MPa'?1000:1)/tvd:null;
     return {name:row.name.trim(),md,tvd,grad,lowGrad:null,highGrad:null,source:'Prognosis',confidence:'Low',importSource:{filename,datum,kb:number(kb),subsea:number(row.subsea),offsetPressure:number(row.offset),expectedPressure:expected,pressureUnit,plannedMudDensity:row.mud||'',raw:row.raw||'',reviewed:true}};
   }
-  return {parse,convert,number};
+  function plan(rows,existing,options={}){
+    const formations=options.replace?[]:[...existing],accepted=[],errors=[];
+    for(let i=0;i<rows.length;i++){
+      const row=rows[i];if(!row.approved)continue;
+      try{
+        const value=convert(row,options),key=f=>`${f.name.toLowerCase().trim()}|${f.md}`,match=formations.findIndex(f=>key(f)===key(value));
+        if(match>=0&&!options.updateMatches)throw Error('Already in the table. Select Update matching formations to replace this entry.');
+        if(match>=0)formations[match]=value;else formations.push(value);
+        accepted.push(i);
+      }catch(e){errors.push({index:i,name:row.name||'Unnamed formation',message:e.message});}
+    }
+    return {formations,accepted,errors};
+  }
+  return {parse,convert,number,plan};
 })();
 if(typeof module!=='undefined')module.exports=FormationImport;
 
@@ -36,7 +49,9 @@ if(typeof document!=='undefined')(()=>{
   const el=id=>document.getElementById(id),host=el('formationImportPanel');if(!host)return;
   let rows=[],image=null,filename='',crop=null,start=null,busy=false,revision=0,pressureUnit='kPa';
   const canvas=el('stickCanvas'),ctx=canvas.getContext('2d');
-  const message=s=>{el('stickStatus').textContent=s;};
+  // Keep the result next to the action, even when the photo is far above it.
+  const result=document.createElement('p');result.id='stickImportResult';result.setAttribute('role','status');result.setAttribute('aria-live','polite');el('stickAppend').parentElement.after(result);
+  const message=s=>{el('stickStatus').textContent=s;result.textContent=s;};
   function draw(){if(!image)return;ctx.drawImage(image,0,0,canvas.width,canvas.height);if(crop){ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,crop.x*image.width/canvas.width,crop.y*image.height/canvas.height,crop.w*image.width/canvas.width,crop.h*image.height/canvas.height,crop.x,crop.y,crop.w,crop.h);ctx.strokeStyle='#12b76a';ctx.lineWidth=3;ctx.strokeRect(crop.x,crop.y,crop.w,crop.h);}}
   function point(e){const r=canvas.getBoundingClientRect();return {x:Math.max(0,Math.min(canvas.width,(e.clientX-r.left)*canvas.width/r.width)),y:Math.max(0,Math.min(canvas.height,(e.clientY-r.top)*canvas.height/r.height))};}
   canvas.onpointerdown=e=>{if(!image||busy)return;start=point(e);canvas.setPointerCapture(e.pointerId);};
@@ -61,17 +76,24 @@ if(typeof document!=='undefined')(()=>{
     }catch(e){message('Photo reading failed: '+e.message+' You can paste table text below instead.');}
     finally{if(worker)await worker.terminate();busy=false;el('stickRead').disabled=false;el('stickPhoto').disabled=false;}
   };
-  function field(tr,row,key,type='number'){const td=document.createElement('td'),input=document.createElement('input');input.type=type;input.value=row[key]??'';if(type==='number')input.step='any';if(['name','md','tvd'].includes(key)&&(row[key]===null||row[key]==='')){input.className='stick-missing';input.placeholder='Check';}input.setAttribute('aria-label',key);input.onchange=()=>{row[key]=type==='number'?FormationImport.number(input.value):input.value;row.approved=false;render();};td.appendChild(input);tr.appendChild(td);}
-  function render(){const body=el('stickRows');body.replaceChildren();rows.forEach((row,i)=>{const tr=document.createElement('tr'),td=document.createElement('td'),check=document.createElement('input');tr.classList.toggle('stick-needs-review',!row.approved);check.type='checkbox';check.checked=row.approved;check.setAttribute('aria-label','Keep '+row.name);check.onchange=()=>{row.approved=check.checked;tr.classList.toggle('stick-needs-review',!row.approved);};td.appendChild(check);tr.appendChild(td);['name','md','tvd','subsea','offset','expected','mud'].forEach(k=>field(tr,row,k,['name','mud'].includes(k)?'text':'number'));const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{rows.splice(i,1);render();};const last=document.createElement('td');last.appendChild(remove);tr.appendChild(last);body.appendChild(tr);});}
+  function field(tr,row,key,type='number'){const td=document.createElement('td'),input=document.createElement('input');input.type=type;input.value=row[key]??'';if(type==='number')input.step='any';if(['name','md','tvd'].includes(key)&&(row[key]===null||row[key]==='')){input.className='stick-missing';input.placeholder='Check';}input.setAttribute('aria-label',key);input.onchange=()=>{row[key]=type==='number'?FormationImport.number(input.value):input.value;delete row.error;input.classList.remove('stick-missing');};td.appendChild(input);tr.appendChild(td);}
+  function render(){const body=el('stickRows');body.replaceChildren();rows.forEach((row,i)=>{const tr=document.createElement('tr'),td=document.createElement('td'),check=document.createElement('input');tr.classList.toggle('stick-needs-review',!row.approved);check.type='checkbox';check.checked=row.approved;check.setAttribute('aria-label','Keep '+row.name);check.onchange=()=>{row.approved=check.checked;tr.classList.toggle('stick-needs-review',!row.approved);};td.appendChild(check);tr.appendChild(td);['name','md','tvd','subsea','offset','expected','mud'].forEach(k=>field(tr,row,k,['name','mud'].includes(k)?'text':'number'));const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{rows.splice(i,1);render();};const last=document.createElement('td');last.appendChild(remove);if(row.error){const note=document.createElement('p');note.className='stick-row-error';note.textContent=row.error;last.appendChild(note);}tr.appendChild(last);body.appendChild(tr);});}
   el('stickParse').onclick=()=>{rows=FormationImport.parse(el('stickText').value);render();message(`${rows.length} candidates. Check values and select Keep for each row to import.`);};
   el('stickPressureUnit').onchange=()=>{const next=el('stickPressureUnit').value,factor=next===pressureUnit?1:next==='MPa'?.001:1000;rows.forEach(r=>{for(const k of ['offset','expected'])if(r[k]!==null)r[k]*=factor;r.approved=false;});pressureUnit=next;render();message('Pressure values converted to '+next+'. Review and select Keep again.');};
   el('stickAddRow').onclick=()=>{rows.push({name:'',md:null,tvd:null,subsea:null,offset:null,expected:null,mud:'',approved:false});render();};
+  const updateLabel=document.createElement('label');updateLabel.className='stick-check';const update=document.createElement('input');update.type='checkbox';update.id='stickUpdateMatches';updateLabel.append(update,document.createTextNode(' Update matching formations (same name and MD)'));el('stickAppend').parentElement.before(updateLabel);
   function apply(replace){
-    try{const kept=rows.filter(r=>r.approved);if(!kept.length)throw Error('Select Keep on at least one reviewed row.');
-      const result=kept.map(r=>FormationImport.convert(r,{useExpected:el('stickUsePressure').checked,pressureUnit:el('stickPressureUnit').value,filename,datum:el('stickDatum').value,kb:el('stickKB').value}));
-      const seen=new Set((replace?[]:wpData.formations).map(f=>`${f.name.toLowerCase().trim()}|${f.md}`));for(const f of result){const key=`${f.name.toLowerCase()}|${f.md}`;if(seen.has(key))throw Error('Duplicate formation and MD: '+f.name);seen.add(key);}
-      const before=JSON.stringify(wpData.formations),next=replace?result:[...wpData.formations,...result];
-      localStorage.setItem('rigcalc-formation-import-undo',before);const old=wpData.formations;wpData.formations=next;try{saveWP();}catch(e){wpData.formations=old;throw e;}renderWP();rows.forEach(r=>r.approved=false);render();message(`Imported ${result.length} reviewed formations. Undo import restores the previous table.`);
+    try{if(!rows.some(r=>r.approved))throw Error('Tick Keep beside the formations you want, then select Add kept rows to formations.');
+      rows.forEach(r=>delete r.error);
+      const planned=FormationImport.plan(rows,wpData.formations,{replace,updateMatches:update.checked,useExpected:el('stickUsePressure').checked,pressureUnit:el('stickPressureUnit').value,filename,datum:el('stickDatum').value,kb:el('stickKB').value});
+      for(const error of planned.errors)rows[error.index].error=error.message;
+      if(planned.accepted.length){
+        // A partial replacement would remove existing rows before corrections are complete.
+        if(replace&&planned.errors.length){render();throw Error('Replacement paused: correct the highlighted rows first. '+planned.errors.map(e=>`${e.name}: ${e.message}`).join(' '));}
+        const before=JSON.stringify(wpData.formations);localStorage.setItem('rigcalc-formation-import-undo',before);const old=wpData.formations;wpData.formations=planned.formations;try{saveWP();}catch(e){wpData.formations=old;throw e;}
+        planned.accepted.forEach(i=>rows[i].approved=false);renderWP();
+      }
+      render();message(`Imported ${planned.accepted.length} formation${planned.accepted.length===1?'':'s'}. ${planned.errors.length?planned.errors.length+' need attention: '+planned.errors.map(e=>`${e.name}: ${e.message}`).join(' '):'They are now in Formation tops & pressure range. Undo import restores the previous table.'}`);
     }catch(e){message(e.message);}
   }
   el('stickAppend').onclick=()=>apply(false);
