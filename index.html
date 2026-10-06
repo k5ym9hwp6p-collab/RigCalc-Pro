@@ -938,6 +938,21 @@
       <div class="profile-card">
         <div class="section-heading"><div><strong>Formation tops & pressure range</strong><small>Low / expected / high gradients preserve uncertainty and source history.</small></div><button id="addFormationBtn">+ Add</button></div>
         <div class="table-wrap"><table id="formationTable"><thead><tr><th>Formation</th><th>Top MD</th><th>Low</th><th>Expected</th><th>High</th><th>Pressure range</th><th>Source</th><th>Confidence</th><th></th></tr></thead><tbody></tbody></table></div>
+        <details id="formationImportPanel" class="stick-import">
+          <summary>Import formations from a stick diagram</summary>
+          <p>Choose a photo, crop to its formation table, and read it. Review every name and number before selecting Keep. Unclear values stay blank; all imported rows start with Low confidence.</p>
+          <label>Photo or screenshot<input id="stickPhoto" type="file" accept="image/*"></label>
+          <canvas id="stickCanvas" hidden aria-label="Stick diagram preview; drag to select the formation table"></canvas>
+          <div class="stick-actions"><button id="stickResetCrop">Use whole photo</button><button id="stickRead">Read photo</button></div>
+          <p id="stickStatus" role="status" aria-live="polite">Photo recognition runs on this device. Choose a photo to get started.</p>
+          <details><summary>Recognized text / paste table</summary><p>The photo parser expects MD, TVD, formation, subsea elevation, offset pressure, expected pressure, and planned mud density. You can also paste one row per line, separated by tabs or semicolons: Formation; MD; TVD; Subsea; Offset pressure; Expected pressure; Planned mud density.</p><textarea id="stickText" rows="8" placeholder="Duvernay;3521;3384;-2364;50000;54000;>1400"></textarea><button id="stickParse">Build review table from text</button></details>
+          <div class="fluid-new"><label>Depth reference datum<input id="stickDatum" placeholder="e.g. metres below KB"></label><label>KB elevation (optional, m above sea level)<input id="stickKB" type="number" step="any"></label><label>Pressure units in review table<select id="stickPressureUnit"><option value="kPa">kPa</option><option value="MPa">MPa</option></select></label></div>
+          <p>MD and TVD are depths below the selected datum. Negative subsea elevations are stored separately. Planned mud density is retained as a reference, including qualifiers such as &gt;.</p>
+          <label class="stick-check"><input id="stickUsePressure" type="checkbox"> Use reviewed expected pressure to calculate the expected gradient (pressure ÷ TVD). Leave low/high gradients blank.</label>
+          <div class="table-wrap"><table class="stick-table"><thead><tr><th>Keep</th><th>Formation</th><th>MD (m)</th><th>TVD (m)</th><th>Subsea (m)</th><th>Offset pressure</th><th>Expected pressure</th><th>Planned mud kg/m³</th><th></th></tr></thead><tbody id="stickRows"></tbody></table></div>
+          <div class="stick-actions"><button id="stickAddRow">+ Review row</button><button id="stickAppend">Add kept rows to formations</button><button id="stickUndo">Undo import</button></div>
+          <label class="stick-check"><input id="stickAllowReplace" type="checkbox"> Replace entire existing formation table</label><button id="stickReplace">Replace with kept rows</button>
+        </details>
       </div>
 
       <div class="disclaimer danger"><strong>Operational limitation</strong><p>The returns-front position is an annular-volume estimate. Real transport can differ because of compressibility, cuttings loading, washout, temperature, multiphase flow, surge/swab and changing geometry. Do not use this display as a substitute for pit, flow, gas, MPD or well-control monitoring.</p></div>
@@ -989,5 +1004,6 @@
   <script src="pill-spotting.js"></script>
   <script src="app.js"></script>
   <script src="returns.js"></script>
+  <script src="formation-import.js"></script>
 </body>
 </html>
