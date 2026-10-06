@@ -47,12 +47,12 @@ if(typeof document!=='undefined')(()=>{
   el('stickPhoto').onchange=async e=>{const file=e.target.files[0];if(!file)return;if(busy)return;revision++;filename=file.name;rows=[];render();el('stickText').value='';image=null;crop=null;
     const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{image=img;canvas.width=1000;canvas.height=Math.round(img.height/img.width*1000);canvas.hidden=false;draw();URL.revokeObjectURL(url);message('Drag over the formation table to crop, then select Read photo.');};img.onerror=()=>{URL.revokeObjectURL(url);message('Photo could not be opened. Try a JPEG or PNG.');};img.src=url;
   };
-  async function loadOCR(){if(globalThis.Tesseract)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='./ocr/tesseract.min.js';s.onload=resolve;s.onerror=()=>{s.remove();reject(Error('OCR files unavailable. Upload the ocr folder with the app.'));};document.head.appendChild(s);});}
+  async function loadOCR(){if(globalThis.Tesseract)return;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>{s.remove();reject(Error('Photo reader could not load. Check your internet connection.'));};document.head.appendChild(s);});}
   el('stickRead').onclick=async()=>{
     if(!image){message('Choose a photo first.');return;}if(busy)return;busy=true;const rev=revision;el('stickRead').disabled=true;el('stickPhoto').disabled=true;let worker;
     try{
       await loadOCR();message('Loading photo reader…');
-      worker=await Tesseract.createWorker('eng',1,{workerPath:new URL('./ocr/worker.min.js',location.href).href,corePath:new URL('./ocr/',location.href).href,langPath:new URL('./ocr',location.href).href,logger:m=>message(`${m.status}${m.progress!==undefined?' '+Math.round(m.progress*100)+'%':''}`)});
+      worker=await Tesseract.createWorker('eng',1,{workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/worker.min.js',corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0',langPath:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int',logger:m=>message(`${m.status}${m.progress!==undefined?' '+Math.round(m.progress*100)+'%':''}`)});
       const c=crop||{x:0,y:0,w:canvas.width,h:canvas.height},scan=document.createElement('canvas');const scale=Math.min(3,3000/c.w);scan.width=Math.round(c.w*scale);scan.height=Math.round(c.h*scale);
       scan.getContext('2d').drawImage(image,c.x*image.width/canvas.width,c.y*image.height/canvas.height,c.w*image.width/canvas.width,c.h*image.height/canvas.height,0,0,scan.width,scan.height);
       await worker.setParameters({tessedit_pageseg_mode:'6'});const {data}=await worker.recognize(scan);

@@ -92,12 +92,17 @@ Annular pill spotting update
 
 Stick diagram import update
 - Formation tops & pressure range now contains an expandable photo-import panel.
-- Upload a JPEG/PNG photo or screenshot, drag over the formation table to crop, then Read photo. The bundled Tesseract.js reader runs locally on the device; no API key or external image upload is used.
+- Upload a JPEG/PNG photo or screenshot, drag over the formation table to crop, then Read photo. The Tesseract.js reader loads from a pinned public CDN and processes the photo locally on the device; no API key or external image upload is used. Photo reading requires internet.
 - This first photo parser supports the sample layout: MD, TVD, formation name, subsea elevation, offset kPa, expected kPa, planned mud density. Other layouts can be pasted as tab/semicolon-separated rows: Name;MD;TVD;Subsea;Offset;Expected;PlannedMud.
 - A blurry or angled photo may yield few/no usable rows. Your supplied blurry sample did not yield reliable automatic formation extraction in testing. Use a sharper, straight-on image; recognition is not an AI interpretation of the whole diagram.
 - Review all candidate values and select Keep. Unreviewed rows are shaded; missing name/depth values are highlighted. Import appends by default, rejects duplicate name+MD pairs, supports explicit table replacement and one-level persistent undo.
 - Depth datum and KB elevation are preserved in source details. MD, TVD and subsea are distinct; imported TVD supplies the pressure calculation's depth. Planned mud density and offset pressure never become expected formation pressure automatically.
 - Opt in to use reviewed expected pressure/TVD for expected gradient (kPa/m). Pressure-unit changes convert candidate values; low/high gradients remain blank unless manually entered. Missing pressure is displayed as unknown, not zero.
-- Deploy formation-import.js plus the entire ocr folder and all other app runtime files. OCR assets add about 46 MB uncompressed; the service worker includes them for local caching. Test files stay local.
+- Deploy formation-import.js and all other app runtime files. Do not upload an ocr folder. The reader downloads when needed; the rest of the app and paste-table import remain available offline. Test files stay local.
 - Validated parser/conversions and browser upload, OCR on a clear synthetic table, unit conversion, reviewed import, stored source metadata, reload with blank pressure ranges, and undo. Existing returns/pill tests passed.
-- OCR dependencies: Tesseract.js 7.0.0 and its packaged Tesseract.js-core runtime; English best-int training data from @tesseract.js-data/eng. Included license notices are in ocr/.
+- OCR dependencies: Tesseract.js 7.0.0 and its packaged Tesseract.js-core runtime; English best-int training data from @tesseract.js-data/eng. The hosted packages include their license notices.
+
+Lightweight upload fix
+- The new ZIP omits the large ocr folder. Existing ocr files on your host can remain; this version does not use them.
+- Replace formation-import.js, index.html and service-worker.js with these updated files; the new service worker no longer requires OCR assets to install.
+- Photo recognition requires internet. No API key is required and photo pixels remain on your device.
