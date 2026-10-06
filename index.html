@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.07</span>
+      <span class="eyebrow">BETA 1.08</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -787,6 +787,21 @@
         <p class="live-note">Rate and output changes create a new ledger segment. Earlier circulation keeps the values that were active when it occurred.</p>
       </div>
 
+      <div class="profile-card returns-card">
+        <div class="section-heading"><div><strong>Returns Coming</strong><small>Tagged events travelling from the bit through the annulus to surface.</small></div></div>
+        <div class="returns-inputs">
+          <label>Event <select id="returnType"><option>Formation Top</option><option>Gas Show</option><option>Connection</option><option>Sweep at bit</option><option>Drilling Break</option><option>Mud Change at bit</option></select></label>
+          <label>Label <input id="returnLabel" maxlength="80" placeholder="Duvernay Top…"></label>
+          <label>Origin MD <span>m (blank = current bit)</span><input id="returnOrigin" type="number" min="0" placeholder="Current bit MD"></label>
+          <button id="tagReturnBtn">Tag at bit</button>
+        </div>
+        <p id="returnError" role="alert"></p>
+        <div class="table-wrap"><table id="returnsTable"><thead><tr><th>Return</th><th>Origin / pressure</th><th>Current position</th><th>Volume remaining</th><th>Strokes remaining</th><th>ETA / clock time</th><th></th></tr></thead><tbody></tbody></table></div>
+        <div class="section-heading"><strong>At Surface</strong><button id="clearReturnArrivalsBtn">Clear arrivals</button></div>
+        <div id="returnArrivals" role="status" aria-live="polite"></div>
+        <details class="returns-help"><summary>How arrival is calculated</summary><p>Remaining volume = annular volume from origin to surface − effective volume pumped since tagging. Strokes remaining = remaining m³ ÷ (pump m³/stroke × tracking efficiency). Minutes remaining = strokes remaining ÷ current SPM.</p><p>Each tag retains its origin, formation pressure and annular geometry at creation. Rate and output changes affect future arrival predictions; earlier pumped volume is preserved. Pauses, connections and reverse flow hold the tag. Reset circulation clears tags and arrivals.</p><p>Tag a sweep when its leading edge reaches the bit. Use the Fluid Tracker for travel down the string. Clock estimates assume the current rate continues and exclude surface-line volume, slip and mixing. Partial-return efficiency is a user-entered estimate.</p></details>
+      </div>
+
       <div class="profile-card circulation-ledger-card">
         <div class="section-heading">
           <div><strong>Circulation volume ledger</strong><small>Timestamped operating segments preserve actual rate changes, pauses and corrections.</small></div>
@@ -962,5 +977,6 @@
   </div>
 
   <script src="app.js"></script>
+  <script src="returns.js"></script>
 </body>
 </html>

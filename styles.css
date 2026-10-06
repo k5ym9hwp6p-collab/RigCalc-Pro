@@ -214,3 +214,5 @@ body.education-on .edu-learn-btn{display:inline-flex}
 .academy-note{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
 .academy-note p{margin:4px 0 0;color:var(--muted);font-size:.78rem;line-height:1.4}
 @media(min-width:700px){.academy-grid{grid-template-columns:1fr 1fr}.edu-overlay{align-items:center;padding:24px}.edu-panel{border-radius:22px}}
+
+.returns-inputs{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end}.returns-inputs label{display:grid;gap:6px}.returns-inputs input,.returns-inputs select{min-width:0;width:100%}#returnsTable td{white-space:pre-line;min-width:110px}#returnsTable td:nth-child(2){min-width:200px}#returnError{color:#d92d20}#returnArrivals p{padding:12px;border-left:4px solid #12b76a;background:rgba(18,183,106,.08)}.returns-help{margin-top:16px;line-height:1.6}.returns-help summary{cursor:pointer;font-weight:700}@media(max-width:700px){.returns-inputs{grid-template-columns:1fr 1fr}.returns-inputs button{min-height:44px}}

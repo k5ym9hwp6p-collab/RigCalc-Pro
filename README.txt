@@ -1,3 +1,23 @@
+RigCalc Pro Beta 1.08 — Returns Coming
+
+Open Live Well Profile, enter valid hole/string geometry, pump output (m³/stroke) and SPM. Tag an event at the bit, then use Live Circulate Start/Pause. 18.5 L/stroke is 0.0185 m³/stroke.
+
+New in this build:
+- Multiple tagged return events, ordered by remaining annular volume.
+- Origin MD/TVD, formation and expected pressure range retained at tagging.
+- Current MD/TVD, remaining volume, strokes and predicted surface clock time.
+- Paused/pumps-off ETA, connection and reverse-flow holds.
+- Arrival history retained until cleared; circulation reset clears all tags.
+- Snapshot annular geometry prevents later bit-depth/geometry edits from moving existing tags.
+- Tags and history persist on this device.
+- Contextual calculation explanation inside the panel.
+
+Tracking uses the effective-volume circulation ledger; output/rate changes do not rewrite past displacement. Geometry at tagging must cover surface to origin without gaps or overlaps. Enter string OD for each annular interval in Hole Geometry. Formation pressures use the existing kPa/m gradients converted to kg/m³ EMW.
+
+Sweep tags represent the leading edge at the bit, not the moment a sweep starts down the drill string. Use the existing Fluid Tracker for down-string travel. Geometry-based estimates exclude surface-line capacity, fluid slip and mixing. Arrival timestamps show when the app detected arrival. Partial-return efficiency is a user-entered approximation, not a calibrated loss/slip model.
+
+Deploy all included files together to your existing web host. The service-worker cache is updated for Beta 1.08. Device inputs use the existing storage keys.
+
 RigCalc Pro Beta 1.07
 
 New — Live Circulate 2.0
@@ -46,3 +66,10 @@ Existing Beta 1.05 polished interface and functionality are retained.
 
 Training boundary
 The Education layer explains calculations and assumptions. It does not replace approved drilling programs, company/operator procedures, certified well-control training, cement programs, MPD procedures or verified field instrumentation.
+
+Validation for Beta 1.08
+- Calculation acceptance case passed: 1240 / 1740 / 2310 strokes at 55 SPM; after 550 strokes, 690 / 1190 / 1760 at 40 SPM give 17.25 / 29.75 / 44.00 minutes.
+- Annular section boundaries, marker ordering, invalid geometry, output changes, pause, connection and arrival tests passed.
+- Actual circulation ledger + mocked DOM adapter tests passed for tagging, retained origin pressure, rate checkpointing, paused position, storage, arrivals and reset.
+- JavaScript syntax checks passed. Full browser/device rendering has not been verified in this environment.
+- Re-run Node tests from the app folder: node tests/returns-test.cjs and node tests/integration-test.cjs.
