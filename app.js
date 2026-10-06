@@ -126,6 +126,13 @@ let fluidEvents=[];
 try{fluidEvents=JSON.parse(localStorage.getItem(FLUID_KEY)||"[]")||[]}catch(e){fluidEvents=[]}
 function saveFluids(){localStorage.setItem(FLUID_KEY,JSON.stringify(fluidEvents))}
 function liveTotalPumpedVolume(){return getLiveComputed().pumped}
+// Volume of this tracked batch injected since its surface start, capped at its size.
+// Keep this separate from front/tail travel: subsequent displacement is not batch volume.
+function fluidPumpingProgress(event,currentPumped=liveTotalPumpedVolume()){
+  const total=Math.max(0,Number(event.volume)||0);
+  const pumped=Math.min(total,Math.max(0,currentPumped-(Number(event.startPumpVol)||0)));
+  return {total,pumped,remaining:total-pumped,percent:total>0?pumped/total*100:0};
+}
 
 // Approximate total internal drill-string volume using user-entered average pipe capacity.
 function pipeInternalVolumeToBit(bitMD,pipeCap){return Math.max(0,bitMD*pipeCap)}
@@ -201,9 +208,16 @@ function renderFluidList(){
   if(!fluidEvents.length){host.innerHTML='<div class="fluid-item"><span style="color:var(--muted)">No fluids currently being tracked.</span></div>';renderFluidMarkers();return}
   fluidEvents.forEach((ev,i)=>{
     const st=fluidStates(ev),status=fluidOverallStatus(st.front,st.tail);
+    const pumping=fluidPumpingProgress(ev);
     const eta = st.front.phase==="Down drill pipe" ? st.front.etaBit : st.front.etaSurface;
     const div=document.createElement("div");div.className="fluid-item";
     div.innerHTML=`<div class="fluid-item-head"><div><strong>${ev.label||ev.type}</strong><div style="font-size:.75rem;color:var(--muted);margin-top:2px">${ev.type} • ${Number(ev.volume).toFixed(2)} m³ • ${status}</div></div><button data-fluid-del="${i}">✕</button></div>
+      <div class="fluid-meta">
+        <div><span>Volume pumped / total</span><strong>${pumping.pumped.toFixed(2)} / ${pumping.total.toFixed(2)} m³</strong></div>
+        <div><span>Left to pump</span><strong>${pumping.remaining.toFixed(2)} m³</strong></div>
+      </div>
+      <div class="fluid-pumped-label">${pumping.percent.toFixed(1)}% pumped</div>
+      <div class="fluid-progress" role="progressbar" aria-label="Tracked fluid volume pumped" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pumping.percent.toFixed(1)}"><i style="width:${pumping.percent}%"></i></div>
       <div class="fluid-meta">
         <div><span>Front</span><strong>${st.front.md.toFixed(0)} m MD</strong></div>
         <div><span>Front phase</span><strong>${st.front.phase}</strong></div>

@@ -73,3 +73,10 @@ Validation for Beta 1.08
 - Actual circulation ledger + mocked DOM adapter tests passed for tagging, retained origin pressure, rate checkpointing, paused position, storage, arrivals and reset.
 - JavaScript syntax checks passed. Full browser/device rendering has not been verified in this environment.
 - Re-run Node tests from the app folder: node tests/returns-test.cjs and node tests/integration-test.cjs.
+
+Tracked-fluid pumped volume update
+- Each active fluid card shows volume pumped / total (m³), left to pump, and percentage pumped with a separate progress bar.
+- Pumped volume uses the existing cumulative pump-volume ledger minus the batch's saved start volume. It stops increasing at the entered batch volume; later displacement still moves front/tail markers.
+- Pauses and rate/output changes follow the existing ledger. Manual meter corrections also adjust this display.
+- The existing front/tail travel bar remains separate. Adding a fluid starts it at the current pump total; this update does not introduce a sequential batch queue.
+- Upload the updated app.js, styles.css and service-worker.js together. Tests stay local and are not needed on the web host.
