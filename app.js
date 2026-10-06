@@ -202,8 +202,29 @@ function renderFluidMarkers(){
     const lab=document.createElementNS("http://www.w3.org/2000/svg","text");lab.setAttribute("x",Math.min(610,sx(pf.x)+10));lab.setAttribute("y",Math.max(16,sy(pf.tvd)-8));lab.setAttribute("class","fluid-svg-label");lab.textContent=ev.label||ev.type;g.appendChild(lab);
   });
 }
+function fluidSpotMarkup(ev,index){
+  if(typeof PillSpot==="undefined")return "";
+  let spot;
+  try{spot=PillSpot.calculate({bit:n("wp_bit"),volume:Number(ev.volume),pumped:Math.max(0,liveTotalPumpedVolume()-(Number(ev.startPumpVol)||0)),holes:wpData.holes,strings:stringData,target:ev.targetMD??null,edge:ev.targetEdge||"tail",output:n("wp_output")});}catch(e){return "";}
+  if(spot.error)return `<div class="fluid-spot-note">Pill placement: ${spot.error}</div>`;
+  const interval=(front,tail)=>`${front.toFixed(1)}–${tail.toFixed(1)} m MD`;
+  const target=spot.target;
+  return `<div class="fluid-spot-title">Annular placement${ev.density>0?` • ${Number(ev.density).toFixed(0)} kg/m³`:""}</div>
+    <div class="fluid-meta">
+      <div><span>Volume now in annulus</span><strong>${spot.inAnnulus.toFixed(2)} m³</strong></div>
+      <div><span>Length now in annulus</span><strong>${spot.length.toFixed(1)} m</strong></div>
+      <div><span>Current annular interval (front–tail)</span><strong>${spot.inAnnulus>0?interval(spot.front,spot.tail):"Not yet in annulus"}</strong></div>
+      <div><span>Displacement until tail exits bit</span><strong>${spot.toTailExit.toFixed(2)} m³</strong></div>
+      <div><span>Full batch length at tail exit</span><strong>${spot.fits?spot.fullLength.toFixed(1)+" m":"Exceeds annulus capacity"}</strong></div>
+      <div><span>Interval at tail exit (front–tail)</span><strong>${spot.fits?interval(spot.fullFront,spot.fullTail):"Batch cannot fit fully"}</strong></div>
+    </div>
+    <div class="fluid-spot-controls"><label>Spot target (m MD)<input data-spot-target="${index}" type="number" inputmode="decimal" min="0" max="${n("wp_bit")}" value="${ev.targetMD??""}" placeholder="Optional target"></label><label>Place at target<select data-spot-edge="${index}"><option value="tail"${ev.targetEdge!=="front"?" selected":""}>Tail (bottom)</option><option value="front"${ev.targetEdge==="front"?" selected":""}>Front (top)</option></select></label></div>
+    ${target?target.error?`<p class="fluid-spot-note">${target.error}</p>`:`<div class="fluid-meta"><div><span>Displacement left to target</span><strong>${target.passed?"Target already passed":target.remaining.toFixed(2)+" m³"}</strong></div><div><span>Strokes left at current output</span><strong>${target.passed?"—":target.strokes===null?"Enter pump output":Math.ceil(target.strokes).toLocaleString()}</strong></div><div><span>Projected interval at target</span><strong>${interval(target.front,target.tail)}</strong></div><div><span>Full batch fits at target</span><strong>${target.fits?"Yes":"No — part outside annulus"}</strong></div></div>`:""}`;
+}
 function renderFluidList(){
   const host=q("fluidList"); if(!host)return;
+  const editing=document.activeElement?.dataset;
+  if(editing?.spotTarget!==undefined||editing?.spotEdge!==undefined)return;
   host.innerHTML="";
   if(!fluidEvents.length){host.innerHTML='<div class="fluid-item"><span style="color:var(--muted)">No fluids currently being tracked.</span></div>';renderFluidMarkers();return}
   fluidEvents.forEach((ev,i)=>{
@@ -226,7 +247,8 @@ function renderFluidList(){
         <div><span>Formation</span><strong>${st.front.formation}</strong></div>
         <div><span>Front ETA</span><strong>${fmtEta(eta)}</strong></div>
       </div>
-      <div class="fluid-progress"><i style="width:${Math.max(0,Math.min(100,(st.front.phase==="Up annulus"?50+st.front.progress*50:st.front.phase==="At surface"?100:st.front.progress*50)))}%"></i></div>`;
+      <div class="fluid-progress"><i style="width:${Math.max(0,Math.min(100,(st.front.phase==="Up annulus"?50+st.front.progress*50:st.front.phase==="At surface"?100:st.front.progress*50)))}%"></i></div>
+      ${fluidSpotMarkup(ev,i)}`;
     host.appendChild(div);
   });
   renderFluidMarkers();
@@ -240,6 +262,10 @@ q("addFluidBtn").onclick=()=>{
 };
 q("clearFluidsBtn").onclick=()=>{fluidEvents=[];saveFluids();renderFluidList()};
 document.addEventListener("click",e=>{if(e.target.dataset.fluidDel!==undefined){fluidEvents.splice(+e.target.dataset.fluidDel,1);saveFluids();renderFluidList()}});
+document.addEventListener("change",e=>{const a=e.target.dataset;
+  if(a.spotTarget!==undefined){const ev=fluidEvents[+a.spotTarget];if(ev){ev.targetMD=e.target.value.trim()===""?null:Number(e.target.value);saveFluids();renderFluidList()}}
+  if(a.spotEdge!==undefined){const ev=fluidEvents[+a.spotEdge];if(ev){ev.targetEdge=e.target.value==="front"?"front":"tail";saveFluids();renderFluidList()}}
+});
 setInterval(renderFluidList,500);
 ["wp_bit","wp_output","wp_spm","fluidPipeCap"].forEach(id=>{if(q(id))q(id).addEventListener("input",renderFluidList)});
 renderFluidList();
@@ -340,7 +366,7 @@ fluidEdgeState=function(event,edgeStartOffset){
 q("addFluidBtn").onclick=()=>{
   const type=q("fluidType").value,label=q("fluidLabel").value.trim()||type,volume=Math.max(0,n("fluidVolume"));
   if(volume<=0){alert("Enter a fluid volume greater than zero.");return}
-  fluidEvents.push({type,label,volume,startPumpVol:liveTotalPumpedVolume(),createdAt:Date.now(),model:"detailed-v14"});
+  fluidEvents.push({type,label,volume,density:Math.max(0,n("fluidDensity")),targetMD:q("fluidTarget").value.trim()===""?null:n("fluidTarget"),targetEdge:q("fluidTargetEdge").value,startPumpVol:liveTotalPumpedVolume(),createdAt:Date.now(),model:"detailed-v14"});
   saveFluids();renderFluidList();
   const m=label.match(/(\d+)$/);if(m)q("fluidLabel").value=label.replace(/\d+$/,(Number(m[1])+1).toString());
 };

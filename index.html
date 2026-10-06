@@ -875,6 +875,15 @@
           <label>Volume <span>m³</span>
             <input id="fluidVolume" type="number" inputmode="decimal" value="5">
           </label>
+          <label>Density (optional) <span>kg/m³</span>
+            <input id="fluidDensity" type="number" inputmode="decimal" min="0" placeholder="1600">
+          </label>
+          <label>Spot target (optional) <span>m MD</span>
+            <input id="fluidTarget" type="number" inputmode="decimal" min="0" placeholder="Target depth">
+          </label>
+          <label>Place at target
+            <select id="fluidTargetEdge"><option value="tail">Tail (bottom of pill)</option><option value="front">Front (top of pill)</option></select>
+          </label>
           <label>Downhole model <span>source</span>
             <input id="fluidPipeModel" value="Detailed drill string" readonly>
           </label>
@@ -885,6 +894,7 @@
           <button id="clearFluidsBtn">Clear all</button>
         </div>
         <div id="fluidList" class="fluid-list"></div>
+        <details class="fluid-spot-help"><summary>How pill placement is calculated</summary><p>Annular capacity = π × (hole ID² − string OD²) / 4, with diameters in metres and the Hole Geometry over-hole allowance. Volume is summed through each section along measured depth. Enter the actual drill-pipe and BHA outer diameters in Hole Geometry; Detailed drill string supplies internal diameters for displacement to the bit.</p><p>When the tail exits the bit, the full batch extends upward from the bit. Further pumping moves both ends up the annulus. Density is recorded for reference; it does not change the volume-based length. This is an ideal forward-flow estimate without mixing or settling.</p></details>
       </div>
 
       <div class="input-card wp-controls">
@@ -976,6 +986,7 @@
     </div>
   </div>
 
+  <script src="pill-spotting.js"></script>
   <script src="app.js"></script>
   <script src="returns.js"></script>
 </body>

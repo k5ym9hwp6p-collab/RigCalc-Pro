@@ -80,3 +80,12 @@ Tracked-fluid pumped volume update
 - Pauses and rate/output changes follow the existing ledger. Manual meter corrections also adjust this display.
 - The existing front/tail travel bar remains separate. Adding a fluid starts it at the current pump total; this update does not introduce a sequential batch queue.
 - Upload the updated app.js, styles.css and service-worker.js together. Tests stay local and are not needed on the web host.
+
+Annular pill spotting update
+- Enter batch volume, optional density in kg/m³, and optional target MD for its front (top) or tail (bottom). Target depth/end can also be changed on existing cards.
+- Cards show current volume and length in annulus, front/tail interval, remaining displacement until tail exits bit, and the full-batch interval at tail exit.
+- Target placement shows remaining pump volume, strokes at current output, projected interval, and whether the full batch fits. Passed targets are identified.
+- Uses Hole Geometry ID, OD and over-hole allowance section by section; enter BHA outer diameters there. Detailed drill string internal diameters calculate surface-to-bit displacement. Invalid gaps/overlaps/capacities suppress estimates.
+- Density is informational. The estimate assumes ideal forward circulation and no mixing, slip, settling or losses. Use measured pumped volume and verified geometry.
+- New runtime file: pill-spotting.js. Deploy all runtime files together; test files do not need to be uploaded.
+- Checked the 6 m³ case (216 mm hole / 127 mm OD: 250.3 m), BHA boundary crossing, partial/full entry, targets for both ends, oversized batches, over-hole allowance, return to surface and invalid geometry.
