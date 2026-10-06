@@ -950,7 +950,7 @@
           <p>MD and TVD are depths below the selected datum. Negative subsea elevations are stored separately. Planned mud density is retained as a reference, including qualifiers such as &gt;.</p>
           <label class="stick-check"><input id="stickUsePressure" type="checkbox"> Use reviewed expected pressure to calculate the expected gradient (pressure ÷ TVD). Leave low/high gradients blank.</label>
           <div class="table-wrap"><table class="stick-table"><thead><tr><th>Keep</th><th>Formation</th><th>MD (m)</th><th>TVD (m)</th><th>Subsea (m)</th><th>Offset pressure</th><th>Expected pressure</th><th>Planned mud kg/m³</th><th></th></tr></thead><tbody id="stickRows"></tbody></table></div>
-          <div class="stick-actions"><button id="stickAddRow">+ Review row</button><button id="stickAppend">Add kept rows to formations</button><button id="stickUndo">Undo import</button></div>
+          <div class="stick-actions"><button id="stickAddRow">+ Review row</button><button id="stickAppend">Import selected formations</button><button id="stickUndo">Undo import</button></div>
           <label class="stick-check"><input id="stickAllowReplace" type="checkbox"> Replace entire existing formation table</label><button id="stickReplace">Replace with kept rows</button>
         </details>
       </div>
@@ -1005,5 +1005,6 @@
   <script src="app.js"></script>
   <script src="returns.js"></script>
   <script src="formation-import.js"></script>
+  <script src="live-layout.js"></script>
 </body>
 </html>

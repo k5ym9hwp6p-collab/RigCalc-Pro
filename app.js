@@ -187,10 +187,11 @@ function fmtEta(min){
   return min.toFixed(1)+" min";
 }
 function fluidOverallStatus(front,tail){
+  if(front.phase==="At surface"&&tail.phase==="At surface"&&front.progress===0&&tail.progress===0)return "Queued";
   if(front.phase==="At surface"&&tail.phase==="At surface")return "Complete";
-  if(front.phase==="Up annulus"&&tail.phase==="Down drill pipe")return "Straddling bit";
+  if(front.phase==="Up annulus"&&tail.phase.startsWith("Down drill"))return "Straddling bit";
   if(front.phase==="Up annulus"||tail.phase==="Up annulus")return "Returning";
-  if(front.phase==="Down drill pipe"||tail.phase==="Down drill pipe")return "Going down";
+  if(front.phase.startsWith("Down drill")||tail.phase.startsWith("Down drill"))return "Going down";
   return "Queued";
 }
 function renderFluidMarkers(){
@@ -235,30 +236,34 @@ function renderFluidList(){
   const host=q("fluidList"); if(!host)return;
   const editing=document.activeElement?.dataset;
   if(editing?.spotTarget!==undefined||editing?.spotEdge!==undefined)return;
+  const openDetails=new Set([...(host.querySelectorAll?.("details[data-fluid-detail-key][open]")||[])].map(d=>d.dataset.fluidDetailKey));
   host.innerHTML="";
   if(!fluidEvents.length){host.innerHTML='<div class="fluid-item"><span style="color:var(--muted)">No fluids currently being tracked.</span></div>';renderFluidMarkers();return}
   fluidEvents.forEach((ev,i)=>{
     const st=fluidStates(ev),status=fluidOverallStatus(st.front,st.tail);
     const pumping=fluidPumpingProgress(ev);
-    const eta = st.front.phase==="Down drill pipe" ? st.front.etaBit : st.front.etaSurface;
+    const eta = st.front.phase.startsWith("Down drill") ? st.front.etaBit : st.front.etaSurface;
+    const detailKey=String(ev.createdAt??i);
     const div=document.createElement("div");div.className="fluid-item";
     div.innerHTML=`<div class="fluid-item-head"><div><strong>${ev.label||ev.type}</strong><div style="font-size:.75rem;color:var(--muted);margin-top:2px">${ev.type} • ${Number(ev.volume).toFixed(2)} m³ • ${status}</div></div><button data-fluid-del="${i}">✕</button></div>
       <div class="fluid-meta">
         <div><span>Volume pumped / total</span><strong>${pumping.pumped.toFixed(2)} / ${pumping.total.toFixed(2)} m³</strong></div>
-        <div><span>Left to pump</span><strong>${pumping.remaining.toFixed(2)} m³</strong></div>
+        <div><span>${st.front.phase.startsWith("Down drill")?"Front ETA to bit":"Front ETA to surface"}</span><strong>${fmtEta(eta)}</strong></div>
+        <div><span>Front</span><strong>${st.front.md.toFixed(0)} m MD</strong></div>
+        <div><span>Tail</span><strong>${st.tail.md.toFixed(0)} m MD</strong></div>
       </div>
       <div class="fluid-pumped-label">${pumping.percent.toFixed(1)}% pumped</div>
       <div class="fluid-progress" role="progressbar" aria-label="Tracked fluid volume pumped" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pumping.percent.toFixed(1)}"><i style="width:${pumping.percent}%"></i></div>
+      <details class="fluid-details" data-fluid-detail-key="${detailKey}"${openDetails.has(detailKey)?" open":""}><summary>Details & pill placement</summary>
       <div class="fluid-meta">
-        <div><span>Front</span><strong>${st.front.md.toFixed(0)} m MD</strong></div>
+        <div><span>Left to pump</span><strong>${pumping.remaining.toFixed(2)} m³</strong></div>
         <div><span>Front phase</span><strong>${st.front.phase}</strong></div>
-        <div><span>Tail</span><strong>${st.tail.md.toFixed(0)} m MD</strong></div>
         <div><span>Tail phase</span><strong>${st.tail.phase}</strong></div>
         <div><span>Formation</span><strong>${st.front.formation}</strong></div>
         <div><span>Front ETA</span><strong>${fmtEta(eta)}</strong></div>
       </div>
       <div class="fluid-progress"><i style="width:${Math.max(0,Math.min(100,(st.front.phase==="Up annulus"?50+st.front.progress*50:st.front.phase==="At surface"?100:st.front.progress*50)))}%"></i></div>
-      ${fluidSpotMarkup(ev,i)}`;
+      ${fluidSpotMarkup(ev,i)}</details>`;
     host.appendChild(div);
   });
   renderFluidMarkers();

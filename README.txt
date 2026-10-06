@@ -115,3 +115,14 @@ Formation import correction
 - Replace entire table remains atomic: invalid selected rows prevent replacement. Undo still restores the previous table.
 - Browser regression checks cover partial import, displayed errors, correction then import, duplicate updates, undo and failed replacement preservation.
 - Upload formation-import.js, styles.css and service-worker.js for this fix. No ocr folder is required.
+
+Simplified Live Well Profile
+- Two views: Live operations and Well setup. Setup holds trajectory choice, survey, hole sections, detailed string and formation import. Existing inputs and stored data are shared between views.
+- Live operations leads with bit/pump controls, circulation Start/Pause/Reset, essential readings and the well plot. Return-path settings and extra readings are expandable.
+- Active fluid cards show pumped/total, front and tail depth, ETA and pumping progress. Phase, formation, remaining pump volume and pill spotting are under Details & pill placement. Open details remain open during half-second updates.
+- Add a sweep/pill through the expandable form. Optional density/target fields are collapsed; Start tracking fluid returns to the compact active list.
+- Ledger/corrections/export, well-control tracking and manual circulation are collapsed. Existing active well-control tracking remains expanded; idle well-control markers are hidden until requested.
+- Formation import action now reads Import selected formations and shows the selected count.
+- Visual phase labels now recognise Detailed drill string travel, and front ETA to bit is displayed correctly while travelling down the string.
+- Browser checks: both views, retained controls, survey and formation editing, selected count, compact cards, details persistence, pump start/pause and unique input IDs. Calculation/import/pill/returns tests passed.
+- Deploy index.html, app.js, styles.css, formation-import.js, service-worker.js and the new live-layout.js. No ocr folder upload is needed.

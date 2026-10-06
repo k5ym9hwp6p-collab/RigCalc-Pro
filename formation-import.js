@@ -83,7 +83,7 @@ if(typeof document!=='undefined')(()=>{
   el('stickAddRow').onclick=()=>{rows.push({name:'',md:null,tvd:null,subsea:null,offset:null,expected:null,mud:'',approved:false});render();};
   const updateLabel=document.createElement('label');updateLabel.className='stick-check';const update=document.createElement('input');update.type='checkbox';update.id='stickUpdateMatches';updateLabel.append(update,document.createTextNode(' Update matching formations (same name and MD)'));el('stickAppend').parentElement.before(updateLabel);
   function apply(replace){
-    try{if(!rows.some(r=>r.approved))throw Error('Tick Keep beside the formations you want, then select Add kept rows to formations.');
+    try{if(!rows.some(r=>r.approved))throw Error('Tick Keep beside the formations you want, then select Import selected formations.');
       rows.forEach(r=>delete r.error);
       const planned=FormationImport.plan(rows,wpData.formations,{replace,updateMatches:update.checked,useExpected:el('stickUsePressure').checked,pressureUnit:el('stickPressureUnit').value,filename,datum:el('stickDatum').value,kb:el('stickKB').value});
       for(const error of planned.errors)rows[error.index].error=error.message;
