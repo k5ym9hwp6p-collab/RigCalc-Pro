@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.10</span>
+      <span class="eyebrow">BETA 1.11</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -789,7 +789,23 @@
             <div><span>Volume remaining</span><strong id="fullCircRemainVol">—</strong><em>m³</em></div>
             <div><span>Time remaining</span><strong id="fullCircRemainTime">—</strong><em>min</em></div>
           </div>
+          <div id="fullCircLocationCard" class="full-circ-location down">
+            <div class="full-circ-location-head">
+              <div><span class="full-circ-location-kicker">CURRENT LOCATION</span><strong id="fullCircLocationTitle">—</strong></div>
+              <span id="fullCircLoopBadge" class="full-circ-loop-badge">Loop 1</span>
+            </div>
+            <div class="full-circ-location-grid">
+              <div><span>MD</span><strong id="fullCircLocationMd">—</strong><em>m</em></div>
+              <div><span>TVD</span><strong id="fullCircLocationTvd">—</strong><em>m</em></div>
+              <div><span>Total pumped</span><strong id="fullCircLocationPumped">—</strong><em>m³</em></div>
+              <div><span>Next event</span><strong id="fullCircNextEvent">—</strong><em></em></div>
+            </div>
+          </div>
           <div class="full-circ-progress"><div id="fullCircProgressBar"></div></div>
+          <div class="full-circ-phase-scale">
+            <div id="fullCircDownScale" class="full-circ-phase-part down"><span>Down string</span></div>
+            <div id="fullCircUpScale" class="full-circ-phase-part up"><span>Up annulus</span></div>
+          </div>
           <p class="live-note">Uses the active Drill String or Casing Run internal-volume model on the way down and Live Well Profile annular geometry on the way back up.</p>
         </div>
         <p class="live-note">If pump speed or output changes, update the values below. The live tracker recalculates immediately.</p>

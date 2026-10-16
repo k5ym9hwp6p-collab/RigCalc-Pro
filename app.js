@@ -1207,23 +1207,26 @@ function fullCircVolumes(){const bit=Math.max(0,n("wp_bit")),down=Math.max(0,det
 function fullCircState(){
   const v=fullCircVolumes(),live=getLiveComputed(),pumped=Math.max(0,live.pumped); let within=0,completed=0;
   if(v.total>0&&pumped>0){completed=Math.floor((pumped-1e-9)/v.total);within=pumped-completed*v.total;within=Math.min(v.total,Math.max(0,within))}
-  const progress=v.total>0?within/v.total*100:0,out=Math.max(0,n("wp_output")),spm=Math.max(0,n("wp_spm")),flow=out*spm; let phase="—",md=0,tvd=0;
-  if(v.total<=0)phase="Need geometry";
-  else if(within<=v.down){phase=stringMode==="casing"?"Down casing":"Down drill string";md=pipeMDFromDetailedVolume(v.bit,within);tvd=interpTVD(md)}
-  else{phase="Up annulus";md=frontMDFromPumped(v.bit,within-v.down);tvd=interpTVD(md)}
-  const remainVol=v.total>0?Math.max(0,v.total-within):0,totalStrokes=out>0?v.total/out:0,totalTime=flow>0?v.total/flow:0,remainTime=flow>0?remainVol/flow:0;
-  return{...v,pumped,within,completed,progress,phase,md,tvd,remainVol,totalStrokes,totalTime,remainTime}
+  const progress=v.total>0?within/v.total*100:0,out=Math.max(0,n("wp_output")),spm=Math.max(0,n("wp_spm")),flow=out*spm; let phase="—",phaseKey="down",md=0,tvd=0,nextEvent="—";
+  if(v.total<=0){phase="Need geometry";phaseKey="complete"}
+  else if(within<=v.down){phase=stringMode==="casing"?"Down casing":"Down drill string";phaseKey="down";md=pipeMDFromDetailedVolume(v.bit,within);tvd=interpTVD(md);const left=Math.max(0,v.down-within);nextEvent=left<=0.0001?"At bit":`${left.toFixed(2)} m³ to bit`}
+  else{phase="Up annulus";phaseKey="up";md=frontMDFromPumped(v.bit,within-v.down);tvd=interpTVD(md);const left=Math.max(0,v.total-within);nextEvent=left<=0.0001?"At surface":`${left.toFixed(2)} m³ to surface`}
+  const remainVol=v.total>0?Math.max(0,v.total-within):0,totalStrokes=out>0?v.total/out:0,totalTime=flow>0?v.total/flow:0,remainTime=flow>0?remainVol/flow:0,downPct=v.total>0?v.down/v.total*100:0,upPct=v.total>0?v.up/v.total*100:0;
+  return{...v,pumped,within,completed,progress,phase,phaseKey,md,tvd,nextEvent,remainVol,totalStrokes,totalTime,remainTime,downPct,upPct}
 }
 function renderFullCircMarker(){
   const marker=q("fullCircMarker"),label=q("fullCircLabel");if(!marker||!label)return;
   if(!fullCircEnabled){marker.style.display="none";label.style.display="none";return}
   const s=fullCircState();if(s.total<=0||!Number.isFinite(s.md)){marker.style.display="none";label.style.display="none";return}
   const geom=profilePlotGeometry(s.bit),p=displayXY(s.md),x=geom.sx(p.x),y=geom.sy(p.tvd);
-  marker.setAttribute("cx",x);marker.setAttribute("cy",y);label.setAttribute("x",Math.min(525,x+14));label.setAttribute("y",Math.max(18,y-12));
-  label.textContent=`${s.phase}: ${s.md.toFixed(0)} MD / ${s.tvd.toFixed(0)} TVD • Loop ${s.completed+1}`;marker.style.display="";label.style.display="";
+  marker.setAttribute("cx",x);marker.setAttribute("cy",y);marker.setAttribute("class",`full-circ-marker phase-${s.phaseKey}`);label.setAttribute("class",`full-circ-label phase-${s.phaseKey}`);label.setAttribute("x",Math.min(520,x+14));label.setAttribute("y",Math.max(18,y-12));
+  const arrow=s.phaseKey==="down"?"↓":"↑";label.textContent=`${arrow} ${s.phase}: ${s.md.toFixed(0)} MD / ${s.tvd.toFixed(0)} TVD`;marker.style.display="";label.style.display="";
 }
 function updateFullCirculationReadout(){
-  if(!q("fullCircVol"))return;const s=fullCircState();q("fullCircVol").textContent=s.total.toFixed(2);q("fullCircStrokes").textContent=s.totalStrokes.toFixed(0);q("fullCircTime").textContent=s.totalTime.toFixed(1);q("fullCircProgress").textContent=s.progress.toFixed(0);q("fullCircPhase").textContent=s.phase;q("fullCircDepth").textContent=`${s.md.toFixed(0)} MD / ${s.tvd.toFixed(0)} TVD`;q("fullCircRemainVol").textContent=s.remainVol.toFixed(2);q("fullCircRemainTime").textContent=s.remainTime.toFixed(1);q("fullCircProgressBar").style.width=`${Math.max(0,Math.min(100,s.progress))}%`;q("fullCircEnabled").checked=fullCircEnabled;renderFullCircMarker();
+  if(!q("fullCircVol"))return;const s=fullCircState();q("fullCircVol").textContent=s.total.toFixed(2);q("fullCircStrokes").textContent=s.totalStrokes.toFixed(0);q("fullCircTime").textContent=s.totalTime.toFixed(1);q("fullCircProgress").textContent=s.progress.toFixed(0);q("fullCircPhase").textContent=s.phase;q("fullCircDepth").textContent=`${s.md.toFixed(0)} MD / ${s.tvd.toFixed(0)} TVD`;q("fullCircRemainVol").textContent=s.remainVol.toFixed(2);q("fullCircRemainTime").textContent=s.remainTime.toFixed(1);q("fullCircProgressBar").style.width=`${Math.max(0,Math.min(100,s.progress))}%`;q("fullCircEnabled").checked=fullCircEnabled;
+  const card=q("fullCircLocationCard");if(card){card.classList.remove("down","up","complete");card.classList.add(s.phaseKey)}
+  q("fullCircLocationTitle").textContent=s.phase;q("fullCircLoopBadge").textContent=`Loop ${s.completed+1}`;q("fullCircLocationMd").textContent=s.md.toFixed(0);q("fullCircLocationTvd").textContent=s.tvd.toFixed(0);q("fullCircLocationPumped").textContent=s.pumped.toFixed(2);q("fullCircNextEvent").textContent=s.nextEvent;
+  q("fullCircDownScale").style.width=`${Math.max(0,Math.min(100,s.downPct))}%`;q("fullCircUpScale").style.width=`${Math.max(0,Math.min(100,s.upPct))}%`;renderFullCircMarker();
 }
 q("fullCircEnabled")?.addEventListener("change",e=>{fullCircEnabled=!!e.target.checked;localStorage.setItem(FULL_CIRC_KEY,fullCircEnabled?"1":"0");updateFullCirculationReadout()});
 const renderLiveBeforeFullCirc=renderLive;renderLive=function(){renderLiveBeforeFullCirc();updateFullCirculationReadout()};
