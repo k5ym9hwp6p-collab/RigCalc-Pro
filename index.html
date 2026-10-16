@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.09</span>
+      <span class="eyebrow">BETA 1.10</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -750,6 +750,8 @@
           <g id="fluidMarkers"></g>
           <circle id="bitMarker" r="8" class="bit-marker"></circle>
           <circle id="frontMarker" r="9" class="front-marker"></circle>
+          <circle id="fullCircMarker" r="8" class="full-circ-marker" style="display:none"></circle>
+          <text id="fullCircLabel" class="full-circ-label" style="display:none">Full circulation</text>
           <text id="frontLabel" class="front-label">Returns front</text>
         </svg>
         <div class="legend">
@@ -757,6 +759,7 @@
           <span><i class="legend-front"></i> Returns front</span>
           <span><i class="legend-depth"></i> Depth grid</span>
           <span><i class="legend-hyd"></i> Hole cleaning</span>
+          <span><i class="legend-fullcirc"></i> Full circulation</span>
           <span><i class="legend-wc"></i> Well control</span>
         </div>
       </div>
@@ -772,6 +775,23 @@
           <div><span>ETA surface</span><strong id="liveEta">—</strong></div>
         </div>
         <div class="live-actions"><button id="liveStartBtn" class="live-start">▶ Start</button><button id="livePauseBtn" class="live-pause">Ⅱ Pause</button><button id="liveResetBtn" class="live-reset">↺ Reset</button></div>
+        <div class="full-circ-card">
+          <div class="section-heading"><div><strong>Full Circulation</strong><small>Track one complete loop: surface → active string → bit → annulus → surface.</small></div><label class="full-circ-toggle"><input id="fullCircEnabled" type="checkbox"><span>Show</span></label></div>
+          <div class="profile-summary">
+            <div><span>Total loop volume</span><strong id="fullCircVol">—</strong><em>m³</em></div>
+            <div><span>Total loop strokes</span><strong id="fullCircStrokes">—</strong><em>strokes</em></div>
+            <div><span>Total loop time</span><strong id="fullCircTime">—</strong><em>min</em></div>
+            <div><span>Loop progress</span><strong id="fullCircProgress">—</strong><em>%</em></div>
+          </div>
+          <div class="profile-summary">
+            <div><span>Current phase</span><strong id="fullCircPhase">—</strong><em></em></div>
+            <div><span>Current depth</span><strong id="fullCircDepth">—</strong><em></em></div>
+            <div><span>Volume remaining</span><strong id="fullCircRemainVol">—</strong><em>m³</em></div>
+            <div><span>Time remaining</span><strong id="fullCircRemainTime">—</strong><em>min</em></div>
+          </div>
+          <div class="full-circ-progress"><div id="fullCircProgressBar"></div></div>
+          <p class="live-note">Uses the active Drill String or Casing Run internal-volume model on the way down and Live Well Profile annular geometry on the way back up.</p>
+        </div>
         <p class="live-note">If pump speed or output changes, update the values below. The live tracker recalculates immediately.</p>
       </div>
 

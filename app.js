@@ -1091,7 +1091,7 @@ function educationTopic(topic){
       <h4>Measured depth vs TVD</h4><p><strong>MD</strong> follows the wellbore. <strong>TVD</strong> is vertical depth.</p>
       <div class="edu-formula">Hydrostatic pressure is based on TVD, while fluid travel volume follows MD and local capacity.</div>
       <div class="edu-worked"><strong>Current modeled bit</strong><br>Bit MD: ${eduFmt(bit,0)} m<br>RigCalc interpolates TVD from the directional survey for hydrostatic calculations.</div>
-      <h4>String modeling</h4><p>RigCalc stores Drill String and Casing Run as separate models. The active model supplies internal capacity for fluid-front calculations, while switching modes preserves the inactive model unchanged.</p><h4>Fluid fronts</h4><p>Each pumped volume is marched through the active string or annular capacities. A smaller capacity means the same volume travels farther.</p>
+      <h4>String modeling</h4><p>RigCalc stores Drill String and Casing Run as separate models. The active model supplies internal capacity for fluid-front calculations, while switching modes preserves the inactive model unchanged.</p><h4>Fluid fronts</h4><p>Each pumped volume is marched through the active string or annular capacities. A smaller capacity means the same volume travels farther.</p><h4>Full circulation</h4><p>One full circulation is the active string internal volume to the bit plus the annular volume from bit to surface. The marker travels down the active string, through the bit, then back up the annulus.</p>
       <h4>Vertical vs deviated display</h4><p>The trajectory selector changes the visualization. Pressure calculations continue to use survey TVD.</p>`},
 
     trippill:{title:"Trip Pill",html:`
@@ -1199,3 +1199,35 @@ function renderHydraulicsOverlay(){const g=q("hydraulicsOverlay");if(!g)return;g
 function updateHoleCleaning(){if(!q("hcTable"))return;const s=hcSummary(),flow=Math.max(0,n("wp_output"))*Math.max(0,n("wp_spm"));q("hcBitMd").textContent=s.bit.toFixed(0);q("hcBitTvd").textContent=s.tvd.toFixed(0);q("hcFlow").textContent=flow.toFixed(3);q("hcIntervals").textContent=s.rows.length;q("hcMinAv").textContent=s.minAv.toFixed(1);q("hcMinAvDepth").textContent=s.minRow?`${s.minRow.from.toFixed(0)}–${s.minRow.to.toFixed(0)}`:"—";q("hcTotalDp").textContent=s.totalDp.toFixed(0);q("hcEcdAdd").textContent=s.ecdAdd.toFixed(1);q("hcEcd").textContent=s.ecd.toFixed(0);q("hcMinTr").textContent=s.minTr.toFixed(0);q("hcHighAngle").textContent=s.high;q("hcOverall").textContent=s.overall;const box=q("hcOverallBox");box.classList.remove("hc-good","hc-marginal","hc-poor");box.classList.add(s.kind);const tb=q("hcTable").querySelector("tbody");tb.innerHTML="";s.rows.forEach(r=>{const tr=document.createElement("tr");tr.className=`hc-row-${r.status.toLowerCase()}`;tr.innerHTML=`<td>${r.from.toFixed(0)}–${r.to.toFixed(0)}</td><td>${r.incl.toFixed(0)}°</td><td>${r.av.toFixed(1)}</td><td>${r.re.toFixed(0)}</td><td>${r.dpKpa.toFixed(0)}</td><td>${r.tr.toFixed(0)}%</td><td>${r.status}${r.note?` • ${r.note}`:""}</td>`;tb.appendChild(tr)});if(q("hcOverlayBtn"))q("hcOverlayBtn").textContent=hcOverlayVisible?"Hide profile overlay":"Show profile overlay";renderHydraulicsOverlay();saveHoleCleaning()}
 const plotWellBeforeHydraulics=plotWell;plotWell=function(bitMD,frontMD){plotWellBeforeHydraulics(bitMD,frontMD);renderHydraulicsOverlay()};
 HC_FIELDS.forEach(id=>q(id)?.addEventListener("input",updateHoleCleaning));["wp_bit","wp_output","wp_spm"].forEach(id=>q(id)?.addEventListener("input",updateHoleCleaning));q("hcRefreshBtn")?.addEventListener("click",updateHoleCleaning);q("hcOverlayBtn")?.addEventListener("click",()=>{hcOverlayVisible=!hcOverlayVisible;updateHoleCleaning()});q("hcOpenProfileBtn")?.addEventListener("click",()=>openScreen("wellprofile"));loadHoleCleaning();updateHoleCleaning();
+
+// ===== RigCalc Pro Beta 1.10: Full Circulation Loop =====
+const FULL_CIRC_KEY="rigcalc-full-circ-v110";
+let fullCircEnabled=localStorage.getItem(FULL_CIRC_KEY)==="1";
+function fullCircVolumes(){const bit=Math.max(0,n("wp_bit")),down=Math.max(0,detailedPipeVolumeToBit(bit)),up=Math.max(0,totalAnnulusToBit(bit));return{bit,down,up,total:down+up}}
+function fullCircState(){
+  const v=fullCircVolumes(),live=getLiveComputed(),pumped=Math.max(0,live.pumped); let within=0,completed=0;
+  if(v.total>0&&pumped>0){completed=Math.floor((pumped-1e-9)/v.total);within=pumped-completed*v.total;within=Math.min(v.total,Math.max(0,within))}
+  const progress=v.total>0?within/v.total*100:0,out=Math.max(0,n("wp_output")),spm=Math.max(0,n("wp_spm")),flow=out*spm; let phase="—",md=0,tvd=0;
+  if(v.total<=0)phase="Need geometry";
+  else if(within<=v.down){phase=stringMode==="casing"?"Down casing":"Down drill string";md=pipeMDFromDetailedVolume(v.bit,within);tvd=interpTVD(md)}
+  else{phase="Up annulus";md=frontMDFromPumped(v.bit,within-v.down);tvd=interpTVD(md)}
+  const remainVol=v.total>0?Math.max(0,v.total-within):0,totalStrokes=out>0?v.total/out:0,totalTime=flow>0?v.total/flow:0,remainTime=flow>0?remainVol/flow:0;
+  return{...v,pumped,within,completed,progress,phase,md,tvd,remainVol,totalStrokes,totalTime,remainTime}
+}
+function renderFullCircMarker(){
+  const marker=q("fullCircMarker"),label=q("fullCircLabel");if(!marker||!label)return;
+  if(!fullCircEnabled){marker.style.display="none";label.style.display="none";return}
+  const s=fullCircState();if(s.total<=0||!Number.isFinite(s.md)){marker.style.display="none";label.style.display="none";return}
+  const geom=profilePlotGeometry(s.bit),p=displayXY(s.md),x=geom.sx(p.x),y=geom.sy(p.tvd);
+  marker.setAttribute("cx",x);marker.setAttribute("cy",y);label.setAttribute("x",Math.min(525,x+14));label.setAttribute("y",Math.max(18,y-12));
+  label.textContent=`${s.phase}: ${s.md.toFixed(0)} MD / ${s.tvd.toFixed(0)} TVD • Loop ${s.completed+1}`;marker.style.display="";label.style.display="";
+}
+function updateFullCirculationReadout(){
+  if(!q("fullCircVol"))return;const s=fullCircState();q("fullCircVol").textContent=s.total.toFixed(2);q("fullCircStrokes").textContent=s.totalStrokes.toFixed(0);q("fullCircTime").textContent=s.totalTime.toFixed(1);q("fullCircProgress").textContent=s.progress.toFixed(0);q("fullCircPhase").textContent=s.phase;q("fullCircDepth").textContent=`${s.md.toFixed(0)} MD / ${s.tvd.toFixed(0)} TVD`;q("fullCircRemainVol").textContent=s.remainVol.toFixed(2);q("fullCircRemainTime").textContent=s.remainTime.toFixed(1);q("fullCircProgressBar").style.width=`${Math.max(0,Math.min(100,s.progress))}%`;q("fullCircEnabled").checked=fullCircEnabled;renderFullCircMarker();
+}
+q("fullCircEnabled")?.addEventListener("change",e=>{fullCircEnabled=!!e.target.checked;localStorage.setItem(FULL_CIRC_KEY,fullCircEnabled?"1":"0");updateFullCirculationReadout()});
+const renderLiveBeforeFullCirc=renderLive;renderLive=function(){renderLiveBeforeFullCirc();updateFullCirculationReadout()};
+const plotWellBeforeFullCirc=plotWell;plotWell=function(bitMD,frontMD){plotWellBeforeFullCirc(bitMD,frontMD);renderFullCircMarker()};
+["wp_bit","wp_output","wp_spm","wp_trajectory_type"].forEach(id=>q(id)?.addEventListener("input",updateFullCirculationReadout));
+document.addEventListener("change",e=>{if(e.target?.dataset?.string!==undefined||e.target?.dataset?.hole!==undefined||e.target?.dataset?.sv!==undefined)updateFullCirculationReadout()});
+updateFullCirculationReadout();

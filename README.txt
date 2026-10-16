@@ -1,9 +1,13 @@
-RigCalc Pro Beta 1.09 — Dual String Modeling
+RigCalc Pro Beta 1.10 — Full Circulation
 
-- Separate Drill String and Casing Run modes.
-- Each mode persists its own component names, From/To MD, IDs and internal volumes.
-- Switching modes does not overwrite the inactive model.
-- Existing v1.08 drill-string data migrates automatically into Drill String mode.
-- Casing Run has an editable casing / float-shoe starter model.
-- Active mode feeds internal volume, strokes/time, Fluid Tracker, Trip Pill and linked geometry calculations.
-- The selected mode is remembered locally.
+New in Live Well Profile
+- Full Circulation display tracks surface → active string → bit → annulus → surface.
+- Works with Drill String and Casing Run modes.
+- Uses detailed active-string internal volume on the trip down and Live Well Profile annular geometry / % over hole on the trip up.
+- Displays total loop volume, strokes, time, loop progress, current phase, MD/TVD, remaining volume and remaining time.
+- Dedicated trajectory marker shows the live phase and depth.
+- Repeated circulation loops are supported.
+- Show/hide setting persists locally.
+- Education content explains the full-circulation definition.
+
+This is a pumped-volume / geometry tracker. Actual field arrivals can vary due to pump efficiency, compressibility, losses, cuttings loading, mixing and changing wellbore conditions.
