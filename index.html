@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.07</span>
+      <span class="eyebrow">BETA 1.08</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -65,6 +65,7 @@
           <button class="tool-card compact-tool-card" data-open="mpd"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="14"/><path d="M24 24l7-7M14 31h20M24 10v4"/></svg><span>MPD</span><small>BHP, ECD & window</small></button>
           <button class="tool-card compact-tool-card" data-open="cementing"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M16 9h16v7l4 6v17H12V22l4-6z"/><path d="M16 16h16M17 27h14M20 33h8"/></svg><span>Cementing</span><small>Planning & displacement</small></button>
           <button class="tool-card compact-tool-card" data-open="bithydraulics"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 9h12v10l5 6-5 14H18l-5-14 5-6z"/><path d="M20 26l-4 8m12-8 4 8M24 26v10"/></svg><span>Bit Hydraulics</span><small>Jets, TFA & nozzle performance</small></button>
+          <button class="tool-card compact-tool-card" data-open="holecleaning"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 36h32M12 31c7-17 17-17 24 0"/><path d="M16 29l-3-5m9 3-1-7m8 8 3-6"/><circle cx="14" cy="17" r="2"/><circle cx="25" cy="13" r="2"/><circle cx="35" cy="18" r="2"/></svg><span>Hydraulics & Hole Cleaning</span><small>AV, annular ΔP, ECD & transport</small></button>
           <button class="tool-card compact-tool-card" data-open="mudmotor"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 8h12v7l4 4v20H14V19l4-4z"/><path d="M20 19c8 3 0 8 8 11s0 6 0 6M18 39h12"/></svg><span>Mud Motor</span><small>RPM, differential & performance</small></button>
         </div>
       </details>
@@ -552,6 +553,18 @@
     </section>
 
 
+
+    <section id="holecleaning" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Hydraulics & Hole Cleaning</h2><p>Interval-by-interval annular performance from Live Well Profile geometry</p></div></div>
+      <div class="profile-card"><div class="section-heading"><div><strong>Geometry source</strong><small>Uses Live Well Profile hole / annulus sections, % over hole, survey, bit depth and pump settings.</small></div><button id="hcOpenProfileBtn">Open Well Profile</button></div><div class="profile-summary"><div><span>Bit MD</span><strong id="hcBitMd">—</strong><em>m</em></div><div><span>Bit TVD</span><strong id="hcBitTvd">—</strong><em>m</em></div><div><span>Flow rate</span><strong id="hcFlow">—</strong><em>m³/min</em></div><div><span>Intervals modeled</span><strong id="hcIntervals">—</strong><em>count</em></div></div></div>
+      <div class="input-card"><label>Mud density <span>kg/m³</span><input id="hc_mw" type="number" inputmode="decimal" value="1200"></label><label>Effective viscosity <span>mPa·s</span><input id="hc_visc" type="number" inputmode="decimal" value="30"></label><label>Cuttings slip velocity <span>m/min</span><input id="hc_slip" type="number" inputmode="decimal" value="12"></label><label>Minimum target AV <span>m/min</span><input id="hc_target_av" type="number" inputmode="decimal" value="45"></label><label>ROP <span>m/h</span><input id="hc_rop" type="number" inputmode="decimal" value="20"></label><label>Rotary speed <span>rpm</span><input id="hc_rpm" type="number" inputmode="decimal" value="100"></label></div>
+      <div class="results"><div><span>Lowest annular velocity</span><strong id="hcMinAv">—</strong><em>m/min</em></div><div><span>Lowest-AV interval</span><strong id="hcMinAvDepth">—</strong><em>m MD</em></div><div><span>Total annular pressure loss</span><strong id="hcTotalDp">—</strong><em>kPa</em></div><div><span>Annular ECD contribution</span><strong id="hcEcdAdd">—</strong><em>kg/m³</em></div><div><span>Modeled ECD</span><strong id="hcEcd">—</strong><em>kg/m³</em></div><div><span>Lowest transport ratio</span><strong id="hcMinTr">—</strong><em>%</em></div><div><span>High-angle intervals</span><strong id="hcHighAngle">—</strong><em>count</em></div><div id="hcOverallBox"><span>Overall indicator</span><strong id="hcOverall">—</strong><em></em></div></div>
+      <div class="profile-card"><div class="section-heading"><div><strong>Interval performance</strong><small>AV and friction use the effective washed-out annular area from % over hole.</small></div></div><div class="table-wrap"><table id="hcTable"><thead><tr><th>MD interval</th><th>Incl.</th><th>AV</th><th>Re</th><th>ΔP</th><th>Transport</th><th>Status</th></tr></thead><tbody></tbody></table></div></div>
+      <div class="profile-card"><div class="section-heading"><div><strong>How to read the indicators</strong><small>A first-pass hole-cleaning screen, not a full cuttings-transport simulator.</small></div></div><div class="hc-guide"><div><strong>Annular velocity</strong><span>Flow rate divided by effective annular area.</span></div><div><strong>Transport ratio</strong><span>Approx. (AV − entered slip velocity) ÷ AV.</span></div><div><strong>Pressure loss</strong><span>Darcy-Weisbach estimate using annular hydraulic diameter and entered effective viscosity.</span></div><div><strong>High angle</strong><span>Intervals ≥30° are highlighted because cuttings-bed behavior becomes increasingly important.</span></div></div></div>
+      <div class="live-actions"><button id="hcRefreshBtn" class="live-start">↻ Refresh from profile</button><button id="hcOverlayBtn">Hide profile overlay</button></div>
+      <div class="disclaimer danger"><strong>Model limitation</strong><p>This module is a planning/checking aid. The pressure-loss model is a simplified equivalent-fluid Darcy calculation and the transport ratio uses the slip velocity you enter. It does not model non-Newtonian rheology, eccentric annuli, cuttings beds, particle-size distribution, pipe movement, sag, temperature, compressibility or transient effects. Verify against approved hydraulics / hole-cleaning methods and field response.</p></div>
+    </section>
+
     <section id="academy" class="screen calculator">
       <div class="screen-title"><button class="back">‹</button><div><h2>RigCalc Academy</h2><p>Understand the calculation, not just the answer</p></div></div>
 
@@ -569,6 +582,7 @@
         <button class="academy-topic" data-edu-topic="cement"><b>05</b><span>Cementing</span><small>Slurry volumes, yields and displacement</small></button>
         <button class="academy-topic" data-edu-topic="wellcontrol"><b>06</b><span>Well Control</span><small>KMW, ICP/FCP, MAASP and circulation</small></button>
         <button class="academy-topic" data-edu-topic="mpd"><b>07</b><span>MPD</span><small>BHP, ECD and operating-window margins</small></button>
+        <button class="academy-topic" data-edu-topic="hydraulics"><b>08</b><span>Hydraulics & Hole Cleaning</span><small>Annular velocity, friction, ECD and transport margin</small></button>
       </div>
 
       <div class="academy-note">
@@ -730,6 +744,7 @@
         <svg id="wellSvg" viewBox="0 0 700 430">
           <rect x="0" y="0" width="700" height="430" class="svg-bg"></rect>
           <g id="depthGrid"></g>
+          <g id="hydraulicsOverlay"></g>
           <polyline id="wellPath" points="" class="well-path"></polyline>
           <g id="wellControlMarkers"></g>
           <g id="fluidMarkers"></g>
@@ -741,6 +756,7 @@
           <span><i class="legend-bit"></i> Bit</span>
           <span><i class="legend-front"></i> Returns front</span>
           <span><i class="legend-depth"></i> Depth grid</span>
+          <span><i class="legend-hyd"></i> Hole cleaning</span>
           <span><i class="legend-wc"></i> Well control</span>
         </div>
       </div>
