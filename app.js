@@ -206,76 +206,40 @@ setInterval(renderFluidList,500);
 renderFluidList();
 
 // ===== RigCalc Pro v1.4: Detailed Drill String + Full-screen Profile =====
-const STRING_KEY="rigcalc-string-v14";
+const STRING_LEGACY_KEY="rigcalc-string-v14";
+const STRING_DRILL_KEY="rigcalc-string-drill-v109";
+const STRING_CASING_KEY="rigcalc-string-casing-v109";
+const STRING_MODE_KEY="rigcalc-string-mode-v109";
 const STRING_DEFAULTS=[
   {name:"Drill Pipe",from:0,to:3500,id:108.6},
   {name:"HWDP",from:3500,to:3700,id:76.2},
   {name:"Drill Collars",from:3700,to:3900,id:71.4},
   {name:"BHA / Tools",from:3900,to:3978,id:50.8}
 ];
-let stringData=[];
-try{stringData=JSON.parse(localStorage.getItem(STRING_KEY)||"[]")||[]}catch(e){stringData=[]}
-if(!stringData.length)stringData=JSON.parse(JSON.stringify(STRING_DEFAULTS));
-function saveString(){localStorage.setItem(STRING_KEY,JSON.stringify(stringData))}
+const CASING_DEFAULTS=[
+  {name:"Casing",from:0,to:3900,id:201.9},
+  {name:"Float / Shoe Track",from:3900,to:3978,id:185.0}
+];
+function cloneStringRows(v){return JSON.parse(JSON.stringify(v))}
+function loadStringRows(key,defaults){try{const x=JSON.parse(localStorage.getItem(key)||"[]");if(Array.isArray(x)&&x.length)return x}catch(e){}return cloneStringRows(defaults)}
+if(!localStorage.getItem(STRING_DRILL_KEY)){try{const legacy=JSON.parse(localStorage.getItem(STRING_LEGACY_KEY)||"[]");if(Array.isArray(legacy)&&legacy.length)localStorage.setItem(STRING_DRILL_KEY,JSON.stringify(legacy))}catch(e){}}
+let drillStringData=loadStringRows(STRING_DRILL_KEY,STRING_DEFAULTS);
+let casingStringData=loadStringRows(STRING_CASING_KEY,CASING_DEFAULTS);
+let stringMode=localStorage.getItem(STRING_MODE_KEY)==="casing"?"casing":"drill";
+let stringData=stringMode==="casing"?casingStringData:drillStringData;
+function activeStringLabel(){return stringMode==="casing"?"Casing Run":"Drill String"}
+function saveString(){if(stringMode==="casing"){casingStringData=stringData;localStorage.setItem(STRING_CASING_KEY,JSON.stringify(casingStringData))}else{drillStringData=stringData;localStorage.setItem(STRING_DRILL_KEY,JSON.stringify(drillStringData))}localStorage.setItem(STRING_MODE_KEY,stringMode)}
+function switchStringMode(mode){if(mode!=="drill"&&mode!=="casing")return;saveString();stringMode=mode;stringData=stringMode==="casing"?casingStringData:drillStringData;localStorage.setItem(STRING_MODE_KEY,stringMode);renderString();renderFluidList();if(typeof updateTripPill==="function")updateTripPill();if(typeof syncWellControlGeometry==="function"&&q("wp_wc_auto")?.checked)syncWellControlGeometry()}
 function stringCapM3m(id){return circle(Math.max(0,id))}
-function effectiveStringSections(bitMD){
-  return [...stringData].sort((a,b)=>a.from-b.from).map(s=>({
-    ...s,
-    from:Math.max(0,Number(s.from)||0),
-    to:Math.min(bitMD,Number(s.to)||0),
-    id:Math.max(0,Number(s.id)||0)
-  })).filter(s=>s.to>s.from);
-}
-function detailedPipeVolumeToBit(bitMD){
-  let vol=0;
-  for(const s of effectiveStringSections(bitMD))vol+=(s.to-s.from)*stringCapM3m(s.id);
-  return vol;
-}
-function pipeMDFromDetailedVolume(bitMD,vol){
-  let remaining=Math.max(0,vol);
-  const sections=effectiveStringSections(bitMD);
-  for(const s of sections){
-    const cap=stringCapM3m(s.id),sv=(s.to-s.from)*cap;
-    if(remaining<=sv)return s.from+(cap?remaining/cap:0);
-    remaining-=sv;
-  }
-  return bitMD;
-}
-function renderString(){
-  const tb=q("stringTable").querySelector("tbody");tb.innerHTML="";
-  stringData.sort((a,b)=>a.from-b.from).forEach((r,i)=>{
-    const vol=Math.max(0,(Number(r.to)-Number(r.from))*stringCapM3m(Number(r.id)));
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td><input data-string="${i}" data-k="name" value="${r.name}"></td>
-      <td><input data-string="${i}" data-k="from" type="number" value="${r.from}"></td>
-      <td><input data-string="${i}" data-k="to" type="number" value="${r.to}"></td>
-      <td><input data-string="${i}" data-k="id" type="number" step="0.1" value="${r.id}"></td>
-      <td>${vol.toFixed(3)}</td><td><button data-del-string="${i}">✕</button></td>`;
-    tb.appendChild(tr);
-  });
-  const bit=Math.max(0,n("wp_bit")),vol=detailedPipeVolumeToBit(bit),out=Math.max(0,n("wp_output")),spm=Math.max(0,n("wp_spm"));
-  const strokes=out?vol/out:0,time=spm?strokes/spm:0;
-  q("stringTotalVol").textContent=vol.toFixed(3);
-  q("stringBitStrokes").textContent=strokes.toFixed(0);
-  q("stringBitTime").textContent=time.toFixed(1);
-}
-q("addStringBtn").onclick=()=>{
-  const last=stringData[stringData.length-1]||{to:0,id:108.6};
-  stringData.push({name:"New component",from:Number(last.to)||0,to:(Number(last.to)||0)+100,id:Number(last.id)||100});
-  saveString();renderString();renderFluidList();
-};
-document.addEventListener("change",e=>{
-  const a=e.target.dataset;
-  if(a.string!==undefined){
-    stringData[+a.string][a.k]=a.k==="name"?e.target.value:(+e.target.value||0);
-    saveString();renderString();renderFluidList();
-  }
-});
-document.addEventListener("click",e=>{
-  if(e.target.dataset.delString!==undefined){
-    stringData.splice(+e.target.dataset.delString,1);saveString();renderString();renderFluidList();
-  }
-});
+function effectiveStringSections(bitMD){return [...stringData].sort((a,b)=>a.from-b.from).map(s=>({...s,from:Math.max(0,Number(s.from)||0),to:Math.min(bitMD,Number(s.to)||0),id:Math.max(0,Number(s.id)||0)})).filter(s=>s.to>s.from)}
+function detailedPipeVolumeToBit(bitMD){let vol=0;for(const s of effectiveStringSections(bitMD))vol+=(s.to-s.from)*stringCapM3m(s.id);return vol}
+function pipeMDFromDetailedVolume(bitMD,vol){let remaining=Math.max(0,vol);const sections=effectiveStringSections(bitMD);for(const s of sections){const cap=stringCapM3m(s.id),sv=(s.to-s.from)*cap;if(remaining<=sv)return s.from+(cap?remaining/cap:0);remaining-=sv}return bitMD}
+function updateStringModeUI(){const casing=stringMode==="casing";q("stringModeDrill")?.classList.toggle("active",!casing);q("stringModeCasing")?.classList.toggle("active",casing);if(q("stringModeLabel"))q("stringModeLabel").textContent=activeStringLabel();if(q("stringTrackingSource"))q("stringTrackingSource").textContent=activeStringLabel();if(q("fluidPipeModel"))q("fluidPipeModel").value=activeStringLabel()+" model";if(q("stringComponentHead"))q("stringComponentHead").textContent=casing?"Casing component":"Component";if(q("stringVolumeLabel"))q("stringVolumeLabel").textContent=casing?"Modelled casing internal volume":"Modelled internal volume to bit";if(q("stringModeNote"))q("stringModeNote").textContent=casing?"Casing Run mode has its own saved component list. Use casing / liner / float equipment IDs as required. Switching back restores the Drill String values exactly as saved.":"Drill String mode is intended for DP / HWDP / collars / BHA. Switching to Casing Run preserves these values."}
+function renderString(){updateStringModeUI();const tb=q("stringTable").querySelector("tbody");tb.innerHTML="";stringData.sort((a,b)=>a.from-b.from).forEach((r,i)=>{const vol=Math.max(0,(Number(r.to)-Number(r.from))*stringCapM3m(Number(r.id)));const tr=document.createElement("tr");tr.innerHTML=`<td><input data-string="${i}" data-k="name" value="${r.name}"></td><td><input data-string="${i}" data-k="from" type="number" value="${r.from}"></td><td><input data-string="${i}" data-k="to" type="number" value="${r.to}"></td><td><input data-string="${i}" data-k="id" type="number" step="0.1" value="${r.id}"></td><td>${vol.toFixed(3)}</td><td><button data-del-string="${i}">✕</button></td>`;tb.appendChild(tr)});const bit=Math.max(0,n("wp_bit")),vol=detailedPipeVolumeToBit(bit),out=Math.max(0,n("wp_output")),spm=Math.max(0,n("wp_spm"));const strokes=out?vol/out:0,time=spm?strokes/spm:0;q("stringTotalVol").textContent=vol.toFixed(3);q("stringBitStrokes").textContent=strokes.toFixed(0);q("stringBitTime").textContent=time.toFixed(1)}
+q("stringModeDrill")?.addEventListener("click",()=>switchStringMode("drill"));q("stringModeCasing")?.addEventListener("click",()=>switchStringMode("casing"));
+q("addStringBtn").onclick=()=>{const last=stringData[stringData.length-1]||{to:0,id:stringMode==="casing"?200:108.6};stringData.push({name:stringMode==="casing"?"New casing component":"New component",from:Number(last.to)||0,to:(Number(last.to)||0)+100,id:Number(last.id)||(stringMode==="casing"?200:100)});saveString();renderString();renderFluidList()};
+document.addEventListener("change",e=>{const a=e.target.dataset;if(a.string!==undefined){stringData[+a.string][a.k]=a.k==="name"?e.target.value:(+e.target.value||0);saveString();renderString();renderFluidList();if(typeof updateTripPill==="function")updateTripPill()}});
+document.addEventListener("click",e=>{if(e.target.dataset.delString!==undefined){stringData.splice(+e.target.dataset.delString,1);saveString();renderString();renderFluidList();if(typeof updateTripPill==="function")updateTripPill()}});
 
 // Override v1.3's edge-state function so every tracked fluid uses the detailed drill-string model.
 fluidEdgeState=function(event,edgeStartOffset){
@@ -290,7 +254,7 @@ fluidEdgeState=function(event,edgeStartOffset){
   if(edgePumped<pipeVol){
     const downMD=pipeMDFromDetailedVolume(bit,edgePumped);
     const remainingPipe=pipeVol-edgePumped;
-    return {phase:"Down drill string",md:downMD,progress:pipeVol?edgePumped/pipeVol:0,formation:formationAtMD(downMD),etaBit:rate?remainingPipe/rate:0,etaSurface:null};
+    return {phase:stringMode==="casing"?"Down casing":"Down drill string",md:downMD,progress:pipeVol?edgePumped/pipeVol:0,formation:formationAtMD(downMD),etaBit:rate?remainingPipe/rate:0,etaSurface:null};
   }
   const annVol=edgePumped-pipeVol,annTotal=totalAnnulusToBit(bit),used=Math.min(annTotal,annVol);
   const md=annulusMDUpFromBit(bit,used),rem=Math.max(0,annTotal-used);
@@ -1127,7 +1091,7 @@ function educationTopic(topic){
       <h4>Measured depth vs TVD</h4><p><strong>MD</strong> follows the wellbore. <strong>TVD</strong> is vertical depth.</p>
       <div class="edu-formula">Hydrostatic pressure is based on TVD, while fluid travel volume follows MD and local capacity.</div>
       <div class="edu-worked"><strong>Current modeled bit</strong><br>Bit MD: ${eduFmt(bit,0)} m<br>RigCalc interpolates TVD from the directional survey for hydrostatic calculations.</div>
-      <h4>Fluid fronts</h4><p>Each pumped volume is marched through the detailed pipe or annular capacities. A smaller capacity means the same volume travels farther.</p>
+      <h4>String modeling</h4><p>RigCalc stores Drill String and Casing Run as separate models. The active model supplies internal capacity for fluid-front calculations, while switching modes preserves the inactive model unchanged.</p><h4>Fluid fronts</h4><p>Each pumped volume is marched through the active string or annular capacities. A smaller capacity means the same volume travels farther.</p>
       <h4>Vertical vs deviated display</h4><p>The trajectory selector changes the visualization. Pressure calculations continue to use survey TVD.</p>`},
 
     trippill:{title:"Trip Pill",html:`

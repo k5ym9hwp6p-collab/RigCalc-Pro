@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.08</span>
+      <span class="eyebrow">BETA 1.09</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -830,7 +830,7 @@
             <input id="fluidVolume" type="number" inputmode="decimal" value="5">
           </label>
           <label>Downhole model <span>source</span>
-            <input id="fluidPipeModel" value="Detailed drill string" readonly>
+            <input id="fluidPipeModel" value="Drill String model" readonly>
           </label>
         </div>
 
@@ -863,20 +863,29 @@
 
       <div class="profile-card">
         <div class="section-heading">
-          <div><strong>Detailed drill-string model</strong><small>Internal capacities for DP, HWDP, collars and BHA. Used by Fluid Tracker on the trip to the bit.</small></div>
+          <div><strong>String modeling</strong><small>Switch between separate Drill String and Casing Run models. Each mode saves its own components and dimensions.</small></div>
           <button id="addStringBtn">+ Add</button>
+        </div>
+        <div class="string-mode-switch" role="group" aria-label="String model mode">
+          <button id="stringModeDrill" class="string-mode-btn active" data-string-mode="drill">Drill String</button>
+          <button id="stringModeCasing" class="string-mode-btn" data-string-mode="casing">Casing Run</button>
+        </div>
+        <div class="string-mode-info">
+          <div><span>Active model</span><strong id="stringModeLabel">Drill String</strong></div>
+          <div><span>Used by fluid tracking</span><strong id="stringTrackingSource">Drill String</strong></div>
         </div>
         <div class="table-wrap">
           <table id="stringTable">
-            <thead><tr><th>Component</th><th>From MD</th><th>To MD</th><th>ID mm</th><th>Internal m³</th><th></th></tr></thead>
+            <thead><tr><th id="stringComponentHead">Component</th><th>From MD</th><th>To MD</th><th>ID mm</th><th>Internal m³</th><th></th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
         <div class="string-summary">
-          <div><span>Modelled internal volume to bit</span><strong id="stringTotalVol">—</strong><em>m³</em></div>
-          <div><span>Strokes surface → bit</span><strong id="stringBitStrokes">—</strong><em>strokes</em></div>
-          <div><span>Time surface → bit</span><strong id="stringBitTime">—</strong><em>min</em></div>
+          <div><span id="stringVolumeLabel">Modelled internal volume to bit</span><strong id="stringTotalVol">—</strong><em>m³</em></div>
+          <div><span>Strokes surface → bottom</span><strong id="stringBitStrokes">—</strong><em>strokes</em></div>
+          <div><span>Time surface → bottom</span><strong id="stringBitTime">—</strong><em>min</em></div>
         </div>
+        <p id="stringModeNote" class="live-note">Drill String mode is intended for DP / HWDP / collars / BHA. Switching modes does not overwrite the other model.</p>
       </div>
 
       <div class="disclaimer danger"><strong>Operational limitation</strong><p>The returns-front position is an annular-volume estimate. Real transport can differ because of compressibility, cuttings loading, washout, temperature, multiphase flow, surge/swab and changing geometry. Do not use this display as a substitute for pit, flow, gas, MPD or well-control monitoring.</p></div>

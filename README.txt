@@ -1,17 +1,9 @@
-RigCalc Pro Beta 1.08 — Hydraulics & Hole Cleaning
+RigCalc Pro Beta 1.09 — Dual String Modeling
 
-New module
-- Interval-by-interval annular velocity from Live Well Profile geometry.
-- Includes % over hole in effective annular area.
-- Lowest-velocity interval.
-- Inclination derived from MD/TVD survey.
-- Simplified Reynolds number and Darcy annular pressure-loss estimate.
-- Total annular pressure loss, ECD contribution and modeled ECD.
-- User-entered cuttings slip velocity and transport-ratio screen.
-- Good / Marginal / Poor interval flags.
-- High-angle interval flags plus low-RPM / high-ROP cautions.
-- Live Well Profile color overlay: green good, amber marginal, red poor; dashed at ≥30° inclination.
-- Added Hydraulics & Hole Cleaning to RigCalc Academy.
-
-Model limitation
-This is a planning/checking aid, not a full non-Newtonian hydraulics or cuttings-bed simulator. Verify against approved company/operator models, procedures and field response before operational use.
+- Separate Drill String and Casing Run modes.
+- Each mode persists its own component names, From/To MD, IDs and internal volumes.
+- Switching modes does not overwrite the inactive model.
+- Existing v1.08 drill-string data migrates automatically into Drill String mode.
+- Casing Run has an editable casing / float-shoe starter model.
+- Active mode feeds internal volume, strokes/time, Fluid Tracker, Trip Pill and linked geometry calculations.
+- The selected mode is remembered locally.
