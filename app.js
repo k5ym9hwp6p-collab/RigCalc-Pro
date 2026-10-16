@@ -2,8 +2,8 @@
 const q=id=>document.getElementById(id), n=id=>{const el=q(id);return el?(parseFloat(el.value)||0):0};
 const set=(id,v,d=3)=>{const el=q(id);if(el)el.textContent=Number.isFinite(v)?v.toFixed(d):"—"};
 const circle=d=>0.0000007853981634*d*d;
-function save(){const d={};document.querySelectorAll("input,select").forEach(e=>{if(e.id&&e.type!=="file"&&!e.closest("#formationImportPanel"))d[e.id]=e.value});localStorage.setItem("rigcalc-v1",JSON.stringify(d))}
-function load(){try{const d=JSON.parse(localStorage.getItem("rigcalc-v1")||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k)&&q(k).type!=="file"&&!q(k).closest("#formationImportPanel"))q(k).value=v})}catch(e){}}
+function save(){const d={};document.querySelectorAll("input,select").forEach(e=>d[e.id]=e.value);localStorage.setItem("rigcalc-v1",JSON.stringify(d))}
+function load(){try{const d=JSON.parse(localStorage.getItem("rigcalc-v1")||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k))q(k).value=v})}catch(e){}}
 function calcCap(){const h=n("cap_hole"),od=n("cap_od"),id=n("cap_id"),l=n("cap_len"),hc=circle(h),ac=circle(h)-circle(od),pc=circle(id);set("r_hole_cap",hc,6);set("r_hole_vol",hc*l,3);set("r_ann_cap",ac,6);set("r_ann_vol",ac*l,3);set("r_pipe_cap",pc,6);set("r_pipe_vol",pc*l,3);set("r_closed_disp",circle(od),6);set("r_steel_disp",circle(od)-circle(id),6)}
 function calcPump(){const li=n("pump_liner"),st=n("pump_stroke"),ef=n("pump_eff")/100,spm=n("pump_spm"),ct=n("pump_count"),av=n("pump_annvol"),ac=n("pump_anncap"),th=3*0.0000000007853981634*li*li*st,ad=th*ef,co=ad*ct,fl=co*spm;set("r_pump_theor",th,6);set("r_pump_adj",ad,6);set("r_pump_flow",fl,3);set("r_bu_strokes",co?av/co:0,0);set("r_bu_time",fl?av/fl:0,2);set("r_stk_m",co?ac/co:0,2)}
 function calcWC(){const r=n("wc_density"),t=n("wc_tvd"),s=n("wc_sidpp"),m=n("wc_margin"),p=n("wc_surface"),hy=r*9.80665*t/1000,inc=t?(s+m)*1000/(9.80665*t):0,k=r+inc,eq=t?r+p*1000/(9.80665*t):0;set("r_wc_hydro",hy/1000,3);set("r_wc_inc",inc,1);set("r_wc_kmd",k,1);set("r_wc_sg",k/1000,3);set("r_wc_eqd",eq,1)}
@@ -50,12 +50,10 @@ if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWor
 // ===== RigCalc Pro v1.1: Live Well Profile =====
 const WP_DEFAULTS={
  survey:[{md:0,tvd:0},{md:516,tvd:516},{md:700,tvd:700},{md:1300,tvd:1292},{md:1900,tvd:1890},{md:2460,tvd:2458},{md:2810,tvd:2782},{md:3180,tvd:3060},{md:3520,tvd:3315},{md:3700,tvd:3390},{md:3978,tvd:3433}],
- holes:[{from:0,to:616,id:311,od:244.5},{from:616,to:2855,id:222,od:127},{from:2855,to:3978,id:171.45,od:127}],
- formations:[{name:"Surface / Glacial",md:350,grad:9.8},{name:"Belly River",md:1010,grad:10.2},{name:"Cardium Ss",md:1460,grad:10.5},{name:"Viking Ss",md:2110,grad:10.8},{name:"Mannville",md:2460,grad:11.0},{name:"Nordegg",md:2680,grad:11.2},{name:"Fernie",md:3020,grad:11.5},{name:"Duvernay",md:3520,grad:12.0}]
+ holes:[{from:0,to:616,id:311,od:244.5},{from:616,to:2855,id:222,od:127},{from:2855,to:3978,id:171.45,od:127}]
 };
 let wpData=JSON.parse(localStorage.getItem("rigcalc-wellprofile")||"null")||JSON.parse(JSON.stringify(WP_DEFAULTS));
 wpData.holes=(wpData.holes||[]).map(h=>({...h,over:Number(h.over)||0}));
-wpData.formations=(wpData.formations||[]).map(f=>({...f,lowGrad:f.lowGrad===null?null:Number(f.lowGrad??f.grad)||0,grad:f.grad===null?null:Number(f.grad)||0,highGrad:f.highGrad===null?null:Number(f.highGrad??f.grad)||0,source:f.source||"Prognosis",confidence:f.confidence||"Medium"}));
 function saveWP(){localStorage.setItem("rigcalc-wellprofile",JSON.stringify(wpData))}
 function interpTVD(md){const s=[...wpData.survey].sort((a,b)=>a.md-b.md);if(!s.length)return md;if(md<=s[0].md)return s[0].tvd;for(let i=1;i<s.length;i++){if(md<=s[i].md){const f=(md-s[i-1].md)/(s[i].md-s[i-1].md||1);return s[i-1].tvd+f*(s[i].tvd-s[i-1].tvd)}}return s[s.length-1].tvd}
 function annCapM3m(id,od){return Math.max(0,circle(id)-circle(od))}
@@ -64,70 +62,37 @@ function totalAnnulusToBit(bitMD){return cumulativeAnnulus(0,bitMD)}
 function frontMDFromPumped(bitMD,pumped){let remaining=Math.max(0,pumped),pos=bitMD;const hs=[...wpData.holes].sort((a,b)=>b.to-a.to);for(const h of hs){const top=Math.max(h.from,0),bot=Math.min(h.to,pos);if(bot<=top)continue;const cap=annCapM3m(h.id,h.od)*(1+(Number(h.over)||0)/100),vol=(bot-top)*cap;if(remaining<=vol)return bot-(cap?remaining/cap:0);remaining-=vol;pos=top}return 0}
 function formationAtMD(md){const f=[...wpData.formations].sort((a,b)=>a.md-b.md);let cur=f[0]?.name||"—";for(const x of f){if(md>=x.md)cur=x.name;else break}return cur}
 function surveyXY(md){const s=[...wpData.survey].sort((a,b)=>a.md-b.md);if(!s.length)return{md:0,tvd:0,x:0};let x=0,pts=[{md:s[0].md,tvd:s[0].tvd,x:0}],prev=s[0];for(let i=1;i<s.length;i++){const dmd=s[i].md-prev.md,dtvd=s[i].tvd-prev.tvd;x+=Math.sqrt(Math.max(0,dmd*dmd-dtvd*dtvd));pts.push({md:s[i].md,tvd:s[i].tvd,x});prev=s[i]}if(md<=pts[0].md)return pts[0];for(let i=1;i<pts.length;i++){if(md<=pts[i].md){const f=(md-pts[i-1].md)/(pts[i].md-pts[i-1].md||1);return{md,tvd:pts[i-1].tvd+f*(pts[i].tvd-pts[i-1].tvd),x:pts[i-1].x+f*(pts[i].x-pts[i-1].x)}}}return pts[pts.length-1]}
-function plotWell(bitMD,frontMD){const raw0=[...wpData.survey].sort((a,b)=>a.md-b.md).filter(x=>x.md<=bitMD);if(!raw0.length)return;let x=0,raw=[{md:raw0[0].md,tvd:raw0[0].tvd,x:0}],prev=raw0[0];for(let i=1;i<raw0.length;i++){const dmd=raw0[i].md-prev.md,dtvd=raw0[i].tvd-prev.tvd;x+=Math.sqrt(Math.max(0,dmd*dmd-dtvd*dtvd));raw.push({md:raw0[i].md,tvd:raw0[i].tvd,x});prev=raw0[i]}if(raw[raw.length-1].md<bitMD)raw.push(surveyXY(bitMD));const maxX=Math.max(...raw.map(p=>p.x),100),maxT=Math.max(...raw.map(p=>p.tvd),100),sx=v=>60+v/maxX*580,sy=v=>35+v/maxT*350;q("wellPath").setAttribute("points",raw.map(p=>`${sx(p.x)},${sy(p.tvd)}`).join(" "));const bit=surveyXY(bitMD),front=surveyXY(frontMD);q("bitMarker").setAttribute("cx",sx(bit.x));q("bitMarker").setAttribute("cy",sy(bit.tvd));q("frontMarker").setAttribute("cx",sx(front.x));q("frontMarker").setAttribute("cy",sy(front.tvd));q("frontLabel").setAttribute("x",Math.min(610,sx(front.x)+14));q("frontLabel").setAttribute("y",Math.max(20,sy(front.tvd)-12));q("frontLabel").textContent=`Returns ${frontMD.toFixed(0)} m MD`;const g=q("formationBands");g.innerHTML="";const colors=["#2f75b5","#12b76a","#f79009","#7f56d9","#ee46bc","#6172f3"],fs=[...wpData.formations].sort((a,b)=>a.md-b.md);fs.forEach((f,i)=>{if(f.md>bitMD)return;const tvd=interpTVD(f.md),next=fs[i+1]&&fs[i+1].md<=bitMD?interpTVD(fs[i+1].md):interpTVD(bitMD),y=sy(tvd),h=Math.max(5,sy(next)-y),r=document.createElementNS("http://www.w3.org/2000/svg","rect");r.setAttribute("x","0");r.setAttribute("y",y);r.setAttribute("width","700");r.setAttribute("height",h);r.setAttribute("fill",colors[i%colors.length]);r.setAttribute("class","formation-band");g.appendChild(r);const t=document.createElementNS("http://www.w3.org/2000/svg","text");t.setAttribute("x","10");t.setAttribute("y",y+14);t.setAttribute("class","formation-text");t.textContent=f.name;g.appendChild(t)})}
-function updateProfile(){const bit=Math.max(0,n("wp_bit")),out=Math.max(0,n("wp_output")),spm=Math.max(0,n("wp_spm")),mode=q("wp_mode").value,pumped=mode==="strokes"?Math.max(0,n("wp_strokes"))*out:Math.max(0,n("wp_minutes"))*spm*out,total=totalAnnulusToBit(bit),used=Math.min(total,pumped),front=frontMDFromPumped(bit,used),rem=Math.max(0,total-used),rs=out?rem/out:0,rt=spm?rs/spm:0;q("wp_bit_md").textContent=bit.toFixed(0);q("wp_front_md").textContent=front.toFixed(0);q("wp_rem_vol").textContent=rem.toFixed(2);q("wp_rem_strokes").textContent=rs.toFixed(0);q("wp_rem_time").textContent=rt.toFixed(1);q("wp_front_formation").textContent=formationAtMD(front);plotWell(bit,front);renderFormationPressures()}
+function drawDepthGrid(g,sy,maxDepth){if(!g)return;g.innerHTML="";for(let i=0;i<=4;i++){const d=maxDepth*i/4,y=sy(d),line=document.createElementNS("http://www.w3.org/2000/svg","line");line.setAttribute("x1","45");line.setAttribute("x2","680");line.setAttribute("y1",y);line.setAttribute("y2",y);line.setAttribute("class","depth-grid-line");g.appendChild(line);const t=document.createElementNS("http://www.w3.org/2000/svg","text");t.setAttribute("x","6");t.setAttribute("y",Math.min(420,y+4));t.setAttribute("class","depth-grid-text");t.textContent=`${d.toFixed(0)} m`;g.appendChild(t)}}
+function plotWell(bitMD,frontMD){const raw0=[...wpData.survey].sort((a,b)=>a.md-b.md).filter(x=>x.md<=bitMD);if(!raw0.length)return;let x=0,raw=[{md:raw0[0].md,tvd:raw0[0].tvd,x:0}],prev=raw0[0];for(let i=1;i<raw0.length;i++){const dmd=raw0[i].md-prev.md,dtvd=raw0[i].tvd-prev.tvd;x+=Math.sqrt(Math.max(0,dmd*dmd-dtvd*dtvd));raw.push({md:raw0[i].md,tvd:raw0[i].tvd,x});prev=raw0[i]}if(raw[raw.length-1].md<bitMD)raw.push(surveyXY(bitMD));const maxX=Math.max(...raw.map(p=>p.x),100),maxT=Math.max(...raw.map(p=>p.tvd),100),sx=v=>60+v/maxX*580,sy=v=>35+v/maxT*350;q("wellPath").setAttribute("points",raw.map(p=>`${sx(p.x)},${sy(p.tvd)}`).join(" "));const bit=surveyXY(bitMD),front=surveyXY(frontMD);q("bitMarker").setAttribute("cx",sx(bit.x));q("bitMarker").setAttribute("cy",sy(bit.tvd));q("frontMarker").setAttribute("cx",sx(front.x));q("frontMarker").setAttribute("cy",sy(front.tvd));q("frontLabel").setAttribute("x",Math.min(545,sx(front.x)+14));q("frontLabel").setAttribute("y",Math.max(20,sy(front.tvd)-12));q("frontLabel").textContent=`Returns ${frontMD.toFixed(0)} MD / ${interpTVD(frontMD).toFixed(0)} TVD`;drawDepthGrid(q("depthGrid"),sy,maxT)}
+function updateProfile(){const bit=Math.max(0,n("wp_bit")),out=Math.max(0,n("wp_output")),spm=Math.max(0,n("wp_spm")),mode=q("wp_mode").value,pumped=mode==="strokes"?Math.max(0,n("wp_strokes"))*out:Math.max(0,n("wp_minutes"))*spm*out,total=totalAnnulusToBit(bit),used=Math.min(total,pumped),front=frontMDFromPumped(bit,used),rem=Math.max(0,total-used),rs=out?rem/out:0,rt=spm?rs/spm:0;q("wp_bit_md").textContent=bit.toFixed(0);q("wp_front_md").textContent=front.toFixed(0);q("wp_front_tvd").textContent=interpTVD(front).toFixed(0);q("wp_rem_vol").textContent=rem.toFixed(2);q("wp_rem_strokes").textContent=rs.toFixed(0);q("wp_rem_time").textContent=rt.toFixed(1);plotWell(bit,front)}
 function renderSurvey(){const tb=q("surveyTable").querySelector("tbody");tb.innerHTML="";wpData.survey.sort((a,b)=>a.md-b.md).forEach((r,i)=>{const tr=document.createElement("tr");tr.innerHTML=`<td><input data-sv="${i}" data-k="md" type="number" value="${r.md}"></td><td><input data-sv="${i}" data-k="tvd" type="number" value="${r.tvd}"></td><td><button data-del-sv="${i}">✕</button></td>`;tb.appendChild(tr)})}
 function renderHoles(){const tb=q("holeTable").querySelector("tbody");tb.innerHTML="";wpData.holes.sort((a,b)=>a.from-b.from).forEach((r,i)=>{const tr=document.createElement("tr");tr.innerHTML=`<td><input data-hole="${i}" data-k="from" type="number" value="${r.from}"></td><td><input data-hole="${i}" data-k="to" type="number" value="${r.to}"></td><td><input data-hole="${i}" data-k="id" type="number" value="${r.id}"></td><td><input data-hole="${i}" data-k="od" type="number" value="${r.od}"></td><td><input data-hole="${i}" data-k="over" type="number" step="1" value="${Number(r.over)||0}"></td><td><button data-del-hole="${i}">✕</button></td>`;tb.appendChild(tr)})}
-function renderFormationPressures(){
-  const tb=q("formationTable").querySelector("tbody");tb.innerHTML="";
-  const escape=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const pressure=(gradient,tvd)=>gradient===null||gradient===undefined||!(tvd>0)?"—":(Number(gradient)*tvd/1000).toFixed(2);
-  wpData.formations.sort((a,b)=>a.md-b.md).forEach((r,i)=>{
-    const tvd=r.tvd!==null&&r.tvd!==undefined?Number(r.tvd):interpTVD(r.md),tr=document.createElement("tr");
-    tr.innerHTML=`<td><input data-form="${i}" data-k="name" value="${escape(r.name)}"></td><td><input data-form="${i}" data-k="md" type="number" value="${r.md}"></td><td><input data-form="${i}" data-k="lowGrad" type="number" step="0.1" value="${r.lowGrad??""}"></td><td><input data-form="${i}" data-k="grad" type="number" step="0.1" value="${r.grad??""}"></td><td><input data-form="${i}" data-k="highGrad" type="number" step="0.1" value="${r.highGrad??""}"></td><td><strong>${pressure(r.grad,tvd)} MPa</strong><small>${pressure(r.lowGrad,tvd)}–${pressure(r.highGrad,tvd)} MPa</small><small>TVD ${tvd.toFixed(1)} m${r.tvd!==null&&r.tvd!==undefined?" (imported)":""}</small></td><td><select data-form="${i}" data-k="source"><option${r.source==="Prognosis"?" selected":""}>Prognosis</option><option${r.source==="Offset well"?" selected":""}>Offset well</option><option${r.source==="LWD update"?" selected":""}>LWD update</option><option${r.source==="Manual"?" selected":""}>Manual</option></select></td><td><select data-form="${i}" data-k="confidence"><option${r.confidence==="Low"?" selected":""}>Low</option><option${r.confidence==="Medium"?" selected":""}>Medium</option><option${r.confidence==="High"?" selected":""}>High</option></select></td><td><button data-del-form="${i}">✕</button></td>`;
-    if(r.importSource){const d=document.createElement("details"),summary=document.createElement("summary"),info=document.createElement("div");summary.textContent="Stick source";info.className="formation-source-note";const src=r.importSource;info.textContent=`${src.filename||"Imported table"}; datum: ${src.datum||"Not entered"}; KB: ${src.kb??"—"} m; subsea: ${src.subsea??"—"} m; offset: ${src.offsetPressure??"—"} ${src.pressureUnit}; expected: ${src.expectedPressure??"—"} ${src.pressureUnit}; planned mud: ${src.plannedMudDensity||"—"} kg/m³. Original line: ${src.raw||"—"}`;d.append(summary,info);tr.children[0].appendChild(d);}
-    tb.appendChild(tr);
-  });
-}
-function renderWP(){renderSurvey();renderHoles();renderFormationPressures();updateProfile()}
-document.addEventListener("change",e=>{const a=e.target.dataset;if(a.sv!==undefined){wpData.survey[+a.sv][a.k]=+e.target.value||0;saveWP();renderWP()}if(a.hole!==undefined){wpData.holes[+a.hole][a.k]=+e.target.value||0;saveWP();renderWP()}if(a.form!==undefined){wpData.formations[+a.form][a.k]=["name","source","confidence"].includes(a.k)?e.target.value:(["lowGrad","grad","highGrad"].includes(a.k)&&e.target.value.trim()===""?null:(+e.target.value||0));saveWP();renderWP()}if(e.target.id&&e.target.id.startsWith("wp_"))updateProfile()});
+function renderFormationPressures(){}
+function renderWP(){renderSurvey();renderHoles();updateProfile()}
+document.addEventListener("change",e=>{const a=e.target.dataset;if(a.sv!==undefined){wpData.survey[+a.sv][a.k]=+e.target.value||0;saveWP();renderWP()}if(a.hole!==undefined){wpData.holes[+a.hole][a.k]=+e.target.value||0;saveWP();renderWP()}if(a.form!==undefined){wpData.formations[+a.form][a.k]=a.k==="name"?e.target.value:(+e.target.value||0);saveWP();renderWP()}if(e.target.id&&e.target.id.startsWith("wp_"))updateProfile()});
 document.addEventListener("input",e=>{if(e.target.id&&["wp_bit","wp_output","wp_spm","wp_strokes","wp_minutes"].includes(e.target.id))updateProfile()});
 document.addEventListener("click",e=>{if(e.target.dataset.delSv!==undefined){wpData.survey.splice(+e.target.dataset.delSv,1);saveWP();renderWP()}if(e.target.dataset.delHole!==undefined){wpData.holes.splice(+e.target.dataset.delHole,1);saveWP();renderWP()}if(e.target.dataset.delForm!==undefined){wpData.formations.splice(+e.target.dataset.delForm,1);saveWP();renderWP()}});
 q("addSurveyBtn").onclick=()=>{const last=wpData.survey[wpData.survey.length-1]||{md:0,tvd:0};wpData.survey.push({md:last.md+100,tvd:last.tvd+80});saveWP();renderWP()};
 q("addHoleBtn").onclick=()=>{const last=wpData.holes[wpData.holes.length-1]||{to:0,id:171.45,od:127};wpData.holes.push({from:last.to,to:last.to+500,id:last.id,od:last.od,over:Number(last.over)||0});saveWP();renderWP()};
-q("addFormationBtn").onclick=()=>{wpData.formations.push({name:"New formation",md:1000,lowGrad:9.8,grad:10,highGrad:10.2,source:"Prognosis",confidence:"Medium"});saveWP();renderWP()};
+if(q("addFormationBtn"))q("addFormationBtn").onclick=()=>{};
 q("wpResetBtn").onclick=()=>{q("wp_strokes").value=0;q("wp_minutes").value=0;updateProfile()};
 renderWP();
 
-// ===== RigCalc Pro Live Circulate 2.0: segment ledger + operating states =====
-const LIVE_KEY="rigcalc-live-v20";
-const blankLiveState=()=>({running:false,baseElapsedMs:0,baseStrokes:0,baseVolume:0,baseTrackingVolume:0,segment:null,ledger:[]});
-let liveState=blankLiveState();
-try{const stored=JSON.parse(localStorage.getItem(LIVE_KEY)||"null");if(stored)liveState={...blankLiveState(),...stored,ledger:Array.isArray(stored.ledger)?stored.ledger:[]}}catch(e){}
+// ===== RigCalc Pro v1.2: Circulate Live =====
+const LIVE_KEY="rigcalc-live-v12";
+let liveState={running:false,accumulatedMs:0,startedAt:null};
+try{const stored=JSON.parse(localStorage.getItem(LIVE_KEY)||"null");if(stored){liveState.running=!!stored.running;liveState.accumulatedMs=Number(stored.accumulatedMs)||0;liveState.startedAt=stored.startedAt||null}}catch(e){}
 function saveLive(){localStorage.setItem(LIVE_KEY,JSON.stringify(liveState))}
-function liveStateLabel(v){return({normal:"Normal circulation",connection:"Connection — pumps off",continuous:"Continuous circulation",mpd:"MPD choke returns",displacing:"Displacing / stripping",partial:"Partial returns / losses",reverse:"Reverse circulation"})[v]||"Normal circulation"}
-function currentLiveSettings(){return{state:q("liveOperatingState")?.value||"normal",path:q("liveFlowPath")?.value||"Flowline",efficiency:Math.max(0,Math.min(100,n("liveEfficiency")||0)),spm:Math.max(0,n("wp_spm")),output:Math.max(0,n("wp_output"))}}
-function segmentDelta(seg,now=Date.now()){
-  if(!seg)return{durationMs:0,strokes:0,volume:0,trackingVolume:0};
-  const durationMs=Math.max(0,now-seg.startedAt),minutes=durationMs/60000,pumping=seg.state!=="connection",strokes=pumping?minutes*seg.spm:0,volume=strokes*seg.output;
-  const forward=!["connection","reverse"].includes(seg.state),trackingVolume=forward?volume*(seg.efficiency/100):0;
-  return{durationMs,strokes,volume,trackingVolume};
-}
-function activeSnapshot(){const d=liveState.running?segmentDelta(liveState.segment):{durationMs:0,strokes:0,volume:0,trackingVolume:0};return{ms:liveState.baseElapsedMs+d.durationMs,strokes:liveState.baseStrokes+d.strokes,pumped:liveState.baseVolume+d.volume,trackingVolume:liveState.baseTrackingVolume+d.trackingVolume,delta:d}}
-function currentLiveMs(){return activeSnapshot().ms}
+function currentLiveMs(){if(!liveState.running||!liveState.startedAt)return liveState.accumulatedMs;return liveState.accumulatedMs+Math.max(0,Date.now()-liveState.startedAt)}
 function formatClock(ms){const sec=Math.floor(ms/1000),h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return h>0?`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`:`${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`}
-function beginLiveSegment(){const s=currentLiveSettings();liveState.segment={...s,startedAt:Date.now()}}
-function checkpointLive(reason="Rate/state change"){
-  if(!liveState.running||!liveState.segment)return;
-  const seg=liveState.segment,d=segmentDelta(seg);liveState.baseElapsedMs+=d.durationMs;liveState.baseStrokes+=d.strokes;liveState.baseVolume+=d.volume;liveState.baseTrackingVolume+=d.trackingVolume;
-  if(d.durationMs>=250)liveState.ledger.push({kind:"segment",endedAt:Date.now(),reason,state:seg.state,path:seg.path,efficiency:seg.efficiency,spm:seg.state==="connection"?0:seg.spm,output:seg.output,...d});
-  beginLiveSegment();saveLive();
-}
-function setLiveButtons(){const running=liveState.running,state=currentLiveSettings().state;q("liveStartBtn").disabled=running;q("livePauseBtn").disabled=!running;q("liveStateText").textContent=running?(state==="connection"?"Connection — marker held":liveStateLabel(state)):"Paused — position preserved";q("livePulse").classList.toggle("running",running&&state!=="connection");q("livePulse").classList.toggle("paused",!running||state==="connection")}
-function getLiveComputed(){const snap=activeSnapshot(),settings=currentLiveSettings(),spm=settings.spm,output=settings.output,bit=Math.max(0,n("wp_bit")),total=totalAnnulusToBit(bit),used=Math.min(total,Math.max(0,snap.trackingVolume)),front=frontMDFromPumped(bit,used),remaining=Math.max(0,total-used),moving=!["connection","reverse"].includes(settings.state),effectivePerStroke=moving?output*(settings.efficiency/100):0,remStrokes=effectivePerStroke?remaining/effectivePerStroke:Infinity,rate=spm*effectivePerStroke,remTime=rate?remaining/rate:Infinity;return{ms:snap.ms,minutes:snap.ms/60000,spm,output,strokes:snap.strokes,pumped:snap.pumped,trackingVolume:snap.trackingVolume,bit,total,used,front,remaining,remStrokes,remTime,state:settings.state,path:settings.path,efficiency:settings.efficiency}}
-function ledgerRows(){const rows=[...liveState.ledger];if(liveState.running&&liveState.segment){const d=segmentDelta(liveState.segment);rows.push({kind:"active",endedAt:Date.now(),state:liveState.segment.state,path:liveState.segment.path,efficiency:liveState.segment.efficiency,spm:liveState.segment.state==="connection"?0:liveState.segment.spm,output:liveState.segment.output,...d})}return rows}
-function renderLedger(){const body=q("circulationLedgerTable")?.querySelector("tbody");if(!body)return;const rows=ledgerRows();body.innerHTML="";if(!rows.length)body.innerHTML='<tr><td colspan="8" class="ledger-empty">No circulation segments recorded.</td></tr>';rows.slice().reverse().forEach(r=>{const tr=document.createElement("tr"),time=new Date(r.endedAt||Date.now()).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});tr.className=r.kind==="active"?"ledger-active":"";tr.innerHTML=`<td>${time}${r.kind==="active"?" • LIVE":""}</td><td><strong>${r.kind==="correction"?"Correction":liveStateLabel(r.state)}</strong><small>${r.reason||r.path||"—"}</small></td><td>${formatClock(r.durationMs||0)}</td><td>${Number(r.spm||0).toFixed(1)}</td><td>${Number(r.output||0).toFixed(4)}</td><td>${Number(r.strokes||0).toFixed(1)}</td><td>${Number(r.volume||0).toFixed(3)}</td><td>${Number(r.trackingVolume||0).toFixed(3)}</td>`;body.appendChild(tr)});const c=getLiveComputed();q("ledgerTotalVolume").textContent=c.pumped.toFixed(2)+" m³";q("ledgerTrackingVolume").textContent=c.trackingVolume.toFixed(2)+" m³";q("ledgerSegmentCount").textContent=String(rows.length)}
-function renderLive(){const c=getLiveComputed(),reverse=c.state==="reverse";q("liveElapsed").textContent=formatClock(c.ms);q("liveStrokes").textContent=c.strokes.toFixed(0);q("liveVolume").textContent=c.pumped.toFixed(2)+" m³";q("liveTrackingVolume").textContent=c.trackingVolume.toFixed(2)+" m³";q("liveFront").textContent=reverse?"Held — reverse flow":c.front.toFixed(0)+" m MD";q("liveFormation").textContent=formationAtMD(c.front);q("liveRemaining").textContent=c.remaining.toFixed(2)+" m³";q("liveRemainingStrokes").textContent=Number.isFinite(c.remStrokes)?c.remStrokes.toFixed(0):"Held";q("liveEta").textContent=c.remaining<=0.0001?"At surface":(Number.isFinite(c.remTime)?c.remTime.toFixed(1)+" min":"Held");const notices={normal:`Forward circulation through ${c.path}.`,connection:"Pumps-off connection: elapsed session time continues, but strokes, volume and all marker positions are preserved.",continuous:`Continuous circulation through ${c.path}; rate changes are stored as separate ledger segments.`,mpd:`Returns routed through ${c.path}; geometry-based annular tracking remains active.`,displacing:"Displacement tracking is active. Confirm the selected path and tracking efficiency.",partial:`Tracking movement is adjusted to ${c.efficiency.toFixed(0)}% of pumped volume. Pumped and tracking totals are shown separately.`,reverse:"Reverse flow is recorded in the ledger, but the normal bottoms-up marker is held to avoid displaying an invalid forward-annulus position."};q("liveModeNotice").textContent=notices[c.state]||notices.normal;if(liveState.running||c.ms>0){q("wp_bit_md").textContent=c.bit.toFixed(0);q("wp_front_md").textContent=c.front.toFixed(0);q("wp_rem_vol").textContent=c.remaining.toFixed(2);q("wp_rem_strokes").textContent=Number.isFinite(c.remStrokes)?c.remStrokes.toFixed(0):"—";q("wp_rem_time").textContent=Number.isFinite(c.remTime)?c.remTime.toFixed(1):"—";q("wp_front_formation").textContent=formationAtMD(c.front);plotWell(c.bit,c.front)}setLiveButtons();renderLedger()}
-q("liveStartBtn").onclick=()=>{if(!liveState.running){liveState.running=true;beginLiveSegment();saveLive();renderLive()}};
-q("livePauseBtn").onclick=()=>{if(liveState.running){checkpointLive("Paused");liveState.running=false;liveState.segment=null;saveLive();renderLive()}};
-q("liveResetBtn").onclick=()=>{liveState=blankLiveState();saveLive();renderLive();updateProfile()};
-const oldWpReset=q("wpResetBtn");if(oldWpReset){oldWpReset.addEventListener("click",()=>{liveState=blankLiveState();saveLive();renderLive()})}
-function settingsChanged(reason){if(liveState.running)checkpointLive(reason);renderLive()}
-["wp_output","wp_spm"].forEach(id=>q(id).addEventListener("change",()=>settingsChanged("Pump setting changed")));
-q("wp_bit").addEventListener("input",renderLive);
-["liveOperatingState","liveFlowPath","liveEfficiency"].forEach(id=>q(id).addEventListener("change",()=>settingsChanged("Operating state changed")));
-q("addLedgerCorrectionBtn").onclick=()=>{const volume=Number(q("ledgerCorrectionVolume").value)||0,reason=q("ledgerCorrectionReason").value.trim();if(!volume||!reason){alert("Enter a non-zero correction and a reason.");return}if(liveState.running)checkpointLive("Before manual correction");const eff=currentLiveSettings().efficiency/100;liveState.baseVolume=Math.max(0,liveState.baseVolume+volume);liveState.baseTrackingVolume=Math.max(0,liveState.baseTrackingVolume+volume*eff);liveState.ledger.push({kind:"correction",endedAt:Date.now(),reason,durationMs:0,spm:0,output:0,strokes:0,volume,trackingVolume:volume*eff});q("ledgerCorrectionVolume").value=0;q("ledgerCorrectionReason").value="";saveLive();renderLive()};
-q("exportLedgerBtn").onclick=()=>{const rows=ledgerRows(),head=["timestamp","type","state","path","reason","duration_seconds","spm","output_m3_per_stroke","strokes","volume_m3","tracking_volume_m3","efficiency_percent"],csv=[head.join(","),...rows.map(r=>[new Date(r.endedAt||Date.now()).toISOString(),r.kind||"segment",liveStateLabel(r.state),r.path||"",r.reason||"",((r.durationMs||0)/1000).toFixed(1),r.spm||0,r.output||0,r.strokes||0,r.volume||0,r.trackingVolume||0,r.efficiency??100].map(v=>`"${String(v).replaceAll('"','""')}"`).join(","))].join("\n"),blob=new Blob([csv],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`RigCalc_Circulation_Ledger_${new Date().toISOString().slice(0,10)}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+function setLiveButtons(){const running=liveState.running;q("liveStartBtn").disabled=running;q("livePauseBtn").disabled=!running;q("liveStateText").textContent=running?"Circulating":"Paused";q("livePulse").classList.toggle("running",running);q("livePulse").classList.toggle("paused",!running)}
+function getLiveComputed(){const ms=currentLiveMs(),minutes=ms/60000,spm=Math.max(0,n("wp_spm")),output=Math.max(0,n("wp_output")),strokes=minutes*spm,pumped=strokes*output,bit=Math.max(0,n("wp_bit")),total=totalAnnulusToBit(bit),used=Math.min(total,pumped),front=frontMDFromPumped(bit,used),remaining=Math.max(0,total-used),remStrokes=output?remaining/output:0,remTime=spm?remStrokes/spm:0;return{ms,minutes,spm,output,strokes,pumped,bit,total,used,front,remaining,remStrokes,remTime}}
+function renderLive(){const c=getLiveComputed();q("liveElapsed").textContent=formatClock(c.ms);q("liveStrokes").textContent=c.strokes.toFixed(0);q("liveVolume").textContent=c.pumped.toFixed(2)+" m³";q("liveFront").textContent=c.front.toFixed(0)+" m MD";q("liveDepth").textContent=`${c.front.toFixed(0)} MD / ${interpTVD(c.front).toFixed(0)} TVD`;q("liveEta").textContent=c.remaining<=0.0001?"At surface":(Number.isFinite(c.remTime)?c.remTime.toFixed(1)+" min":"—");if(liveState.running||liveState.accumulatedMs>0){q("wp_bit_md").textContent=c.bit.toFixed(0);q("wp_front_md").textContent=c.front.toFixed(0);q("wp_front_tvd").textContent=interpTVD(c.front).toFixed(0);q("wp_rem_vol").textContent=c.remaining.toFixed(2);q("wp_rem_strokes").textContent=c.remStrokes.toFixed(0);q("wp_rem_time").textContent=c.remTime.toFixed(1);plotWell(c.bit,c.front)}}
+q("liveStartBtn").onclick=()=>{if(!liveState.running){liveState.running=true;liveState.startedAt=Date.now();saveLive();setLiveButtons();renderLive()}};
+q("livePauseBtn").onclick=()=>{if(liveState.running){liveState.accumulatedMs=currentLiveMs();liveState.running=false;liveState.startedAt=null;saveLive();setLiveButtons();renderLive()}};
+q("liveResetBtn").onclick=()=>{liveState={running:false,accumulatedMs:0,startedAt:null};saveLive();setLiveButtons();renderLive();updateProfile()};
+const oldWpReset=q("wpResetBtn");if(oldWpReset){oldWpReset.addEventListener("click",()=>{liveState={running:false,accumulatedMs:0,startedAt:null};saveLive();setLiveButtons();renderLive()})}
+["wp_bit","wp_output","wp_spm"].forEach(id=>q(id).addEventListener("input",()=>renderLive()));
 setLiveButtons();renderLive();setInterval(renderLive,500);
 
 // ===== RigCalc Pro v1.3: Fluid Tracker =====
@@ -136,13 +101,6 @@ let fluidEvents=[];
 try{fluidEvents=JSON.parse(localStorage.getItem(FLUID_KEY)||"[]")||[]}catch(e){fluidEvents=[]}
 function saveFluids(){localStorage.setItem(FLUID_KEY,JSON.stringify(fluidEvents))}
 function liveTotalPumpedVolume(){return getLiveComputed().pumped}
-// Volume of this tracked batch injected since its surface start, capped at its size.
-// Keep this separate from front/tail travel: subsequent displacement is not batch volume.
-function fluidPumpingProgress(event,currentPumped=liveTotalPumpedVolume()){
-  const total=Math.max(0,Number(event.volume)||0);
-  const pumped=Math.min(total,Math.max(0,currentPumped-(Number(event.startPumpVol)||0)));
-  return {total,pumped,remaining:total-pumped,percent:total>0?pumped/total*100:0};
-}
 
 // Approximate total internal drill-string volume using user-entered average pipe capacity.
 function pipeInternalVolumeToBit(bitMD,pipeCap){return Math.max(0,bitMD*pipeCap)}
@@ -187,11 +145,10 @@ function fmtEta(min){
   return min.toFixed(1)+" min";
 }
 function fluidOverallStatus(front,tail){
-  if(front.phase==="At surface"&&tail.phase==="At surface"&&front.progress===0&&tail.progress===0)return "Queued";
   if(front.phase==="At surface"&&tail.phase==="At surface")return "Complete";
-  if(front.phase==="Up annulus"&&tail.phase.startsWith("Down drill"))return "Straddling bit";
+  if(front.phase==="Up annulus"&&tail.phase==="Down drill pipe")return "Straddling bit";
   if(front.phase==="Up annulus"||tail.phase==="Up annulus")return "Returning";
-  if(front.phase.startsWith("Down drill")||tail.phase.startsWith("Down drill"))return "Going down";
+  if(front.phase==="Down drill pipe"||tail.phase==="Down drill pipe")return "Going down";
   return "Queued";
 }
 function renderFluidMarkers(){
@@ -213,57 +170,24 @@ function renderFluidMarkers(){
     const lab=document.createElementNS("http://www.w3.org/2000/svg","text");lab.setAttribute("x",Math.min(610,sx(pf.x)+10));lab.setAttribute("y",Math.max(16,sy(pf.tvd)-8));lab.setAttribute("class","fluid-svg-label");lab.textContent=ev.label||ev.type;g.appendChild(lab);
   });
 }
-function fluidSpotMarkup(ev,index){
-  if(typeof PillSpot==="undefined")return "";
-  let spot;
-  try{spot=PillSpot.calculate({bit:n("wp_bit"),volume:Number(ev.volume),pumped:Math.max(0,liveTotalPumpedVolume()-(Number(ev.startPumpVol)||0)),holes:wpData.holes,strings:stringData,target:ev.targetMD??null,edge:ev.targetEdge||"tail",output:n("wp_output")});}catch(e){return "";}
-  if(spot.error)return `<div class="fluid-spot-note">Pill placement: ${spot.error}</div>`;
-  const interval=(front,tail)=>`${front.toFixed(1)}–${tail.toFixed(1)} m MD`;
-  const target=spot.target;
-  return `<div class="fluid-spot-title">Annular placement${ev.density>0?` • ${Number(ev.density).toFixed(0)} kg/m³`:""}</div>
-    <div class="fluid-meta">
-      <div><span>Volume now in annulus</span><strong>${spot.inAnnulus.toFixed(2)} m³</strong></div>
-      <div><span>Length now in annulus</span><strong>${spot.length.toFixed(1)} m</strong></div>
-      <div><span>Current annular interval (front–tail)</span><strong>${spot.inAnnulus>0?interval(spot.front,spot.tail):"Not yet in annulus"}</strong></div>
-      <div><span>Displacement until tail exits bit</span><strong>${spot.toTailExit.toFixed(2)} m³</strong></div>
-      <div><span>Full batch length at tail exit</span><strong>${spot.fits?spot.fullLength.toFixed(1)+" m":"Exceeds annulus capacity"}</strong></div>
-      <div><span>Interval at tail exit (front–tail)</span><strong>${spot.fits?interval(spot.fullFront,spot.fullTail):"Batch cannot fit fully"}</strong></div>
-    </div>
-    <div class="fluid-spot-controls"><label>Spot target (m MD)<input data-spot-target="${index}" type="number" inputmode="decimal" min="0" max="${n("wp_bit")}" value="${ev.targetMD??""}" placeholder="Optional target"></label><label>Place at target<select data-spot-edge="${index}"><option value="tail"${ev.targetEdge!=="front"?" selected":""}>Tail (bottom)</option><option value="front"${ev.targetEdge==="front"?" selected":""}>Front (top)</option></select></label></div>
-    ${target?target.error?`<p class="fluid-spot-note">${target.error}</p>`:`<div class="fluid-meta"><div><span>Displacement left to target</span><strong>${target.passed?"Target already passed":target.remaining.toFixed(2)+" m³"}</strong></div><div><span>Strokes left at current output</span><strong>${target.passed?"—":target.strokes===null?"Enter pump output":Math.ceil(target.strokes).toLocaleString()}</strong></div><div><span>Projected interval at target</span><strong>${interval(target.front,target.tail)}</strong></div><div><span>Full batch fits at target</span><strong>${target.fits?"Yes":"No — part outside annulus"}</strong></div></div>`:""}`;
-}
 function renderFluidList(){
   const host=q("fluidList"); if(!host)return;
-  const editing=document.activeElement?.dataset;
-  if(editing?.spotTarget!==undefined||editing?.spotEdge!==undefined)return;
-  const openDetails=new Set([...(host.querySelectorAll?.("details[data-fluid-detail-key][open]")||[])].map(d=>d.dataset.fluidDetailKey));
   host.innerHTML="";
   if(!fluidEvents.length){host.innerHTML='<div class="fluid-item"><span style="color:var(--muted)">No fluids currently being tracked.</span></div>';renderFluidMarkers();return}
   fluidEvents.forEach((ev,i)=>{
     const st=fluidStates(ev),status=fluidOverallStatus(st.front,st.tail);
-    const pumping=fluidPumpingProgress(ev);
-    const eta = st.front.phase.startsWith("Down drill") ? st.front.etaBit : st.front.etaSurface;
-    const detailKey=String(ev.createdAt??i);
+    const eta = st.front.phase==="Down drill pipe" ? st.front.etaBit : st.front.etaSurface;
     const div=document.createElement("div");div.className="fluid-item";
     div.innerHTML=`<div class="fluid-item-head"><div><strong>${ev.label||ev.type}</strong><div style="font-size:.75rem;color:var(--muted);margin-top:2px">${ev.type} • ${Number(ev.volume).toFixed(2)} m³ • ${status}</div></div><button data-fluid-del="${i}">✕</button></div>
       <div class="fluid-meta">
-        <div><span>Volume pumped / total</span><strong>${pumping.pumped.toFixed(2)} / ${pumping.total.toFixed(2)} m³</strong></div>
-        <div><span>${st.front.phase.startsWith("Down drill")?"Front ETA to bit":"Front ETA to surface"}</span><strong>${fmtEta(eta)}</strong></div>
         <div><span>Front</span><strong>${st.front.md.toFixed(0)} m MD</strong></div>
-        <div><span>Tail</span><strong>${st.tail.md.toFixed(0)} m MD</strong></div>
-      </div>
-      <div class="fluid-pumped-label">${pumping.percent.toFixed(1)}% pumped</div>
-      <div class="fluid-progress" role="progressbar" aria-label="Tracked fluid volume pumped" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pumping.percent.toFixed(1)}"><i style="width:${pumping.percent}%"></i></div>
-      <details class="fluid-details" data-fluid-detail-key="${detailKey}"${openDetails.has(detailKey)?" open":""}><summary>Details & pill placement</summary>
-      <div class="fluid-meta">
-        <div><span>Left to pump</span><strong>${pumping.remaining.toFixed(2)} m³</strong></div>
         <div><span>Front phase</span><strong>${st.front.phase}</strong></div>
+        <div><span>Tail</span><strong>${st.tail.md.toFixed(0)} m MD</strong></div>
         <div><span>Tail phase</span><strong>${st.tail.phase}</strong></div>
-        <div><span>Formation</span><strong>${st.front.formation}</strong></div>
+        <div><span>Front depth</span><strong>${st.front.md.toFixed(0)} MD / ${interpTVD(st.front.md).toFixed(0)} TVD</strong></div>
         <div><span>Front ETA</span><strong>${fmtEta(eta)}</strong></div>
       </div>
-      <div class="fluid-progress"><i style="width:${Math.max(0,Math.min(100,(st.front.phase==="Up annulus"?50+st.front.progress*50:st.front.phase==="At surface"?100:st.front.progress*50)))}%"></i></div>
-      ${fluidSpotMarkup(ev,i)}</details>`;
+      <div class="fluid-progress"><i style="width:${Math.max(0,Math.min(100,(st.front.phase==="Up annulus"?50+st.front.progress*50:st.front.phase==="At surface"?100:st.front.progress*50)))}%"></i></div>`;
     host.appendChild(div);
   });
   renderFluidMarkers();
@@ -277,10 +201,6 @@ q("addFluidBtn").onclick=()=>{
 };
 q("clearFluidsBtn").onclick=()=>{fluidEvents=[];saveFluids();renderFluidList()};
 document.addEventListener("click",e=>{if(e.target.dataset.fluidDel!==undefined){fluidEvents.splice(+e.target.dataset.fluidDel,1);saveFluids();renderFluidList()}});
-document.addEventListener("change",e=>{const a=e.target.dataset;
-  if(a.spotTarget!==undefined){const ev=fluidEvents[+a.spotTarget];if(ev){ev.targetMD=e.target.value.trim()===""?null:Number(e.target.value);saveFluids();renderFluidList()}}
-  if(a.spotEdge!==undefined){const ev=fluidEvents[+a.spotEdge];if(ev){ev.targetEdge=e.target.value==="front"?"front":"tail";saveFluids();renderFluidList()}}
-});
 setInterval(renderFluidList,500);
 ["wp_bit","wp_output","wp_spm","fluidPipeCap"].forEach(id=>{if(q(id))q(id).addEventListener("input",renderFluidList)});
 renderFluidList();
@@ -381,7 +301,7 @@ fluidEdgeState=function(event,edgeStartOffset){
 q("addFluidBtn").onclick=()=>{
   const type=q("fluidType").value,label=q("fluidLabel").value.trim()||type,volume=Math.max(0,n("fluidVolume"));
   if(volume<=0){alert("Enter a fluid volume greater than zero.");return}
-  fluidEvents.push({type,label,volume,density:Math.max(0,n("fluidDensity")),targetMD:q("fluidTarget").value.trim()===""?null:n("fluidTarget"),targetEdge:q("fluidTargetEdge").value,startPumpVol:liveTotalPumpedVolume(),createdAt:Date.now(),model:"detailed-v14"});
+  fluidEvents.push({type,label,volume,startPumpVol:liveTotalPumpedVolume(),createdAt:Date.now(),model:"detailed-v14"});
   saveFluids();renderFluidList();
   const m=label.match(/(\d+)$/);if(m)q("fluidLabel").value=label.replace(/\d+$/,(Number(m[1])+1).toString());
 };
@@ -399,7 +319,7 @@ function clonePlotForZoom(){
   host.style.width=`${100/zoomScale}%`;
   q("zoomResetBtn").textContent=Math.round(zoomScale*100)+"%";
   const live=getLiveComputed();
-  q("zoomReadout").textContent=`Front ${live.front.toFixed(0)} m MD • ${formationAtMD(live.front)} • ETA ${live.remaining<=.0001?"surface":live.remTime.toFixed(1)+" min"}`;
+  q("zoomReadout").textContent=`Front ${live.front.toFixed(0)} m MD / ${interpTVD(live.front).toFixed(0)} m TVD • ETA ${live.remaining<=.0001?"surface":live.remTime.toFixed(1)+" min"}`;
 }
 function openZoom(){
   zoomScale=1;q("wellZoomModal").classList.remove("hidden");clonePlotForZoom();
@@ -457,7 +377,7 @@ document.addEventListener("click",e=>{
 const MOTOR_KEY="rigcalc-motor-v15";
 const motorFields=["motor_make","motor_model","motor_od","motor_bend","motor_min_flow","motor_max_flow","motor_rev_l","motor_max_dp","motor_max_torque","motor_max_rpm"];
 function saveMotor(){const d={};motorFields.forEach(id=>d[id]=q(id).value);localStorage.setItem(MOTOR_KEY,JSON.stringify(d))}
-function loadMotor(){try{const d=JSON.parse(localStorage.getItem(MOTOR_KEY)||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k)&&q(k).type!=="file"&&!q(k).closest("#formationImportPanel"))q(k).value=v})}catch(e){}}
+function loadMotor(){try{const d=JSON.parse(localStorage.getItem(MOTOR_KEY)||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k))q(k).value=v})}catch(e){}}
 function gaugeClass(id,status){const el=q(id);el.classList.remove("good","warn","bad");el.classList.add(status)}
 function calcMotor(){
   const flow=Math.max(0,n("motor_flow")),minF=Math.max(0,n("motor_min_flow")),maxF=Math.max(minF,n("motor_max_flow"));
@@ -509,7 +429,7 @@ function saveCemJob(){
   localStorage.setItem(CEMJOB_KEY,JSON.stringify(d));
 }
 function loadCemJob(){
-  try{const d=JSON.parse(localStorage.getItem(CEMJOB_KEY)||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k)&&q(k).type!=="file"&&!q(k).closest("#formationImportPanel"))q(k).value=v})}catch(e){}
+  try{const d=JSON.parse(localStorage.getItem(CEMJOB_KEY)||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k))q(k).value=v})}catch(e){}
 }
 function saveCemStages(){localStorage.setItem(CEMSTAGE_KEY,JSON.stringify(cementStages))}
 function saveCemLive(){localStorage.setItem(CEMLIVE_KEY,JSON.stringify(cemLive))}
@@ -648,7 +568,7 @@ if(!cemSections.length)cemSections=[
 const cemAdvFields=["cem_scav_vol","cem_scav_yield","cem_scav_water","cem_adv_lead_vol","cem_adv_lead_yield","cem_adv_lead_water","cem_adv_tail_vol","cem_adv_tail_yield","cem_adv_tail_water","cem_adv_preflush_water","cem_adv_disp_water","cem_adv_cleanup_water","cem_place_start","cem_place_vol","cem_place_dir"];
 function saveCemSections(){localStorage.setItem(CEMSECTION_KEY,JSON.stringify(cemSections))}
 function saveCemAdv(){const d={};cemAdvFields.forEach(id=>d[id]=q(id).value);localStorage.setItem(CEMADV_KEY,JSON.stringify(d))}
-function loadCemAdv(){try{const d=JSON.parse(localStorage.getItem(CEMADV_KEY)||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k)&&q(k).type!=="file"&&!q(k).closest("#formationImportPanel"))q(k).value=v})}catch(e){}}
+function loadCemAdv(){try{const d=JSON.parse(localStorage.getItem(CEMADV_KEY)||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k))q(k).value=v})}catch(e){}}
 function cemSectionCap(s){return Math.max(0,circle(Number(s.outer)||0)-circle(Number(s.od)||0))}
 function cemSectionBaseVol(s){return Math.max(0,(Number(s.to)-Number(s.from))*cemSectionCap(s))}
 function cemSectionSlurryVol(s){return cemSectionBaseVol(s)*(1+(Number(s.excess)||0)/100)}
@@ -761,7 +681,7 @@ loadCemAdv();renderCemSections();updateAdvancedCement();
 const WCJOB_KEY="rigcalc-wcjob-v18";
 const wcJobFields=["wc2_mw","wc2_tvd","wc2_md","wc2_sidpp","wc2_sicp","wc2_gain","wc2_margin","wc2_scr","wc2_scr_spm","wc2_output","wc2_stringvol","wc2_annvol","wc2_shoe_tvd","wc2_lot_density","wc2_maasp_margin","wc2_work_maasp","wc2_method","wc2_steps","wc2_anncap"];
 function saveWcJob(){const d={};wcJobFields.forEach(id=>d[id]=q(id).value);localStorage.setItem(WCJOB_KEY,JSON.stringify(d))}
-function loadWcJob(){try{const d=JSON.parse(localStorage.getItem(WCJOB_KEY)||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k)&&q(k).type!=="file"&&!q(k).closest("#formationImportPanel"))q(k).value=v})}catch(e){}}
+function loadWcJob(){try{const d=JSON.parse(localStorage.getItem(WCJOB_KEY)||"{}");Object.entries(d).forEach(([k,v])=>{if(q(k))q(k).value=v})}catch(e){}}
 function calcWcAdvanced(){
   const mw=Math.max(0,n("wc2_mw")),tvd=Math.max(.001,n("wc2_tvd")),sidpp=Math.max(0,n("wc2_sidpp")),margin=Math.max(0,n("wc2_margin"));
   const scr=Math.max(0,n("wc2_scr")),out=Math.max(.000001,n("wc2_output")),spm=Math.max(.001,n("wc2_scr_spm"));
@@ -873,9 +793,8 @@ plotWell=function(bitMD,frontMD){
   const bit=displayXY(bitMD),front=displayXY(frontMD);
   q("bitMarker").setAttribute("cx",sx(bit.x));q("bitMarker").setAttribute("cy",sy(bit.tvd));
   q("frontMarker").setAttribute("cx",sx(front.x));q("frontMarker").setAttribute("cy",sy(front.tvd));
-  q("frontLabel").setAttribute("x",Math.min(610,sx(front.x)+14));q("frontLabel").setAttribute("y",Math.max(20,sy(front.tvd)-12));q("frontLabel").textContent=`Returns ${frontMD.toFixed(0)} m MD`;
-  const g=q("formationBands");g.innerHTML="";const colors=["#2f75b5","#12b76a","#f79009","#7f56d9","#ee46bc","#6172f3"],fs=[...wpData.formations].sort((a,b)=>a.md-b.md);
-  fs.forEach((f,i)=>{if(f.md>bitMD)return;const topT=trajectoryMode()==="vertical"?f.md:interpTVD(f.md),nextMd=fs[i+1]&&fs[i+1].md<=bitMD?fs[i+1].md:bitMD,nextT=trajectoryMode()==="vertical"?nextMd:interpTVD(nextMd),y=sy(topT),h=Math.max(5,sy(nextT)-y),r=document.createElementNS("http://www.w3.org/2000/svg","rect");r.setAttribute("x","0");r.setAttribute("y",y);r.setAttribute("width","700");r.setAttribute("height",h);r.setAttribute("fill",colors[i%colors.length]);r.setAttribute("class","formation-band");g.appendChild(r);const t=document.createElementNS("http://www.w3.org/2000/svg","text");t.setAttribute("x","10");t.setAttribute("y",y+14);t.setAttribute("class","formation-text");t.textContent=f.name;g.appendChild(t)});
+  q("frontLabel").setAttribute("x",Math.min(610,sx(front.x)+14));q("frontLabel").setAttribute("y",Math.max(20,sy(front.tvd)-12));q("frontLabel").textContent=`Returns ${frontMD.toFixed(0)} MD / ${interpTVD(frontMD).toFixed(0)} TVD`;
+  drawDepthGrid(q("depthGrid"),sy,geom.maxT);
   renderWellControlOverlay();
 };
 renderFluidMarkers=function(){
@@ -925,7 +844,7 @@ function updateWellControlLive(){
   if(q("wcLivePulse")){q("wcLivePulse").classList.toggle("running",wcProfileState.tracking);q("wcLivePulse").classList.toggle("paused",!wcProfileState.tracking)}
   if(q("wcInfluxFrontLive"))q("wcInfluxFrontLive").textContent=`${c.influxFront.toFixed(0)} m MD`;
   if(q("wcInfluxTailLive"))q("wcInfluxTailLive").textContent=`${c.influxTail.toFixed(0)} m MD`;
-  if(q("wcInfluxFormationLive"))q("wcInfluxFormationLive").textContent=formationAtMD(c.influxFront);
+  if(q("wcInfluxDepthLive"))q("wcInfluxDepthLive").textContent=`${c.influxFront.toFixed(0)} MD / ${interpTVD(c.influxFront).toFixed(0)} TVD`;
   if(q("wcKillFrontLive"))q("wcKillFrontLive").textContent=c.pumped>0?`${c.killMd.toFixed(0)} m MD`:"Surface";
   if(q("wcKillPhaseLive"))q("wcKillPhaseLive").textContent=c.pumped>0?c.killPhase:"Not started";
   if(q("wcTargetPressureLive"))q("wcTargetPressureLive").textContent=`${c.target.toFixed(0)} kPa`;
@@ -1173,7 +1092,7 @@ function tripPillCrossCheck(geometryDrop){
 TRIP_PILL_X_FIELDS.forEach(id=>q(id)?.addEventListener("input",()=>{const g=solveTripPill();tripPillCrossCheck(g.balanced?g.top:NaN);saveTripPill()}));
 
 
-// ===== RigCalc Pro Beta 1.07: Education Layer =====
+// ===== RigCalc Pro Beta 1.06: Education Layer =====
 const EDU_MODE_KEY="rigcalc-education-mode-v106";
 function eduInput(id){const el=q(id);const v=el?parseFloat(el.value):NaN;return Number.isFinite(v)?v:NaN}
 function eduOut(id){const el=q(id);return el?el.textContent.trim():"—"}
@@ -1209,9 +1128,6 @@ function educationTopic(topic){
       <div class="edu-formula">Hydrostatic pressure is based on TVD, while fluid travel volume follows MD and local capacity.</div>
       <div class="edu-worked"><strong>Current modeled bit</strong><br>Bit MD: ${eduFmt(bit,0)} m<br>RigCalc interpolates TVD from the directional survey for hydrostatic calculations.</div>
       <h4>Fluid fronts</h4><p>Each pumped volume is marched through the detailed pipe or annular capacities. A smaller capacity means the same volume travels farther.</p>
-      <h4>Circulation ledger</h4><p>Live Circulate stores each rate, output, operating state and return path as its own timestamped segment. Changing SPM therefore affects only new circulation; it does not rewrite volume already pumped.</p>
-      <div class="edu-formula">Segment volume = Segment SPM × Segment minutes × Pump output</div>
-      <p>Pumps-off connections preserve every marker. Partial-return mode separates actual pumped volume from the efficiency-adjusted tracking volume.</p>
       <h4>Vertical vs deviated display</h4><p>The trajectory selector changes the visualization. Pressure calculations continue to use survey TVD.</p>`},
 
     trippill:{title:"Trip Pill",html:`

@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.08</span>
+      <span class="eyebrow">BETA 1.07</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -49,7 +49,7 @@
         <button class="tool-card beta-core-card" data-open="pump"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 17h20v17H14zM18 12h12v5H18zM8 21h6v9H8zM34 21h6v9h-6z"/><path d="M18 34v4h12v-4M20 22h8m-8 5h8"/></svg><span>Pumps & Circulation</span><small>Output, strokes & bottoms-up</small></button>
         <button class="tool-card beta-core-card" data-open="trippinghub"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 8v10l-5 6 5 10h12l5-10-5-6V8"/><path d="M24 8v22m0 0c0 4-5 4-5 8a5 5 0 0 0 10 0c0-2-1-3-2-4"/></svg><span>Tripping</span><small>Trip sheet, fill checks & Trip Pill</small></button>
         <button class="tool-card beta-core-card" data-open="wellcontrol"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M19 8h10v6H19zM16 14h16v7H16zM18 21h12v8H18zM15 29h18v10H15z"/><path d="M7 24h11m12 0h11M9 20v8m30-8v8M20 34h8"/></svg><span>Well Control</span><small>Hydrostatic, kill density & pressure checks</small></button>
-        <button class="tool-card featured beta-profile-card" data-open="wellprofile"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 8v32h32"/><path d="M12 14c8 0 5 8 12 10s3 10 16 10"/><circle cx="12" cy="14" r="2"/><circle cx="24" cy="24" r="2"/><circle cx="40" cy="34" r="2"/></svg><span>Live Well Profile</span><small>Trajectory, formations, fluids & live returns tracking</small><em>FEATURED</em></button>
+        <button class="tool-card featured beta-profile-card" data-open="wellprofile"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 8v32h32"/><path d="M12 14c8 0 5 8 12 10s3 10 16 10"/><circle cx="12" cy="14" r="2"/><circle cx="24" cy="24" r="2"/><circle cx="40" cy="34" r="2"/></svg><span>Live Well Profile</span><small>Trajectory, depth, fluids & live returns tracking</small><em>FEATURED</em></button>
 
         <button class="tool-card beta-core-card" data-open="academy">
           <svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true">
@@ -564,7 +564,7 @@
       <div class="academy-grid">
         <button class="academy-topic" data-edu-topic="capacities"><b>01</b><span>Volumes & Capacities</span><small>Pipe, annulus, displacement and % over hole</small></button>
         <button class="academy-topic" data-edu-topic="pumps"><b>02</b><span>Pumps & Bottoms-Up</span><small>Output, strokes, circulation volume and time</small></button>
-        <button class="academy-topic" data-edu-topic="profile"><b>03</b><span>Live Well Profile</span><small>MD/TVD, trajectory, formations and fluid fronts</small></button>
+        <button class="academy-topic" data-edu-topic="profile"><b>03</b><span>Live Well Profile</span><small>MD/TVD, trajectory, depth and fluid fronts</small></button>
         <button class="academy-topic" data-edu-topic="trippill"><b>04</b><span>Trip Pill</span><small>Hydrostatic balance and dry pipe</small></button>
         <button class="academy-topic" data-edu-topic="cement"><b>05</b><span>Cementing</span><small>Slurry volumes, yields and displacement</small></button>
         <button class="academy-topic" data-edu-topic="wellcontrol"><b>06</b><span>Well Control</span><small>KMW, ICP/FCP, MAASP and circulation</small></button>
@@ -696,7 +696,7 @@
       <div class="disclaimer danger"><strong>Mud motor limitation</strong><p>RPM is calculated from the entered rev/L factor. Torque is a linear estimate from entered max torque vs max differential and is not a substitute for the manufacturer's performance curve.</p></div>
     </section>
     <section id="wellprofile" class="screen calculator">
-      <div class="screen-title"><button class="back">‹</button><div><h2>Live Well Profile</h2><p>Survey, formations & bottoms-up tracking</p></div></div>
+      <div class="screen-title"><button class="back">‹</button><div><h2>Live Well Profile</h2><p>Survey, depth & bottoms-up tracking</p></div></div>
 
       <div class="profile-summary">
         <div><span>Bit depth</span><strong id="wp_bit_md">—</strong><em>m MD</em></div>
@@ -704,7 +704,7 @@
         <div><span>Remaining annular volume</span><strong id="wp_rem_vol">—</strong><em>m³</em></div>
         <div><span>Remaining strokes</span><strong id="wp_rem_strokes">—</strong><em>strokes</em></div>
         <div><span>Time to surface</span><strong id="wp_rem_time">—</strong><em>min</em></div>
-        <div><span>Formation at front</span><strong id="wp_front_formation">—</strong><em></em></div>
+        <div><span>Front TVD</span><strong id="wp_front_tvd">—</strong><em>m TVD</em></div>
       </div>
 
 
@@ -729,7 +729,7 @@
         </div>
         <svg id="wellSvg" viewBox="0 0 700 430">
           <rect x="0" y="0" width="700" height="430" class="svg-bg"></rect>
-          <g id="formationBands"></g>
+          <g id="depthGrid"></g>
           <polyline id="wellPath" points="" class="well-path"></polyline>
           <g id="wellControlMarkers"></g>
           <g id="fluidMarkers"></g>
@@ -740,85 +740,23 @@
         <div class="legend">
           <span><i class="legend-bit"></i> Bit</span>
           <span><i class="legend-front"></i> Returns front</span>
-          <span><i class="legend-formation"></i> Formations</span>
+          <span><i class="legend-depth"></i> Depth grid</span>
           <span><i class="legend-wc"></i> Well control</span>
         </div>
       </div>
 
       <div class="live-card">
         <div class="live-head"><div><span class="live-kicker">CIRCULATE LIVE</span><strong id="liveStateText">Paused</strong></div><span id="livePulse" class="live-pulse paused"></span></div>
-        <div class="live-mode-grid">
-          <label>Operating state
-            <select id="liveOperatingState">
-              <option value="normal">Normal circulation</option>
-              <option value="connection">Connection — pumps off</option>
-              <option value="continuous">Continuous circulation</option>
-              <option value="mpd">MPD choke returns</option>
-              <option value="displacing">Displacing / stripping</option>
-              <option value="partial">Partial returns / losses</option>
-              <option value="reverse">Reverse circulation</option>
-            </select>
-          </label>
-          <label>Active return path
-            <select id="liveFlowPath">
-              <option value="Flowline">Conventional flowline</option>
-              <option value="MPD choke manifold">MPD choke manifold</option>
-              <option value="Alternate returns line">Alternate returns line</option>
-              <option value="No surface returns">No surface returns</option>
-            </select>
-          </label>
-          <label>Tracking efficiency <span>%</span>
-            <input id="liveEfficiency" type="number" min="0" max="100" step="1" value="100">
-          </label>
-        </div>
-        <div id="liveModeNotice" class="live-mode-notice">Forward circulation through the conventional return path.</div>
         <div class="live-stats">
           <div><span>Elapsed</span><strong id="liveElapsed">00:00</strong></div>
           <div><span>Strokes pumped</span><strong id="liveStrokes">0</strong></div>
           <div><span>Volume pumped</span><strong id="liveVolume">0.00 m³</strong></div>
-          <div><span>Tracking volume</span><strong id="liveTrackingVolume">0.00 m³</strong></div>
           <div><span>Front position</span><strong id="liveFront">3978 m MD</strong></div>
-          <div><span>Formation</span><strong id="liveFormation">—</strong></div>
-          <div><span>Volume remaining</span><strong id="liveRemaining">—</strong></div>
-          <div><span>Strokes remaining</span><strong id="liveRemainingStrokes">—</strong></div>
+          <div><span>Front depth</span><strong id="liveDepth">—</strong></div>
           <div><span>ETA surface</span><strong id="liveEta">—</strong></div>
         </div>
         <div class="live-actions"><button id="liveStartBtn" class="live-start">▶ Start</button><button id="livePauseBtn" class="live-pause">Ⅱ Pause</button><button id="liveResetBtn" class="live-reset">↺ Reset</button></div>
-        <p class="live-note">Rate and output changes create a new ledger segment. Earlier circulation keeps the values that were active when it occurred.</p>
-      </div>
-
-      <div class="profile-card returns-card">
-        <div class="section-heading"><div><strong>Returns Coming</strong><small>Tagged events travelling from the bit through the annulus to surface.</small></div></div>
-        <div class="returns-inputs">
-          <label>Event <select id="returnType"><option>Formation Top</option><option>Gas Show</option><option>Connection</option><option>Sweep at bit</option><option>Drilling Break</option><option>Mud Change at bit</option></select></label>
-          <label>Label <input id="returnLabel" maxlength="80" placeholder="Duvernay Top…"></label>
-          <label>Origin MD <span>m (blank = current bit)</span><input id="returnOrigin" type="number" min="0" placeholder="Current bit MD"></label>
-          <button id="tagReturnBtn">Tag at bit</button>
-        </div>
-        <p id="returnError" role="alert"></p>
-        <div class="table-wrap"><table id="returnsTable"><thead><tr><th>Return</th><th>Origin / pressure</th><th>Current position</th><th>Volume remaining</th><th>Strokes remaining</th><th>ETA / clock time</th><th></th></tr></thead><tbody></tbody></table></div>
-        <div class="section-heading"><strong>At Surface</strong><button id="clearReturnArrivalsBtn">Clear arrivals</button></div>
-        <div id="returnArrivals" role="status" aria-live="polite"></div>
-        <details class="returns-help"><summary>How arrival is calculated</summary><p>Remaining volume = annular volume from origin to surface − effective volume pumped since tagging. Strokes remaining = remaining m³ ÷ (pump m³/stroke × tracking efficiency). Minutes remaining = strokes remaining ÷ current SPM.</p><p>Each tag retains its origin, formation pressure and annular geometry at creation. Rate and output changes affect future arrival predictions; earlier pumped volume is preserved. Pauses, connections and reverse flow hold the tag. Reset circulation clears tags and arrivals.</p><p>Tag a sweep when its leading edge reaches the bit. Use the Fluid Tracker for travel down the string. Clock estimates assume the current rate continues and exclude surface-line volume, slip and mixing. Partial-return efficiency is a user-entered estimate.</p></details>
-      </div>
-
-      <div class="profile-card circulation-ledger-card">
-        <div class="section-heading">
-          <div><strong>Circulation volume ledger</strong><small>Timestamped operating segments preserve actual rate changes, pauses and corrections.</small></div>
-          <button id="exportLedgerBtn">Export CSV</button>
-        </div>
-        <div class="ledger-correction">
-          <label>Volume correction <span>m³ (+/−)</span><input id="ledgerCorrectionVolume" type="number" step="0.01" value="0"></label>
-          <label>Reason <input id="ledgerCorrectionReason" placeholder="Meter correction, surface line fill…"></label>
-          <button id="addLedgerCorrectionBtn">Add correction</button>
-        </div>
-        <div class="ledger-totals">
-          <div><span>Ledger volume</span><strong id="ledgerTotalVolume">0.00 m³</strong></div>
-          <div><span>Tracking volume</span><strong id="ledgerTrackingVolume">0.00 m³</strong></div>
-          <div><span>Segments</span><strong id="ledgerSegmentCount">0</strong></div>
-        </div>
-        <div class="table-wrap"><table id="circulationLedgerTable"><thead><tr><th>Time</th><th>State / path</th><th>Duration</th><th>SPM</th><th>Output</th><th>Strokes</th><th>Volume</th><th>Tracking</th></tr></thead><tbody></tbody></table></div>
-        <p class="live-note ledger-note">The ledger is stored on this device. Reset circulation clears the active circulation session and its ledger.</p>
+        <p class="live-note">If pump speed or output changes, update the values below. The live tracker recalculates immediately.</p>
       </div>
 
       
@@ -835,7 +773,7 @@
         <div class="live-stats wc-live-stats">
           <div><span>Influx front</span><strong id="wcInfluxFrontLive">—</strong></div>
           <div><span>Influx tail</span><strong id="wcInfluxTailLive">—</strong></div>
-          <div><span>Influx formation</span><strong id="wcInfluxFormationLive">—</strong></div>
+          <div><span>Influx depth</span><strong id="wcInfluxDepthLive">—</strong></div>
           <div><span>Kill mud front</span><strong id="wcKillFrontLive">—</strong></div>
           <div><span>Kill mud phase</span><strong id="wcKillPhaseLive">—</strong></div>
           <div><span>Target pump pressure</span><strong id="wcTargetPressureLive">—</strong></div>
@@ -875,15 +813,6 @@
           <label>Volume <span>m³</span>
             <input id="fluidVolume" type="number" inputmode="decimal" value="5">
           </label>
-          <label>Density (optional) <span>kg/m³</span>
-            <input id="fluidDensity" type="number" inputmode="decimal" min="0" placeholder="1600">
-          </label>
-          <label>Spot target (optional) <span>m MD</span>
-            <input id="fluidTarget" type="number" inputmode="decimal" min="0" placeholder="Target depth">
-          </label>
-          <label>Place at target
-            <select id="fluidTargetEdge"><option value="tail">Tail (bottom of pill)</option><option value="front">Front (top of pill)</option></select>
-          </label>
           <label>Downhole model <span>source</span>
             <input id="fluidPipeModel" value="Detailed drill string" readonly>
           </label>
@@ -894,7 +823,6 @@
           <button id="clearFluidsBtn">Clear all</button>
         </div>
         <div id="fluidList" class="fluid-list"></div>
-        <details class="fluid-spot-help"><summary>How pill placement is calculated</summary><p>Annular capacity = π × (hole ID² − string OD²) / 4, with diameters in metres and the Hole Geometry over-hole allowance. Volume is summed through each section along measured depth. Enter the actual drill-pipe and BHA outer diameters in Hole Geometry; Detailed drill string supplies internal diameters for displacement to the bit.</p><p>When the tail exits the bit, the full batch extends upward from the bit. Further pumping moves both ends up the annulus. Density is recorded for reference; it does not change the volume-based length. This is an ideal forward-flow estimate without mixing or settling.</p></details>
       </div>
 
       <div class="input-card wp-controls">
@@ -933,26 +861,6 @@
           <div><span>Strokes surface → bit</span><strong id="stringBitStrokes">—</strong><em>strokes</em></div>
           <div><span>Time surface → bit</span><strong id="stringBitTime">—</strong><em>min</em></div>
         </div>
-      </div>
-
-      <div class="profile-card">
-        <div class="section-heading"><div><strong>Formation tops & pressure range</strong><small>Low / expected / high gradients preserve uncertainty and source history.</small></div><button id="addFormationBtn">+ Add</button></div>
-        <div class="table-wrap"><table id="formationTable"><thead><tr><th>Formation</th><th>Top MD</th><th>Low</th><th>Expected</th><th>High</th><th>Pressure range</th><th>Source</th><th>Confidence</th><th></th></tr></thead><tbody></tbody></table></div>
-        <details id="formationImportPanel" class="stick-import">
-          <summary>Import formations from a stick diagram</summary>
-          <p>Choose a photo, crop to its formation table, and read it. Review every name and number before selecting Keep. Unclear values stay blank; all imported rows start with Low confidence.</p>
-          <label>Photo or screenshot<input id="stickPhoto" type="file" accept="image/*"></label>
-          <canvas id="stickCanvas" hidden aria-label="Stick diagram preview; drag to select the formation table"></canvas>
-          <div class="stick-actions"><button id="stickResetCrop">Use whole photo</button><button id="stickRead">Read photo</button></div>
-          <p id="stickStatus" role="status" aria-live="polite">Photo recognition requires internet to load the reader. Your photo is processed on this device. Paste-table import also works offline.</p>
-          <details><summary>Recognized text / paste table</summary><p>The photo parser expects MD, TVD, formation, subsea elevation, offset pressure, expected pressure, and planned mud density. You can also paste one row per line, separated by tabs or semicolons: Formation; MD; TVD; Subsea; Offset pressure; Expected pressure; Planned mud density.</p><textarea id="stickText" rows="8" placeholder="Duvernay;3521;3384;-2364;50000;54000;>1400"></textarea><button id="stickParse">Build review table from text</button></details>
-          <div class="fluid-new"><label>Depth reference datum<input id="stickDatum" placeholder="e.g. metres below KB"></label><label>KB elevation (optional, m above sea level)<input id="stickKB" type="number" step="any"></label><label>Pressure units in review table<select id="stickPressureUnit"><option value="kPa">kPa</option><option value="MPa">MPa</option></select></label></div>
-          <p>MD and TVD are depths below the selected datum. Negative subsea elevations are stored separately. Planned mud density is retained as a reference, including qualifiers such as &gt;.</p>
-          <label class="stick-check"><input id="stickUsePressure" type="checkbox"> Use reviewed expected pressure to calculate the expected gradient (pressure ÷ TVD). Leave low/high gradients blank.</label>
-          <div class="table-wrap"><table class="stick-table"><thead><tr><th>Keep</th><th>Formation</th><th>MD (m)</th><th>TVD (m)</th><th>Subsea (m)</th><th>Offset pressure</th><th>Expected pressure</th><th>Planned mud kg/m³</th><th></th></tr></thead><tbody id="stickRows"></tbody></table></div>
-          <div class="stick-actions"><button id="stickAddRow">+ Review row</button><button id="stickAppend">Import selected formations</button><button id="stickUndo">Undo import</button></div>
-          <label class="stick-check"><input id="stickAllowReplace" type="checkbox"> Replace entire existing formation table</label><button id="stickReplace">Replace with kept rows</button>
-        </details>
       </div>
 
       <div class="disclaimer danger"><strong>Operational limitation</strong><p>The returns-front position is an annular-volume estimate. Real transport can differ because of compressibility, cuttings loading, washout, temperature, multiphase flow, surge/swab and changing geometry. Do not use this display as a substitute for pit, flow, gas, MPD or well-control monitoring.</p></div>
@@ -1001,10 +909,6 @@
     </div>
   </div>
 
-  <script src="pill-spotting.js"></script>
   <script src="app.js"></script>
-  <script src="returns.js"></script>
-  <script src="formation-import.js"></script>
-  <script src="live-layout.js"></script>
 </body>
 </html>
