@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.13</span>
+      <span class="eyebrow">BETA 1.14</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -711,30 +711,12 @@
     </section>
     <section id="wellprofile" class="screen calculator">
       <div class="screen-title"><button class="back">‹</button><div><h2>Live Well Profile</h2><p>Survey, depth & bottoms-up tracking</p></div></div>
+<div class="input-card wp-controls operating-inputs" aria-label="Operating inputs"><label>Current bit depth <span>m MD</span><input id="wp_bit" type="number" inputmode="decimal" value="3978"></label><label>Pump output <span>m³/stk</span><input id="wp_output" type="number" inputmode="decimal" value="0.0315"></label><label>Pump speed <span>spm</span><input id="wp_spm" type="number" inputmode="decimal" value="55"></label></div>
 
-      <div class="profile-summary">
-        <div><span>Bit depth</span><strong id="wp_bit_md">—</strong><em>m MD</em></div>
-        <div><span>Returns front</span><strong id="wp_front_md">—</strong><em>m MD</em></div>
-        <div><span>Remaining annular volume</span><strong id="wp_rem_vol">—</strong><em>m³</em></div>
-        <div><span>Remaining strokes</span><strong id="wp_rem_strokes">—</strong><em>strokes</em></div>
-        <div><span>Time to surface</span><strong id="wp_rem_time">—</strong><em>min</em></div>
-        <div><span>Front TVD</span><strong id="wp_front_tvd">—</strong><em>m TVD</em></div>
-      </div>
+      
 
 
-      <div class="profile-card">
-        <div class="section-heading">
-          <div><strong>Well trajectory display</strong><small>Choose a straight vertical display or use the directional survey for a deviated / horizontal profile.</small></div>
-        </div>
-        <div class="input-card embedded">
-          <label>Trajectory type <span>display</span>
-            <select id="wp_trajectory_type">
-              <option value="deviated">Deviated / Horizontal</option>
-              <option value="vertical">Vertical</option>
-            </select>
-          </label>
-        </div>
-      </div>
+      
 
       <div class="profile-card profile-clickable" id="wellPlotCard">
         <div class="profile-toolbar">
@@ -745,10 +727,10 @@
           <label class="flow-toggle"><input id="flowAreasOn" type="checkbox" checked> Show flow areas</label>
           <label>Casing shoe <span>m MD</span><input id="flowShoeMd" type="number" min="0" step="any" inputmode="decimal" placeholder="Enter shoe MD"></label>
         </div>
-        <div class="flow-area-totals"><button id="flowstringTotal" class="flow-total-string" type="button">Inside drill string</button><button id="flowcasedTotal" class="flow-total-cased" type="button">Cased-hole annulus</button><button id="flowopenTotal" class="flow-total-open" type="button">Open-hole annulus</button></div>
+<details id="flowCapacityPanel" class="capacity-details"><summary>Capacities &amp; volumes</summary>        <div class="flow-area-totals"><button id="flowstringTotal" class="flow-total-string" type="button">Inside drill string</button><button id="flowcasedTotal" class="flow-total-cased" type="button">Cased-hole annulus</button><button id="flowopenTotal" class="flow-total-open" type="button">Open-hole annulus</button></div>
         <p id="flowAreaWarning" class="live-note"></p>
         <div id="flowAreaDetails" class="flow-area-details" role="status">Tap a coloured band to inspect its capacity.</div>
-        <p class="live-note">Band widths are schematic. Blue is inside the active string; teal and amber show cased and open-hole annulus. Shoe MD labels the boundary; interval IDs/ODs still control calculated volumes. Tap blank plot space to zoom.</p>
+</details>        <p class="live-note">Band widths are schematic. Blue is inside the active string; teal and amber show cased and open-hole annulus. Shoe MD labels the boundary; interval IDs/ODs still control calculated volumes. Tap blank plot space to zoom.</p>
         <svg id="wellSvg" viewBox="0 0 700 430">
           <rect x="0" y="0" width="700" height="430" class="svg-bg"></rect>
           <g id="depthGrid"></g>
@@ -756,9 +738,7 @@
           <g id="annulusFlowAreas"></g>
           <polyline id="wellPath" points="" class="well-path"></polyline>
           <g id="stringFlowAreas"></g>
-          <g id="wellControlMarkers"></g>
           <g id="fluidMarkers"></g>
-          <g id="returnTopMarkers"></g>
           <circle id="bitMarker" r="8" class="bit-marker"></circle>
           <circle id="frontMarker" r="9" class="front-marker"></circle>
           <circle id="fullCircMarker" r="8" class="full-circ-marker" style="display:none"></circle>
@@ -771,24 +751,10 @@
           <span><i class="legend-depth"></i> Depth grid</span>
           <span><i class="legend-hyd"></i> Hole cleaning</span>
           <span><i class="legend-fullcirc"></i> Full circulation</span>
-          <span><i class="legend-wc"></i> Well control</span>
         </div>
       </div>
 
-      <div class="profile-card return-tags-card">
-        <div class="section-heading"><div><strong>Returns Coming</strong><small>Automatic formation-top tags plus manual events at the bit.</small></div></div>
-        <label class="return-auto-toggle"><input id="returnAutoOn" type="checkbox" checked> Auto-tag formation tops</label>
-        <p id="returnAutoStatus" class="live-note"></p>
-        <details><summary>Formation tops &amp; expected pressure</summary>
-          <p class="live-note">Enter tops below the current bit. Low/high pressure is optional expected pore pressure expressed as EMW. Enter annular intervals and string OD in Hole Geometry before crossing a top.</p>
-          <div id="returnTops"></div><button id="addReturnTop" type="button">Add formation top</button>
-        </details>
-        <div class="return-manual"><label>Manual event at bit<input id="manualReturnLabel" maxlength="80" placeholder="Gas show, sweep at bit…"></label><button id="manualReturnTag" type="button">Tag now</button></div>
-        <p id="returnTagError" role="alert"></p>
-        <div id="returnActive"></div>
-        <details><summary>Predicted arrivals</summary><div id="returnHistory"></div><button id="clearReturnHistory" type="button">Clear arrival history</button></details>
-        <details><summary>How tracking works</summary><p>Confirm a new bit MD to tag each formation top crossed since the deepest confirmed depth. Multiple crossed tops share the detection-time pump reference; crossing times within a depth jump are not inferred. Reaming, reloads and reset do not create duplicates. Tops already above the initial bit depth are not backfilled.</p><p>Tags retain origin MD/TVD, expected pressure and annular geometry at tagging. Displacement uses accumulated pumped volume; changing SPM or output affects future pumping only. Pumps-off holds position. Arrival is a calculated prediction, not an observed surface return.</p><p>Hole ID, string OD and excess-volume intervals must cover the origin to surface. Keep BHA/DP boundaries current before crossing a top. These are idealized fluid-parcel estimates; they exclude surface-line fill, slip and mixing. Use Fluid Tracker for the down-string part of a sweep.</p><p>For a new well, set its starting bit MD first, then start fresh return tagging below.</p><button id="newWellReturnTags" type="button">Start new well tags</button></details>
-      </div>
+      
 
       <div class="live-card">
         <div class="live-head"><div><span class="live-kicker">CIRCULATE LIVE</span><strong id="liveStateText">Paused</strong></div><span id="livePulse" class="live-pulse paused"></span></div>
@@ -796,14 +762,14 @@
           <div><span>Elapsed</span><strong id="liveElapsed">00:00</strong></div>
           <div><span>Strokes pumped</span><strong id="liveStrokes">0</strong></div>
           <div><span>Volume pumped</span><strong id="liveVolume">0.00 m³</strong></div>
-          <div><span>Front position</span><strong id="liveFront">3978 m MD</strong></div>
-          <div><span>Front depth</span><strong id="liveDepth">—</strong></div>
-          <div><span>ETA surface</span><strong id="liveEta">—</strong></div>
+          <div><span>Annular front MD</span><strong id="liveFront">3978 m MD</strong></div>
+          <div><span>Annular front MD / TVD</span><strong id="liveDepth">—</strong></div>
+          <div><span>Annular ETA</span><strong id="liveEta">—</strong></div>
         </div>
         <div class="live-actions"><button id="liveStartBtn" class="live-start">▶ Start</button><button id="livePauseBtn" class="live-pause">Ⅱ Pause</button><button id="liveResetBtn" class="live-reset">↺ Reset</button></div>
         <div class="full-circ-card">
           <div class="section-heading"><div><strong>Full Circulation</strong><small>Track one complete loop: surface → active string → bit → annulus → surface.</small></div><label class="full-circ-toggle"><input id="fullCircEnabled" type="checkbox"><span>Show</span></label></div>
-          <div class="profile-summary">
+          <details class="loop-details"><summary>Loop totals &amp; estimates</summary><div class="profile-summary">
             <div><span>Total loop volume</span><strong id="fullCircVol">—</strong><em>m³</em></div>
             <div><span>Total loop strokes</span><strong id="fullCircStrokes">—</strong><em>strokes</em></div>
             <div><span>Total loop time</span><strong id="fullCircTime">—</strong><em>min</em></div>
@@ -814,7 +780,7 @@
             <div><span>Current depth</span><strong id="fullCircDepth">—</strong><em></em></div>
             <div><span>Volume remaining</span><strong id="fullCircRemainVol">—</strong><em>m³</em></div>
             <div><span>Time remaining</span><strong id="fullCircRemainTime">—</strong><em>min</em></div>
-          </div>
+          </div></details>
           <div id="fullCircLocationCard" class="full-circ-location down">
             <div class="full-circ-location-head">
               <div><span class="full-circ-location-kicker">CURRENT LOCATION</span><strong id="fullCircLocationTitle">—</strong></div>
@@ -824,7 +790,7 @@
               <div><span>MD</span><strong id="fullCircLocationMd">—</strong><em>m</em></div>
               <div><span>TVD</span><strong id="fullCircLocationTvd">—</strong><em>m</em></div>
               <div><span>Total pumped</span><strong id="fullCircLocationPumped">—</strong><em>m³</em></div>
-              <div><span>Next event</span><strong id="fullCircNextEvent">—</strong><em></em></div>
+              <div><span>Remaining this loop</span><strong id="loopRemainingVol">—</strong><em>m³</em></div><div><span>Time remaining</span><strong id="loopRemainingTime">—</strong><em>min</em></div><div><span>Next event</span><strong id="fullCircNextEvent">—</strong><em></em></div>
             </div>
           </div>
           <div class="full-circ-progress"><div id="fullCircProgressBar"></div></div>
@@ -834,37 +800,12 @@
           </div>
           <p class="live-note">Uses the active Drill String or Casing Run internal-volume model on the way down and Live Well Profile annular geometry on the way back up.</p>
         </div>
-        <p class="live-note">If pump speed or output changes, update the values below. The live tracker recalculates immediately.</p>
+        <p class="live-note">Update pump speed and output in Operating inputs. Earlier pumped volume is preserved when settings change.</p>
       </div>
 
       
 
-      <div class="wc-live-card">
-        <div class="live-head">
-          <div><span class="live-kicker">WELL CONTROL LIVE</span><strong id="wcLiveState">Not tracking</strong></div>
-          <span id="wcLivePulse" class="live-pulse paused"></span>
-        </div>
-        <div class="wc-live-toggle">
-          <label><input id="wcProfileOverlay" type="checkbox" checked> Show well-control overlay on profile</label>
-          <label><input id="wcUseGeometry" type="checkbox" checked> Use Live Well Profile geometry in Well Control</label>
-        </div>
-        <div class="live-stats wc-live-stats">
-          <div><span>Influx front</span><strong id="wcInfluxFrontLive">—</strong></div>
-          <div><span>Influx tail</span><strong id="wcInfluxTailLive">—</strong></div>
-          <div><span>Influx depth</span><strong id="wcInfluxDepthLive">—</strong></div>
-          <div><span>Kill mud front</span><strong id="wcKillFrontLive">—</strong></div>
-          <div><span>Kill mud phase</span><strong id="wcKillPhaseLive">—</strong></div>
-          <div><span>Target pump pressure</span><strong id="wcTargetPressureLive">—</strong></div>
-          <div><span>Strokes since WC start</span><strong id="wcStrokesLive">0</strong></div>
-          <div><span>MAASP</span><strong id="wcMaaspLive">—</strong></div>
-        </div>
-        <div class="live-actions">
-          <button id="wcTrackStartBtn" class="live-start">▶ Start WC tracking</button>
-          <button id="wcTrackResetBtn" class="live-reset">↺ Reset WC tracking</button>
-          <button id="wcSyncGeometryBtn">Sync geometry now</button>
-        </div>
-        <p class="live-note">Start WC tracking at the circulation reference point you want to use. It shares the Circulate Live pumped-volume counter and uses the detailed drill-string / annular geometry.</p>
-      </div>
+      
 
       <div class="fluid-card">
         <div class="fluid-head">
@@ -903,16 +844,28 @@
         <div id="fluidList" class="fluid-list"></div>
       </div>
 
-      <div class="input-card wp-controls">
-        <label>Current bit depth <span>m MD</span><input id="wp_bit" type="number" inputmode="decimal" value="3978"></label>
-        <label>Pump output <span>m³/stk</span><input id="wp_output" type="number" inputmode="decimal" value="0.0315"></label>
-        <label>Pump speed <span>spm</span><input id="wp_spm" type="number" inputmode="decimal" value="55"></label>
-        <label>Manual pumped strokes <span>strokes</span><input id="wp_strokes" type="number" inputmode="numeric" value="0"></label>
-        <label>Manual elapsed circulation <span>min</span><input id="wp_minutes" type="number" inputmode="decimal" value="0"></label>
-        <label>Manual tracking mode <span>selection</span><select id="wp_mode"><option value="strokes">Use pumped strokes</option><option value="time">Use elapsed time</option></select></label>
-      </div>
+      
 
-      <div class="profile-card">
+      <details class="well-setup"><summary>Well Setup</summary><p class="live-note">Configure the trajectory, hole dimensions and active string here.</p><div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Well trajectory display</strong><small>Choose a straight vertical display or use the directional survey for a deviated / horizontal profile.</small></div>
+        </div>
+        <div class="input-card embedded">
+          <label>Trajectory type <span>display</span>
+            <select id="wp_trajectory_type">
+              <option value="deviated">Deviated / Horizontal</option>
+              <option value="vertical">Vertical</option>
+            </select>
+          </label>
+        </div>
+      </div><details class="profile-manual"><summary>Manual bottoms-up calculator</summary><div class="input-card wp-controls"><label>Manual pumped strokes <span>strokes</span><input id="wp_strokes" type="number" inputmode="numeric" value="0"></label><label>Manual elapsed circulation <span>min</span><input id="wp_minutes" type="number" inputmode="decimal" value="0"></label><label>Manual tracking mode <span>selection</span><select id="wp_mode"><option value="strokes">Use pumped strokes</option><option value="time">Use elapsed time</option></select></label></div><div class="profile-summary">
+        <div><span>Bit depth</span><strong id="wp_bit_md">—</strong><em>m MD</em></div>
+        <div><span>Returns front</span><strong id="wp_front_md">—</strong><em>m MD</em></div>
+        <div><span>Remaining annular volume</span><strong id="wp_rem_vol">—</strong><em>m³</em></div>
+        <div><span>Remaining strokes</span><strong id="wp_rem_strokes">—</strong><em>strokes</em></div>
+        <div><span>Time to surface</span><strong id="wp_rem_time">—</strong><em>min</em></div>
+        <div><span>Front TVD</span><strong id="wp_front_tvd">—</strong><em>m TVD</em></div>
+      </div></details><div class="profile-card">
         <div class="section-heading"><div><strong>Survey stations</strong><small>MD / TVD points drive the plotted trajectory.</small></div><button id="addSurveyBtn">+ Add</button></div>
         <div class="table-wrap"><table id="surveyTable"><thead><tr><th>MD (m)</th><th>TVD (m)</th><th></th></tr></thead><tbody></tbody></table></div>
       </div>
@@ -948,7 +901,7 @@
           <div><span>Time surface → bottom</span><strong id="stringBitTime">—</strong><em>min</em></div>
         </div>
         <p id="stringModeNote" class="live-note">Drill String mode is intended for DP / HWDP / collars / BHA. Switching modes does not overwrite the other model.</p>
-      </div>
+      </div></details>
 
       <div class="disclaimer danger"><strong>Operational limitation</strong><p>The returns-front position is an annular-volume estimate. Real transport can differ because of compressibility, cuttings loading, washout, temperature, multiphase flow, surge/swab and changing geometry. Do not use this display as a substitute for pit, flow, gas, MPD or well-control monitoring.</p></div>
     </section>

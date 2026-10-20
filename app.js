@@ -248,7 +248,7 @@ let stringMode=localStorage.getItem(STRING_MODE_KEY)==="casing"?"casing":"drill"
 let stringData=stringMode==="casing"?casingStringData:drillStringData;
 function activeStringLabel(){return stringMode==="casing"?"Casing Run":"Drill String"}
 function saveString(){if(stringMode==="casing"){casingStringData=stringData;localStorage.setItem(STRING_CASING_KEY,JSON.stringify(casingStringData))}else{drillStringData=stringData;localStorage.setItem(STRING_DRILL_KEY,JSON.stringify(drillStringData))}localStorage.setItem(STRING_MODE_KEY,stringMode)}
-function switchStringMode(mode){if(mode!=="drill"&&mode!=="casing")return;saveString();stringMode=mode;stringData=stringMode==="casing"?casingStringData:drillStringData;localStorage.setItem(STRING_MODE_KEY,stringMode);renderString();renderFluidList();if(typeof updateTripPill==="function")updateTripPill();if(typeof syncWellControlGeometry==="function"&&q("wp_wc_auto")?.checked)syncWellControlGeometry()}
+function switchStringMode(mode){if(mode!=="drill"&&mode!=="casing")return;saveString();stringMode=mode;stringData=stringMode==="casing"?casingStringData:drillStringData;localStorage.setItem(STRING_MODE_KEY,stringMode);renderString();renderFluidList();if(typeof updateTripPill==="function")updateTripPill()}
 function stringCapM3m(id){return circle(Math.max(0,id))}
 function effectiveStringSections(bitMD){return [...stringData].sort((a,b)=>a.from-b.from).map(s=>({...s,from:Math.max(0,Number(s.from)||0),to:Math.min(bitMD,Number(s.to)||0),id:Math.max(0,Number(s.id)||0)})).filter(s=>s.to>s.from)}
 function detailedPipeVolumeToBit(bitMD){let vol=0;for(const s of effectiveStringSections(bitMD))vol+=(s.to-s.from)*stringCapM3m(s.id);return vol}
@@ -740,10 +740,6 @@ loadWcJob();calcWcAdvanced();
 
 // ===== RigCalc Pro v1.9: trajectory mode + Well Control / Live Profile integration =====
 const WP_TRAJECTORY_KEY="rigcalc-wp-trajectory-v19";
-const WC_PROFILE_STATE_KEY="rigcalc-wc-profile-state-v19";
-let wcProfileState={tracking:false,startPumpVol:0};
-try{wcProfileState={...wcProfileState,...JSON.parse(localStorage.getItem(WC_PROFILE_STATE_KEY)||"{}")}}catch(e){}
-function saveWcProfileState(){localStorage.setItem(WC_PROFILE_STATE_KEY,JSON.stringify(wcProfileState))}
 function trajectoryMode(){return q("wp_trajectory_type")?.value||"deviated"}
 function saveTrajectoryMode(){localStorage.setItem(WP_TRAJECTORY_KEY,trajectoryMode())}
 function loadTrajectoryMode(){const v=localStorage.getItem(WP_TRAJECTORY_KEY);if(v&&q("wp_trajectory_type"))q("wp_trajectory_type").value=v}
@@ -778,7 +774,6 @@ plotWell=function(bitMD,frontMD){
   q("frontMarker").setAttribute("cx",sx(front.x));q("frontMarker").setAttribute("cy",sy(front.tvd));
   q("frontLabel").setAttribute("x",Math.min(610,sx(front.x)+14));q("frontLabel").setAttribute("y",Math.max(20,sy(front.tvd)-12));q("frontLabel").textContent=`Returns ${frontMD.toFixed(0)} MD / ${interpTVD(frontMD).toFixed(0)} TVD`;
   drawDepthGrid(q("depthGrid"),sy,geom.maxT);
-  renderWellControlOverlay();
 };
 renderFluidMarkers=function(){
   const g=q("fluidMarkers");if(!g)return;g.innerHTML="";const bit=Math.max(0,n("wp_bit"));if(bit<=0)return;
@@ -790,67 +785,16 @@ function holeAtMD(md){return [...wpData.holes].find(h=>md>=Number(h.from)&&md<=N
 function effectiveAnnCapAtMD(md){const h=holeAtMD(md);return h?annCapM3m(Number(h.id)||0,Number(h.od)||0)*(1+(Number(h.over)||0)/100):0}
 function refreshWcGeometrySummary(){const bit=Math.max(0,n("wp_bit")),tvd=interpTVD(bit),sv=detailedPipeVolumeToBit(bit),av=totalAnnulusToBit(bit);if(q("wcGeomMd"))q("wcGeomMd").textContent=bit.toFixed(0);if(q("wcGeomTvd"))q("wcGeomTvd").textContent=tvd.toFixed(0);if(q("wcGeomString"))q("wcGeomString").textContent=sv.toFixed(3);if(q("wcGeomAnn"))q("wcGeomAnn").textContent=av.toFixed(3)}
 function syncWellControlGeometry(force=false){
-  if(!force&&q("wcUseGeometry")&&!q("wcUseGeometry").checked){refreshWcGeometrySummary();return}
   const bit=Math.max(0,n("wp_bit")),tvd=interpTVD(bit),stringVol=detailedPipeVolumeToBit(bit),annVol=totalAnnulusToBit(bit),annCap=effectiveAnnCapAtMD(bit);
   const values={wc2_md:bit,wc2_tvd:tvd,wc2_stringvol:stringVol,wc2_annvol:annVol,wc2_anncap:annCap,wc2_output:Math.max(0,n("wp_output")),wc2_scr_spm:Math.max(0,n("wp_spm"))};
   Object.entries(values).forEach(([id,v])=>{if(q(id))q(id).value=Number(v).toFixed(id==="wc2_md"||id==="wc2_tvd"?0:4)});
   refreshWcGeometrySummary();if(typeof calcWcAdvanced==="function")calcWcAdvanced();
 }
-function wcComputed(){
-  const bit=Math.max(0,n("wp_bit")),gain=Math.max(0,n("wc2_gain")),stringVol=detailedPipeVolumeToBit(bit),annVol=totalAnnulusToBit(bit),out=Math.max(.000001,n("wp_output")||n("wc2_output"));
-  const livePump=liveTotalPumpedVolume(),pumped=wcProfileState.tracking?Math.max(0,livePump-(Number(wcProfileState.startPumpVol)||0)):0,strokes=pumped/out;
-  const influxTail=frontMDFromPumped(bit,Math.min(annVol,pumped)),influxFront=frontMDFromPumped(bit,Math.min(annVol,gain+pumped));
-  let killMd=0,killPhase="At surface";
-  if(pumped>0&&pumped<stringVol){killMd=pipeMDFromDetailedVolume(bit,pumped);killPhase="Down drill string"}
-  else if(pumped>=stringVol){const annPumped=Math.min(annVol,pumped-stringVol);killMd=frontMDFromPumped(bit,annPumped);killPhase=annPumped>=annVol-.0001?"At surface":"Up annulus"}
-  const mw=Math.max(0,n("wc2_mw")),sidpp=Math.max(0,n("wc2_sidpp")),scr=Math.max(0,n("wc2_scr")),kmw=Math.max(mw,Number(q("r_wc2_kmw")?.textContent)||mw),icp=scr+sidpp,fcp=mw>0?scr*(kmw/mw):0,stkBit=stringVol/out,stkAnn=annVol/out;
-  let target=icp;
-  if(q("wc2_method")?.value==="waitweight"){const f=Math.max(0,Math.min(1,strokes/(stkBit||1)));target=icp+(fcp-icp)*f}
-  else if(strokes>stkAnn){const f=Math.max(0,Math.min(1,(strokes-stkAnn)/(stkBit||1)));target=icp+(fcp-icp)*f}
-  const maasp=Number(q("r_wc2_maasp")?.textContent)||0;
-  return{bit,gain,stringVol,annVol,pumped,strokes,influxFront,influxTail,killMd,killPhase,target,maasp};
-}
-function renderWellControlOverlay(){
-  const g=q("wellControlMarkers");if(!g)return;g.innerHTML="";if(!q("wcProfileOverlay")?.checked)return;
-  const bit=Math.max(0,n("wp_bit"));if(bit<=0)return;const c=wcComputed(),geom=profilePlotGeometry(bit),sx=geom.sx,sy=geom.sy,pf=displayXY(c.influxFront),pt=displayXY(c.influxTail);
-  const line=document.createElementNS("http://www.w3.org/2000/svg","line");line.setAttribute("x1",sx(pf.x));line.setAttribute("y1",sy(pf.tvd));line.setAttribute("x2",sx(pt.x));line.setAttribute("y2",sy(pt.tvd));line.setAttribute("class","wc-influx-line");g.appendChild(line);
-  const f=document.createElementNS("http://www.w3.org/2000/svg","circle");f.setAttribute("cx",sx(pf.x));f.setAttribute("cy",sy(pf.tvd));f.setAttribute("r","8");f.setAttribute("class","wc-influx-front");g.appendChild(f);
-  const t=document.createElementNS("http://www.w3.org/2000/svg","circle");t.setAttribute("cx",sx(pt.x));t.setAttribute("cy",sy(pt.tvd));t.setAttribute("r","7");t.setAttribute("class","wc-influx-tail");g.appendChild(t);
-  const lab=document.createElementNS("http://www.w3.org/2000/svg","text");lab.setAttribute("x",Math.min(600,sx(pf.x)+12));lab.setAttribute("y",Math.max(16,sy(pf.tvd)-10));lab.setAttribute("class","wc-svg-label");lab.textContent="Influx";g.appendChild(lab);
-  if(c.pumped>0){const pk=displayXY(c.killMd),k=document.createElementNS("http://www.w3.org/2000/svg","circle");k.setAttribute("cx",sx(pk.x));k.setAttribute("cy",sy(pk.tvd));k.setAttribute("r","8");k.setAttribute("class","wc-kill-front");g.appendChild(k);const kl=document.createElementNS("http://www.w3.org/2000/svg","text");kl.setAttribute("x",Math.min(600,sx(pk.x)+12));kl.setAttribute("y",Math.max(16,sy(pk.tvd)-10));kl.setAttribute("class","wc-svg-label");kl.textContent="Kill mud";g.appendChild(kl)}
-  const shoeMd=Math.max(0,mdAtTVD(Math.max(0,n("wc2_shoe_tvd"))));if(shoeMd<=bit){const ps=displayXY(shoeMd),shoe=document.createElementNS("http://www.w3.org/2000/svg","rect");shoe.setAttribute("x",sx(ps.x)-7);shoe.setAttribute("y",sy(ps.tvd)-7);shoe.setAttribute("width","14");shoe.setAttribute("height","14");shoe.setAttribute("class","wc-shoe-marker");g.appendChild(shoe);const sl=document.createElementNS("http://www.w3.org/2000/svg","text");sl.setAttribute("x",Math.min(610,sx(ps.x)+12));sl.setAttribute("y",Math.max(16,sy(ps.tvd)-9));sl.setAttribute("class","wc-limit-label");sl.textContent=`Shoe / MAASP ${c.maasp.toFixed(0)} kPa`;g.appendChild(sl)}
-}
-function updateWellControlLive(){
-  if(q("wcUseGeometry")?.checked)syncWellControlGeometry(false);else refreshWcGeometrySummary();
-  const c=wcComputed();
-  if(q("wcLiveState"))q("wcLiveState").textContent=wcProfileState.tracking?"Tracking from circulation reference":"Not tracking";
-  if(q("wcLivePulse")){q("wcLivePulse").classList.toggle("running",wcProfileState.tracking);q("wcLivePulse").classList.toggle("paused",!wcProfileState.tracking)}
-  if(q("wcInfluxFrontLive"))q("wcInfluxFrontLive").textContent=`${c.influxFront.toFixed(0)} m MD`;
-  if(q("wcInfluxTailLive"))q("wcInfluxTailLive").textContent=`${c.influxTail.toFixed(0)} m MD`;
-  if(q("wcInfluxDepthLive"))q("wcInfluxDepthLive").textContent=`${c.influxFront.toFixed(0)} MD / ${interpTVD(c.influxFront).toFixed(0)} TVD`;
-  if(q("wcKillFrontLive"))q("wcKillFrontLive").textContent=c.pumped>0?`${c.killMd.toFixed(0)} m MD`:"Surface";
-  if(q("wcKillPhaseLive"))q("wcKillPhaseLive").textContent=c.pumped>0?c.killPhase:"Not started";
-  if(q("wcTargetPressureLive"))q("wcTargetPressureLive").textContent=`${c.target.toFixed(0)} kPa`;
-  if(q("wcStrokesLive"))q("wcStrokesLive").textContent=c.strokes.toFixed(0);
-  if(q("wcMaaspLive"))q("wcMaaspLive").textContent=`${c.maasp.toFixed(0)} kPa`;
-  renderWellControlOverlay();renderFluidMarkers();
-}
-function startWcTracking(){wcProfileState={tracking:true,startPumpVol:liveTotalPumpedVolume()};saveWcProfileState();updateWellControlLive()}
-function resetWcTracking(){wcProfileState={tracking:false,startPumpVol:liveTotalPumpedVolume()};saveWcProfileState();updateWellControlLive()}
 loadTrajectoryMode();
-q("wp_trajectory_type")?.addEventListener("change",()=>{saveTrajectoryMode();updateProfile();renderFluidList();updateWellControlLive();if(typeof clonePlotForZoom==="function")clonePlotForZoom()});
-if(q("wcTrackStartBtn"))q("wcTrackStartBtn").onclick=startWcTracking;
-if(q("wcTrackResetBtn"))q("wcTrackResetBtn").onclick=resetWcTracking;
-if(q("wcSyncGeometryBtn"))q("wcSyncGeometryBtn").onclick=()=>syncWellControlGeometry(true);
+q("wp_trajectory_type")?.addEventListener("change",()=>{saveTrajectoryMode();updateProfile();renderFluidList();if(typeof clonePlotForZoom==="function")clonePlotForZoom()});
 if(q("wcPullProfileBtn"))q("wcPullProfileBtn").onclick=()=>syncWellControlGeometry(true);
-q("wcProfileOverlay")?.addEventListener("change",updateWellControlLive);
-q("wcUseGeometry")?.addEventListener("change",()=>{if(q("wcUseGeometry").checked)syncWellControlGeometry(true);updateWellControlLive()});
-["wp_bit","wp_output","wp_spm"].forEach(id=>q(id)?.addEventListener("input",()=>{refreshWcGeometrySummary();updateWellControlLive()}));
-["wc2_gain","wc2_mw","wc2_sidpp","wc2_scr","wc2_shoe_tvd"].forEach(id=>q(id)?.addEventListener("input",updateWellControlLive));
-q("wc2_method")?.addEventListener("change",updateWellControlLive);
-setInterval(()=>{if(q("wellprofile")?.classList.contains("active"))updateWellControlLive()},1000);
-refreshWcGeometrySummary();syncWellControlGeometry(false);updateWellControlLive();
-
+["wp_bit","wp_output","wp_spm"].forEach(id=>q(id)?.addEventListener("input",refreshWcGeometrySummary));
+refreshWcGeometrySummary();
 
 // ===== RigCalc Pro v1.10: Trip Pill / Weighted Pill Balance =====
 const TRIP_PILL_KEY="rigcalc-trip-pill-v110";
@@ -1244,7 +1188,7 @@ function renderFullCircMarker(){
 function updateFullCirculationReadout(){
   if(!q("fullCircVol"))return;const s=fullCircState();q("fullCircVol").textContent=s.total.toFixed(2);q("fullCircStrokes").textContent=s.totalStrokes.toFixed(0);q("fullCircTime").textContent=s.totalTime.toFixed(1);q("fullCircProgress").textContent=s.progress.toFixed(0);q("fullCircPhase").textContent=s.phase;q("fullCircDepth").textContent=`${s.md.toFixed(0)} MD / ${s.tvd.toFixed(0)} TVD`;q("fullCircRemainVol").textContent=s.remainVol.toFixed(2);q("fullCircRemainTime").textContent=s.remainTime.toFixed(1);q("fullCircProgressBar").style.width=`${Math.max(0,Math.min(100,s.progress))}%`;q("fullCircEnabled").checked=fullCircEnabled;
   const card=q("fullCircLocationCard");if(card){card.classList.remove("down","up","complete");card.classList.add(s.phaseKey)}
-  q("fullCircLocationTitle").textContent=s.phase;q("fullCircLoopBadge").textContent=`Loop ${s.completed+1}`;q("fullCircLocationMd").textContent=s.md.toFixed(0);q("fullCircLocationTvd").textContent=s.tvd.toFixed(0);q("fullCircLocationPumped").textContent=s.pumped.toFixed(2);q("fullCircNextEvent").textContent=s.nextEvent;
+  q("fullCircLocationTitle").textContent=s.phase;q("fullCircLoopBadge").textContent=`Loop ${s.completed+1}`;q("fullCircLocationMd").textContent=s.md.toFixed(0);q("fullCircLocationTvd").textContent=s.tvd.toFixed(0);q("fullCircLocationPumped").textContent=s.pumped.toFixed(2);q("fullCircNextEvent").textContent=s.nextEvent;q("loopRemainingVol").textContent=s.remainVol.toFixed(2);q("loopRemainingTime").textContent=liveState.running&&n("wp_spm")>0&&n("wp_output")>0?s.remainTime.toFixed(1):"Paused";
   q("fullCircDownScale").style.width=`${Math.max(0,Math.min(100,s.downPct))}%`;q("fullCircUpScale").style.width=`${Math.max(0,Math.min(100,s.upPct))}%`;renderFullCircMarker();
 }
 q("fullCircEnabled")?.addEventListener("change",e=>{fullCircEnabled=!!e.target.checked;localStorage.setItem(FULL_CIRC_KEY,fullCircEnabled?"1":"0");updateFullCirculationReadout()});
@@ -1253,100 +1197,6 @@ const plotWellBeforeFullCirc=plotWell;plotWell=function(bitMD,frontMD){plotWellB
 ["wp_bit","wp_output","wp_spm","wp_trajectory_type"].forEach(id=>q(id)?.addEventListener("input",updateFullCirculationReadout));
 document.addEventListener("change",e=>{if(e.target?.dataset?.string!==undefined||e.target?.dataset?.hole!==undefined||e.target?.dataset?.sv!==undefined)updateFullCirculationReadout()});
 updateFullCirculationReadout();
-// ===== Beta 1.12: Automatic formation-top return markers =====
-const ReturnTagsMath=(()=>{
-  function sections(holes,origin){
-    if(!Number.isFinite(origin)||origin<=0)throw Error('Origin MD must be greater than zero.');
-    const hs=holes.map(h=>({from:Number(h.from),to:Number(h.to),id:Number(h.id),od:Number(h.od),over:Number(h.over)||0})).filter(h=>h.to>0&&h.from<origin).sort((a,b)=>a.from-b.from);
-    let end=0;const rows=[];
-    for(const h of hs){if(!Object.values(h).every(Number.isFinite)||h.to<=h.from||h.id<=h.od||h.od<0||h.over<0)throw Error('Check hole ID, string OD and interval dimensions.');
-      const from=Math.max(0,h.from),to=Math.min(origin,h.to);if(Math.abs(from-end)>1e-6)throw Error('Hole intervals must cover surface to origin without gaps or overlaps.');
-      rows.push({from,to,cap:Math.PI/4e6*(h.id*h.id-h.od*h.od)*(1+h.over/100)});end=to;
-    }
-    if(Math.abs(end-origin)>1e-6)throw Error('Hole geometry does not cover the origin MD.');return rows;
-  }
-  const volume=rows=>rows.reduce((s,r)=>s+(r.to-r.from)*r.cap,0);
-  function position(rows,pumped){let left=Math.max(0,pumped);for(const r of [...rows].reverse()){const v=(r.to-r.from)*r.cap;if(left<v)return r.to-left/r.cap;left-=v;}return 0;}
-  function crossed(tops,highWater,md,seen){return tops.filter(f=>Number.isFinite(Number(f.md))&&Number(f.md)>highWater&&Number(f.md)<=md&&!seen.includes(f.returnTopId)).sort((a,b)=>a.md-b.md);}
-  function predict(m,pumped,out,spm,running){
-    if(!m.sections)return {unavailable:true};
-    const displaced=Math.max(0,pumped-m.startPumpVol),remaining=Math.max(0,volume(m.sections)-displaced),md=position(m.sections,displaced),strokes=out>0?remaining/out:Infinity,minutes=running&&spm>0?strokes/spm:Infinity;
-    return{displaced,remaining,md,strokes,minutes,arrived:remaining<=1e-9,unavailable:!Number.isFinite(out)||out<=0||!Number.isFinite(spm)};
-  }
-  return{sections,volume,position,crossed,predict};
-})();
-(()=>{
- const KEY='rigcalc-return-tops-v112',uid=()=>globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
- let state={enabled:true,highWater:Math.max(0,n('wp_bit')),seen:[],markers:[]};
- try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x)state={...state,...x,seen:Array.isArray(x.seen)?x.seen:[],markers:Array.isArray(x.markers)?x.markers:[]};}catch(e){}
- state.highWater=Math.max(Number(state.highWater)||0,n('wp_bit'));
- function ensureIds(){let changed=false;wpData.formations.forEach(f=>{if(!f.returnTopId){f.returnTopId=uid();changed=true;}});if(changed)saveWP();}
- function persist(){localStorage.setItem(KEY,JSON.stringify(state));}
- function tvdAt(md){if(trajectoryMode()==='vertical')return md;const survey=wpData.survey||[];if(!survey.length||md<Math.min(...survey.map(s=>s.md))||md>Math.max(...survey.map(s=>s.md)))return null;return interpTVD(md);}
- function formation(md){return [...wpData.formations].filter(f=>Number(f.md)<=md).sort((a,b)=>b.md-a.md)[0];}
- function pressure(f){const lo=Number(f?.lowGrad===undefined?f?.grad:f.lowGrad),hi=Number(f?.highGrad===undefined?f?.grad:f.highGrad);return lo>0&&hi>=lo?`${(lo*1000/9.80665).toFixed(0)}–${(hi*1000/9.80665).toFixed(0)} kg/m³ EMW (expected)`:'Pressure data not entered';}
- function create(origin,label,f,auto=false){
-  const c=circulationSnapshot();let rows=null,error='';try{rows=ReturnTagsMath.sections(wpData.holes,origin);}catch(e){error=e.message;}
-  const m={id:uid(),auto,label,originMD:origin,originTVD:tvdAt(origin),formation:f?.name||'Formation not entered',pressure:pressure(f),createdAt:Date.now(),startPumpVol:c.pumped,startStrokes:c.strokes,sections:rows,error};
-  state.markers.push(m);persist();return m;
- }
- function detect(){ensureIds();const md=Number(q('wp_bit').value);if(!Number.isFinite(md)||md<0)return;
-  if(state.enabled&&md>state.highWater){ReturnTagsMath.crossed(wpData.formations,state.highWater,md,state.seen).forEach(f=>{create(Number(f.md),`${f.name||'Formation'} Top`,f,true);state.seen.push(f.returnTopId);});}
-  state.highWater=Math.max(state.highWater,md);persist();render();
- }
- function node(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;}
- function button(text,fn){const b=node('button',text);b.type='button';b.onclick=fn;return b;}
- function render(){
-  const c=circulationSnapshot(),out=parseFloat(q('wp_output').value),spm=parseFloat(q('wp_spm').value);
-  const rows=state.markers.map(m=>({m,s:ReturnTagsMath.predict(m,c.pumped,out,spm,liveState.running)}));let changed=false;
-  rows.forEach(({m,s})=>{if(s.arrived&&!m.arrivedAt){m.arrivedAt=Date.now();changed=true;}});if(changed)persist();
-  q('returnAutoOn').checked=state.enabled;
-  q('returnAutoStatus').textContent=`${state.enabled?'Auto tags on':'Auto tags off'} • New tops beyond ${state.highWater.toFixed(0)} m MD. Depth changes are captured when entered/confirmed.`;
-  const active=q('returnActive'),arrivals=q('returnHistory');active.replaceChildren();arrivals.replaceChildren();
-  rows.sort((a,b)=>(a.s.remaining??Infinity)-(b.s.remaining??Infinity)).forEach(({m,s})=>{
-   const card=node('article',undefined,'return-event');card.appendChild(node('strong',m.label));
-   card.appendChild(node('small',`${m.auto?'Auto':'Manual'} • Origin ${m.originMD.toFixed(0)} m MD / ${m.originTVD===null?'TVD unavailable':m.originTVD.toFixed(0)+' m TVD'} • ${m.formation}`));
-   card.appendChild(node('small',m.pressure));
-   if(m.arrivedAt){card.appendChild(node('p',`AT SURFACE (predicted) • detected ${new Date(m.arrivedAt).toLocaleString()}`));arrivals.appendChild(card);}
-   else{
-    let text='Arrival estimate unavailable';
-    if(!s.unavailable){const loc=tvdAt(s.md);text=`Now ${s.md.toFixed(0)} m MD / ${loc===null?'TVD unavailable':loc.toFixed(0)+' m TVD'} • ${s.remaining.toFixed(2)} m³ • ${s.strokes.toFixed(0)} strokes remaining`;
-      text+=Number.isFinite(s.minutes)?`\n${s.minutes.toFixed(1)} min • ETA ${new Date(Date.now()+s.minutes*60000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`:'\nPumps Off — ETA paused';
-    }
-    card.appendChild(node('p',text));
-    if(s.unavailable)card.appendChild(node('small',m.error||'Enter valid pump output and SPM to calculate arrival.'));
-    if(!m.sections)card.appendChild(button('Retry with entered geometry',()=>{try{m.sections=ReturnTagsMath.sections(wpData.holes,m.originMD);m.error='';persist();render();}catch(e){q('returnTagError').textContent=e.message;}}));
-    card.appendChild(button('Remove',()=>{state.markers=state.markers.filter(x=>x.id!==m.id);persist();render();}));active.appendChild(card);
-   }
-  });
-  if(!active.children.length)active.appendChild(node('p','No returns pending. Add formation tops below the current bit, then advance bit MD.'));
-  draw(rows);
- }
- function draw(rows){const layer=q('returnTopMarkers');layer.replaceChildren();const geom=profilePlotGeometry(n('wp_bit'));rows.forEach(({m,s})=>{
-   if(m.arrivedAt||s.md===undefined||tvdAt(s.md)===null)return;const p=flowAnnulusPoint(s.md,n('wp_bit')),dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.setAttribute('cx',p.x);dot.setAttribute('cy',p.y);dot.setAttribute('r','7');dot.setAttribute('fill',m.auto?'#f79009':'#7f56d9');dot.setAttribute('stroke','#fff');dot.setAttribute('stroke-width','2');const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=`${m.label}: ${s.md.toFixed(0)} m MD`;dot.appendChild(title);layer.appendChild(dot);
-  });
- }
- function renderTops(){ensureIds();const list=q('returnTops');list.replaceChildren();
-  wpData.formations.forEach(f=>{const row=node('div',undefined,'return-top-editor');
-   [['Formation','name','text'],['Top MD (m)','md','number'],['PP low EMW (kg/m³)','lowGrad','number'],['PP high EMW (kg/m³)','highGrad','number']].forEach(([title,key,type])=>{const label=node('label',title),input=node('input');input.type=type;if(type==='number'){input.min='0';input.step='any';}
-    input.value=['lowGrad','highGrad'].includes(key)?(Number(f[key]===undefined?f.grad:f[key])>0?(Number(f[key]===undefined?f.grad:f[key])*1000/9.80665).toFixed(0):''):(f[key]??'');
-    input.onchange=()=>{if(key==='name')f[key]=input.value.trim();else if(['lowGrad','highGrad'].includes(key))f[key]=input.value.trim()===''?null:Number(input.value)*9.80665/1000;else f[key]=Number(input.value);
-      saveWP();render();};label.appendChild(input);row.appendChild(label);
-   });
-   row.appendChild(button('Delete top',()=>{wpData.formations=wpData.formations.filter(x=>x.returnTopId!==f.returnTopId);saveWP();renderTops();render();}));list.appendChild(row);
-  });
- }
- q('returnAutoOn').onchange=()=>{state.enabled=q('returnAutoOn').checked;state.highWater=Math.max(state.highWater,n('wp_bit'));persist();render();};
- q('addReturnTop').onclick=()=>{wpData.formations.push({name:'New formation',md:n('wp_bit')+100,lowGrad:null,highGrad:null,returnTopId:uid()});saveWP();renderTops();render();};
- q('manualReturnTag').onclick=()=>{const md=n('wp_bit');if(md<=0){q('returnTagError').textContent='Enter a current bit MD greater than zero.';return;}q('returnTagError').textContent='';create(md,q('manualReturnLabel').value.trim()||'Manual event',formation(md));q('manualReturnLabel').value='';render();};
- q('clearReturnHistory').onclick=()=>{state.markers=state.markers.filter(m=>!m.arrivedAt);persist();render();};
- q('newWellReturnTags').onclick=()=>{if(!confirm('Start a new well for return tags? This clears return tags, arrival history and duplicate protection. Other well inputs stay in place.'))return;state={enabled:state.enabled,highWater:Math.max(0,n('wp_bit')),seen:[],markers:[]};persist();render();};
- ['liveResetBtn','wpResetBtn'].forEach(id=>q(id).addEventListener('click',()=>{state.markers=[];state.highWater=Math.max(state.highWater,n('wp_bit'));persist();render();}));
- q('wp_bit').addEventListener('change',detect);
- // Keep duplicate protection on reset, reload and marker deletion. A fresh well uses a separate job baseline.
- const previousPlot=plotWell;plotWell=function(bit,front){previousPlot(bit,front);render();const p=flowAnnulusPoint(front,bit);q('frontMarker').setAttribute('cx',p.x);q('frontMarker').setAttribute('cy',p.y);};
- ensureIds();persist();renderTops();render();setInterval(render,500);
-})();
 // Pixel offset is schematic; MD/TVD and capacities always remain unchanged.
 function flowAnnulusPoint(md,bit){const geom=profilePlotGeometry(bit),p=displayXY(md);let x=geom.sx(p.x),y=geom.sy(p.tvd);if(q('flowAreasOn')?.checked){const a=displayXY(Math.max(0,md-.25)),b=displayXY(Math.min(bit,md+.25)),dx=geom.sx(b.x)-geom.sx(a.x),dy=geom.sy(b.tvd)-geom.sy(a.tvd),len=Math.hypot(dx,dy);x+=len?dy/len*10:10;y-=len?dx/len*10:0;}return{x,y};}
 // ===== Beta 1.13: trajectory flow areas =====
@@ -1419,9 +1269,9 @@ const FlowAreasMath=(()=>{
   }
   detail();
  }
- function pick(e){const target=e.target.closest?.('[data-flow-key]');if(!target)return;if(e.type==='keydown'&&!['Enter',' '].includes(e.key))return;e.preventDefault();e.stopImmediatePropagation();selected={key:target.getAttribute('data-flow-key')};detail();}
+ function pick(e){const target=e.target.closest?.('[data-flow-key]');if(!target)return;if(e.type==='keydown'&&!['Enter',' '].includes(e.key))return;e.preventDefault();e.stopImmediatePropagation();selected={key:target.getAttribute('data-flow-key')};q('flowCapacityPanel').open=true;detail();}
  for(const id of ['wellSvg','zoomSvgHost']){q(id).addEventListener('click',pick,true);q(id).addEventListener('keydown',pick,true);}
- for(const kind of ['string','cased','open'])q(`flow${kind}Total`).onclick=()=>{selected={kind};detail();};
+ for(const kind of ['string','cased','open'])q(`flow${kind}Total`).onclick=()=>{selected={kind};q('flowCapacityPanel').open=true;detail();};
  q('flowAreasOn').onchange=()=>{options.show=q('flowAreasOn').checked;persist();render();renderFullCircMarker();};
  q('flowShoeMd').oninput=()=>{options.shoe=q('flowShoeMd').value;persist();render();renderFullCircMarker();};
  const previousPlot=plotWell;plotWell=function(bit,front){previousPlot(bit,front);render();const p=flowAnnulusPoint(front,bit);q('frontMarker').setAttribute('cx',p.x);q('frontMarker').setAttribute('cy',p.y);};
