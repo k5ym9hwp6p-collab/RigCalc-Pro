@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.11</span>
+      <span class="eyebrow">BETA 1.12</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -748,6 +748,7 @@
           <polyline id="wellPath" points="" class="well-path"></polyline>
           <g id="wellControlMarkers"></g>
           <g id="fluidMarkers"></g>
+          <g id="returnTopMarkers"></g>
           <circle id="bitMarker" r="8" class="bit-marker"></circle>
           <circle id="frontMarker" r="9" class="front-marker"></circle>
           <circle id="fullCircMarker" r="8" class="full-circ-marker" style="display:none"></circle>
@@ -762,6 +763,21 @@
           <span><i class="legend-fullcirc"></i> Full circulation</span>
           <span><i class="legend-wc"></i> Well control</span>
         </div>
+      </div>
+
+      <div class="profile-card return-tags-card">
+        <div class="section-heading"><div><strong>Returns Coming</strong><small>Automatic formation-top tags plus manual events at the bit.</small></div></div>
+        <label class="return-auto-toggle"><input id="returnAutoOn" type="checkbox" checked> Auto-tag formation tops</label>
+        <p id="returnAutoStatus" class="live-note"></p>
+        <details><summary>Formation tops &amp; expected pressure</summary>
+          <p class="live-note">Enter tops below the current bit. Low/high pressure is optional expected pore pressure expressed as EMW. Enter annular intervals and string OD in Hole Geometry before crossing a top.</p>
+          <div id="returnTops"></div><button id="addReturnTop" type="button">Add formation top</button>
+        </details>
+        <div class="return-manual"><label>Manual event at bit<input id="manualReturnLabel" maxlength="80" placeholder="Gas show, sweep at bit…"></label><button id="manualReturnTag" type="button">Tag now</button></div>
+        <p id="returnTagError" role="alert"></p>
+        <div id="returnActive"></div>
+        <details><summary>Predicted arrivals</summary><div id="returnHistory"></div><button id="clearReturnHistory" type="button">Clear arrival history</button></details>
+        <details><summary>How tracking works</summary><p>Confirm a new bit MD to tag each formation top crossed since the deepest confirmed depth. Multiple crossed tops share the detection-time pump reference; crossing times within a depth jump are not inferred. Reaming, reloads and reset do not create duplicates. Tops already above the initial bit depth are not backfilled.</p><p>Tags retain origin MD/TVD, expected pressure and annular geometry at tagging. Displacement uses accumulated pumped volume; changing SPM or output affects future pumping only. Pumps-off holds position. Arrival is a calculated prediction, not an observed surface return.</p><p>Hole ID, string OD and excess-volume intervals must cover the origin to surface. Keep BHA/DP boundaries current before crossing a top. These are idealized fluid-parcel estimates; they exclude surface-line fill, slip and mixing. Use Fluid Tracker for the down-string part of a sweep.</p><p>For a new well, set its starting bit MD first, then start fresh return tagging below.</p><button id="newWellReturnTags" type="button">Start new well tags</button></details>
       </div>
 
       <div class="live-card">

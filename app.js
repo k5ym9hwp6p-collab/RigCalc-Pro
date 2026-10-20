@@ -54,6 +54,7 @@ const WP_DEFAULTS={
 };
 let wpData=JSON.parse(localStorage.getItem("rigcalc-wellprofile")||"null")||JSON.parse(JSON.stringify(WP_DEFAULTS));
 wpData.holes=(wpData.holes||[]).map(h=>({...h,over:Number(h.over)||0}));
+wpData.formations=Array.isArray(wpData.formations)?wpData.formations:[];
 function saveWP(){localStorage.setItem("rigcalc-wellprofile",JSON.stringify(wpData))}
 function interpTVD(md){const s=[...wpData.survey].sort((a,b)=>a.md-b.md);if(!s.length)return md;if(md<=s[0].md)return s[0].tvd;for(let i=1;i<s.length;i++){if(md<=s[i].md){const f=(md-s[i-1].md)/(s[i].md-s[i-1].md||1);return s[i-1].tvd+f*(s[i].tvd-s[i-1].tvd)}}return s[s.length-1].tvd}
 function annCapM3m(id,od){return Math.max(0,circle(id)-circle(od))}
@@ -78,22 +79,40 @@ if(q("addFormationBtn"))q("addFormationBtn").onclick=()=>{};
 q("wpResetBtn").onclick=()=>{q("wp_strokes").value=0;q("wp_minutes").value=0;updateProfile()};
 renderWP();
 
-// ===== RigCalc Pro v1.2: Circulate Live =====
+// ===== Beta 1.12: preserve displacement across rate/output changes =====
 const LIVE_KEY="rigcalc-live-v12";
-let liveState={running:false,accumulatedMs:0,startedAt:null};
-try{const stored=JSON.parse(localStorage.getItem(LIVE_KEY)||"null");if(stored){liveState.running=!!stored.running;liveState.accumulatedMs=Number(stored.accumulatedMs)||0;liveState.startedAt=stored.startedAt||null}}catch(e){}
+let liveState={running:false,accumulatedMs:0,startedAt:null,baseStrokes:0,baseVolume:0,segmentSpm:0,segmentOutput:0};
+try{const stored=JSON.parse(localStorage.getItem(LIVE_KEY)||"null");if(stored){
+  liveState={...liveState,...stored};
+  if(!Number.isFinite(stored.baseVolume)||!Number.isFinite(stored.baseStrokes)){
+    const ms=(Number(stored.accumulatedMs)||0)+(stored.running&&stored.startedAt?Math.max(0,Date.now()-stored.startedAt):0);
+    liveState.accumulatedMs=ms;liveState.baseStrokes=ms/60000*Math.max(0,n("wp_spm"));liveState.baseVolume=liveState.baseStrokes*Math.max(0,n("wp_output"));liveState.startedAt=stored.running?Date.now():null;
+    liveState.segmentSpm=Math.max(0,n("wp_spm"));liveState.segmentOutput=Math.max(0,n("wp_output"));
+  }
+}}catch(e){}
 function saveLive(){localStorage.setItem(LIVE_KEY,JSON.stringify(liveState))}
-function currentLiveMs(){if(!liveState.running||!liveState.startedAt)return liveState.accumulatedMs;return liveState.accumulatedMs+Math.max(0,Date.now()-liveState.startedAt)}
+function circulationSnapshot(now=Date.now()){
+ const dt=liveState.running&&liveState.startedAt!==null?Math.max(0,now-liveState.startedAt):0;
+ const strokes=dt/60000*liveState.segmentSpm;
+ return {ms:liveState.accumulatedMs+dt,strokes:liveState.baseStrokes+strokes,pumped:liveState.baseVolume+strokes*liveState.segmentOutput};
+}
+function checkpointCirculation(){
+ const snap=circulationSnapshot();liveState.accumulatedMs=snap.ms;liveState.baseStrokes=snap.strokes;liveState.baseVolume=snap.pumped;
+ liveState.startedAt=liveState.running?Date.now():null;liveState.segmentSpm=Math.max(0,n("wp_spm"));liveState.segmentOutput=Math.max(0,n("wp_output"));saveLive();
+}
+function currentLiveMs(){return circulationSnapshot().ms}
 function formatClock(ms){const sec=Math.floor(ms/1000),h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return h>0?`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`:`${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`}
-function setLiveButtons(){const running=liveState.running;q("liveStartBtn").disabled=running;q("livePauseBtn").disabled=!running;q("liveStateText").textContent=running?"Circulating":"Paused";q("livePulse").classList.toggle("running",running);q("livePulse").classList.toggle("paused",!running)}
-function getLiveComputed(){const ms=currentLiveMs(),minutes=ms/60000,spm=Math.max(0,n("wp_spm")),output=Math.max(0,n("wp_output")),strokes=minutes*spm,pumped=strokes*output,bit=Math.max(0,n("wp_bit")),total=totalAnnulusToBit(bit),used=Math.min(total,pumped),front=frontMDFromPumped(bit,used),remaining=Math.max(0,total-used),remStrokes=output?remaining/output:0,remTime=spm?remStrokes/spm:0;return{ms,minutes,spm,output,strokes,pumped,bit,total,used,front,remaining,remStrokes,remTime}}
-function renderLive(){const c=getLiveComputed();q("liveElapsed").textContent=formatClock(c.ms);q("liveStrokes").textContent=c.strokes.toFixed(0);q("liveVolume").textContent=c.pumped.toFixed(2)+" m³";q("liveFront").textContent=c.front.toFixed(0)+" m MD";q("liveDepth").textContent=`${c.front.toFixed(0)} MD / ${interpTVD(c.front).toFixed(0)} TVD`;q("liveEta").textContent=c.remaining<=0.0001?"At surface":(Number.isFinite(c.remTime)?c.remTime.toFixed(1)+" min":"—");if(liveState.running||liveState.accumulatedMs>0){q("wp_bit_md").textContent=c.bit.toFixed(0);q("wp_front_md").textContent=c.front.toFixed(0);q("wp_front_tvd").textContent=interpTVD(c.front).toFixed(0);q("wp_rem_vol").textContent=c.remaining.toFixed(2);q("wp_rem_strokes").textContent=c.remStrokes.toFixed(0);q("wp_rem_time").textContent=c.remTime.toFixed(1);plotWell(c.bit,c.front)}}
-q("liveStartBtn").onclick=()=>{if(!liveState.running){liveState.running=true;liveState.startedAt=Date.now();saveLive();setLiveButtons();renderLive()}};
-q("livePauseBtn").onclick=()=>{if(liveState.running){liveState.accumulatedMs=currentLiveMs();liveState.running=false;liveState.startedAt=null;saveLive();setLiveButtons();renderLive()}};
-q("liveResetBtn").onclick=()=>{liveState={running:false,accumulatedMs:0,startedAt:null};saveLive();setLiveButtons();renderLive();updateProfile()};
-const oldWpReset=q("wpResetBtn");if(oldWpReset){oldWpReset.addEventListener("click",()=>{liveState={running:false,accumulatedMs:0,startedAt:null};saveLive();setLiveButtons();renderLive()})}
-["wp_bit","wp_output","wp_spm"].forEach(id=>q(id).addEventListener("input",()=>renderLive()));
-setLiveButtons();renderLive();setInterval(renderLive,500);
+function setLiveButtons(){const running=liveState.running;q("liveStartBtn").disabled=running;q("livePauseBtn").disabled=!running;q("liveStateText").textContent=running&&n("wp_spm")>0?"Circulating":"Paused / pumps off";q("livePulse").classList.toggle("running",running&&n("wp_spm")>0);q("livePulse").classList.toggle("paused",!running||n("wp_spm")<=0)}
+function getLiveComputed(){const snap=circulationSnapshot(),ms=snap.ms,minutes=ms/60000,spm=Math.max(0,n("wp_spm")),output=Math.max(0,n("wp_output")),strokes=snap.strokes,pumped=snap.pumped,bit=Math.max(0,n("wp_bit")),total=totalAnnulusToBit(bit),used=Math.min(total,pumped),front=frontMDFromPumped(bit,used),remaining=Math.max(0,total-used),remStrokes=output>0?remaining/output:Infinity,remTime=spm>0?remStrokes/spm:Infinity;return{ms,minutes,spm,output,strokes,pumped,bit,total,used,front,remaining,remStrokes,remTime}}
+function renderLive(){const c=getLiveComputed();q("liveElapsed").textContent=formatClock(c.ms);q("liveStrokes").textContent=c.strokes.toFixed(0);q("liveVolume").textContent=c.pumped.toFixed(2)+" m³";q("liveFront").textContent=c.front.toFixed(0)+" m MD";q("liveDepth").textContent=`${c.front.toFixed(0)} MD / ${interpTVD(c.front).toFixed(0)} TVD`;q("liveEta").textContent=c.remaining<=0.0001?"At surface":(liveState.running&&Number.isFinite(c.remTime)?c.remTime.toFixed(1)+" min":"Pumps Off — ETA paused");if(liveState.running||liveState.accumulatedMs>0){q("wp_bit_md").textContent=c.bit.toFixed(0);q("wp_front_md").textContent=c.front.toFixed(0);q("wp_front_tvd").textContent=interpTVD(c.front).toFixed(0);q("wp_rem_vol").textContent=c.remaining.toFixed(2);q("wp_rem_strokes").textContent=c.remStrokes.toFixed(0);q("wp_rem_time").textContent=c.remTime.toFixed(1);plotWell(c.bit,c.front)}}
+q("liveStartBtn").onclick=()=>{if(!liveState.running){checkpointCirculation();liveState.running=true;liveState.startedAt=Date.now();saveLive();setLiveButtons();renderLive()}};
+q("livePauseBtn").onclick=()=>{if(liveState.running){checkpointCirculation();liveState.running=false;liveState.startedAt=null;saveLive();setLiveButtons();renderLive()}};
+function resetLiveCirculation(){liveState={running:false,accumulatedMs:0,startedAt:null,baseStrokes:0,baseVolume:0,segmentSpm:Math.max(0,n("wp_spm")),segmentOutput:Math.max(0,n("wp_output"))};saveLive();setLiveButtons();renderLive()}
+q("liveResetBtn").onclick=()=>{resetLiveCirculation();updateProfile()};
+const oldWpReset=q("wpResetBtn");if(oldWpReset)oldWpReset.addEventListener("click",resetLiveCirculation);
+["wp_output","wp_spm"].forEach(id=>q(id).addEventListener("input",()=>{checkpointCirculation();setLiveButtons();renderLive()}));
+q("wp_bit").addEventListener("input",()=>renderLive());
+saveLive();setLiveButtons();renderLive();setInterval(()=>renderLive(),500);
 
 // ===== RigCalc Pro v1.3: Fluid Tracker =====
 const FLUID_KEY="rigcalc-fluidtracker-v13";
@@ -1234,3 +1253,97 @@ const plotWellBeforeFullCirc=plotWell;plotWell=function(bitMD,frontMD){plotWellB
 ["wp_bit","wp_output","wp_spm","wp_trajectory_type"].forEach(id=>q(id)?.addEventListener("input",updateFullCirculationReadout));
 document.addEventListener("change",e=>{if(e.target?.dataset?.string!==undefined||e.target?.dataset?.hole!==undefined||e.target?.dataset?.sv!==undefined)updateFullCirculationReadout()});
 updateFullCirculationReadout();
+// ===== Beta 1.12: Automatic formation-top return markers =====
+const ReturnTagsMath=(()=>{
+  function sections(holes,origin){
+    if(!Number.isFinite(origin)||origin<=0)throw Error('Origin MD must be greater than zero.');
+    const hs=holes.map(h=>({from:Number(h.from),to:Number(h.to),id:Number(h.id),od:Number(h.od),over:Number(h.over)||0})).filter(h=>h.to>0&&h.from<origin).sort((a,b)=>a.from-b.from);
+    let end=0;const rows=[];
+    for(const h of hs){if(!Object.values(h).every(Number.isFinite)||h.to<=h.from||h.id<=h.od||h.od<0||h.over<0)throw Error('Check hole ID, string OD and interval dimensions.');
+      const from=Math.max(0,h.from),to=Math.min(origin,h.to);if(Math.abs(from-end)>1e-6)throw Error('Hole intervals must cover surface to origin without gaps or overlaps.');
+      rows.push({from,to,cap:Math.PI/4e6*(h.id*h.id-h.od*h.od)*(1+h.over/100)});end=to;
+    }
+    if(Math.abs(end-origin)>1e-6)throw Error('Hole geometry does not cover the origin MD.');return rows;
+  }
+  const volume=rows=>rows.reduce((s,r)=>s+(r.to-r.from)*r.cap,0);
+  function position(rows,pumped){let left=Math.max(0,pumped);for(const r of [...rows].reverse()){const v=(r.to-r.from)*r.cap;if(left<v)return r.to-left/r.cap;left-=v;}return 0;}
+  function crossed(tops,highWater,md,seen){return tops.filter(f=>Number.isFinite(Number(f.md))&&Number(f.md)>highWater&&Number(f.md)<=md&&!seen.includes(f.returnTopId)).sort((a,b)=>a.md-b.md);}
+  function predict(m,pumped,out,spm,running){
+    if(!m.sections)return {unavailable:true};
+    const displaced=Math.max(0,pumped-m.startPumpVol),remaining=Math.max(0,volume(m.sections)-displaced),md=position(m.sections,displaced),strokes=out>0?remaining/out:Infinity,minutes=running&&spm>0?strokes/spm:Infinity;
+    return{displaced,remaining,md,strokes,minutes,arrived:remaining<=1e-9,unavailable:!Number.isFinite(out)||out<=0||!Number.isFinite(spm)};
+  }
+  return{sections,volume,position,crossed,predict};
+})();
+(()=>{
+ const KEY='rigcalc-return-tops-v112',uid=()=>globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
+ let state={enabled:true,highWater:Math.max(0,n('wp_bit')),seen:[],markers:[]};
+ try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x)state={...state,...x,seen:Array.isArray(x.seen)?x.seen:[],markers:Array.isArray(x.markers)?x.markers:[]};}catch(e){}
+ state.highWater=Math.max(Number(state.highWater)||0,n('wp_bit'));
+ function ensureIds(){let changed=false;wpData.formations.forEach(f=>{if(!f.returnTopId){f.returnTopId=uid();changed=true;}});if(changed)saveWP();}
+ function persist(){localStorage.setItem(KEY,JSON.stringify(state));}
+ function tvdAt(md){if(trajectoryMode()==='vertical')return md;const survey=wpData.survey||[];if(!survey.length||md<Math.min(...survey.map(s=>s.md))||md>Math.max(...survey.map(s=>s.md)))return null;return interpTVD(md);}
+ function formation(md){return [...wpData.formations].filter(f=>Number(f.md)<=md).sort((a,b)=>b.md-a.md)[0];}
+ function pressure(f){const lo=Number(f?.lowGrad===undefined?f?.grad:f.lowGrad),hi=Number(f?.highGrad===undefined?f?.grad:f.highGrad);return lo>0&&hi>=lo?`${(lo*1000/9.80665).toFixed(0)}–${(hi*1000/9.80665).toFixed(0)} kg/m³ EMW (expected)`:'Pressure data not entered';}
+ function create(origin,label,f,auto=false){
+  const c=circulationSnapshot();let rows=null,error='';try{rows=ReturnTagsMath.sections(wpData.holes,origin);}catch(e){error=e.message;}
+  const m={id:uid(),auto,label,originMD:origin,originTVD:tvdAt(origin),formation:f?.name||'Formation not entered',pressure:pressure(f),createdAt:Date.now(),startPumpVol:c.pumped,startStrokes:c.strokes,sections:rows,error};
+  state.markers.push(m);persist();return m;
+ }
+ function detect(){ensureIds();const md=Number(q('wp_bit').value);if(!Number.isFinite(md)||md<0)return;
+  if(state.enabled&&md>state.highWater){ReturnTagsMath.crossed(wpData.formations,state.highWater,md,state.seen).forEach(f=>{create(Number(f.md),`${f.name||'Formation'} Top`,f,true);state.seen.push(f.returnTopId);});}
+  state.highWater=Math.max(state.highWater,md);persist();render();
+ }
+ function node(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;}
+ function button(text,fn){const b=node('button',text);b.type='button';b.onclick=fn;return b;}
+ function render(){
+  const c=circulationSnapshot(),out=parseFloat(q('wp_output').value),spm=parseFloat(q('wp_spm').value);
+  const rows=state.markers.map(m=>({m,s:ReturnTagsMath.predict(m,c.pumped,out,spm,liveState.running)}));let changed=false;
+  rows.forEach(({m,s})=>{if(s.arrived&&!m.arrivedAt){m.arrivedAt=Date.now();changed=true;}});if(changed)persist();
+  q('returnAutoOn').checked=state.enabled;
+  q('returnAutoStatus').textContent=`${state.enabled?'Auto tags on':'Auto tags off'} • New tops beyond ${state.highWater.toFixed(0)} m MD. Depth changes are captured when entered/confirmed.`;
+  const active=q('returnActive'),arrivals=q('returnHistory');active.replaceChildren();arrivals.replaceChildren();
+  rows.sort((a,b)=>(a.s.remaining??Infinity)-(b.s.remaining??Infinity)).forEach(({m,s})=>{
+   const card=node('article',undefined,'return-event');card.appendChild(node('strong',m.label));
+   card.appendChild(node('small',`${m.auto?'Auto':'Manual'} • Origin ${m.originMD.toFixed(0)} m MD / ${m.originTVD===null?'TVD unavailable':m.originTVD.toFixed(0)+' m TVD'} • ${m.formation}`));
+   card.appendChild(node('small',m.pressure));
+   if(m.arrivedAt){card.appendChild(node('p',`AT SURFACE (predicted) • detected ${new Date(m.arrivedAt).toLocaleString()}`));arrivals.appendChild(card);}
+   else{
+    let text='Arrival estimate unavailable';
+    if(!s.unavailable){const loc=tvdAt(s.md);text=`Now ${s.md.toFixed(0)} m MD / ${loc===null?'TVD unavailable':loc.toFixed(0)+' m TVD'} • ${s.remaining.toFixed(2)} m³ • ${s.strokes.toFixed(0)} strokes remaining`;
+      text+=Number.isFinite(s.minutes)?`\n${s.minutes.toFixed(1)} min • ETA ${new Date(Date.now()+s.minutes*60000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`:'\nPumps Off — ETA paused';
+    }
+    card.appendChild(node('p',text));
+    if(s.unavailable)card.appendChild(node('small',m.error||'Enter valid pump output and SPM to calculate arrival.'));
+    if(!m.sections)card.appendChild(button('Retry with entered geometry',()=>{try{m.sections=ReturnTagsMath.sections(wpData.holes,m.originMD);m.error='';persist();render();}catch(e){q('returnTagError').textContent=e.message;}}));
+    card.appendChild(button('Remove',()=>{state.markers=state.markers.filter(x=>x.id!==m.id);persist();render();}));active.appendChild(card);
+   }
+  });
+  if(!active.children.length)active.appendChild(node('p','No returns pending. Add formation tops below the current bit, then advance bit MD.'));
+  draw(rows);
+ }
+ function draw(rows){const layer=q('returnTopMarkers');layer.replaceChildren();const geom=profilePlotGeometry(n('wp_bit'));rows.forEach(({m,s})=>{
+   if(m.arrivedAt||s.md===undefined||tvdAt(s.md)===null)return;const p=displayXY(s.md),dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.setAttribute('cx',geom.sx(p.x));dot.setAttribute('cy',geom.sy(p.tvd));dot.setAttribute('r','7');dot.setAttribute('fill',m.auto?'#f79009':'#7f56d9');dot.setAttribute('stroke','#fff');dot.setAttribute('stroke-width','2');const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=`${m.label}: ${s.md.toFixed(0)} m MD`;dot.appendChild(title);layer.appendChild(dot);
+  });
+ }
+ function renderTops(){ensureIds();const list=q('returnTops');list.replaceChildren();
+  wpData.formations.forEach(f=>{const row=node('div',undefined,'return-top-editor');
+   [['Formation','name','text'],['Top MD (m)','md','number'],['PP low EMW (kg/m³)','lowGrad','number'],['PP high EMW (kg/m³)','highGrad','number']].forEach(([title,key,type])=>{const label=node('label',title),input=node('input');input.type=type;if(type==='number'){input.min='0';input.step='any';}
+    input.value=['lowGrad','highGrad'].includes(key)?(Number(f[key]===undefined?f.grad:f[key])>0?(Number(f[key]===undefined?f.grad:f[key])*1000/9.80665).toFixed(0):''):(f[key]??'');
+    input.onchange=()=>{if(key==='name')f[key]=input.value.trim();else if(['lowGrad','highGrad'].includes(key))f[key]=input.value.trim()===''?null:Number(input.value)*9.80665/1000;else f[key]=Number(input.value);
+      saveWP();render();};label.appendChild(input);row.appendChild(label);
+   });
+   row.appendChild(button('Delete top',()=>{wpData.formations=wpData.formations.filter(x=>x.returnTopId!==f.returnTopId);saveWP();renderTops();render();}));list.appendChild(row);
+  });
+ }
+ q('returnAutoOn').onchange=()=>{state.enabled=q('returnAutoOn').checked;state.highWater=Math.max(state.highWater,n('wp_bit'));persist();render();};
+ q('addReturnTop').onclick=()=>{wpData.formations.push({name:'New formation',md:n('wp_bit')+100,lowGrad:null,highGrad:null,returnTopId:uid()});saveWP();renderTops();render();};
+ q('manualReturnTag').onclick=()=>{const md=n('wp_bit');if(md<=0){q('returnTagError').textContent='Enter a current bit MD greater than zero.';return;}q('returnTagError').textContent='';create(md,q('manualReturnLabel').value.trim()||'Manual event',formation(md));q('manualReturnLabel').value='';render();};
+ q('clearReturnHistory').onclick=()=>{state.markers=state.markers.filter(m=>!m.arrivedAt);persist();render();};
+ q('newWellReturnTags').onclick=()=>{if(!confirm('Start a new well for return tags? This clears return tags, arrival history and duplicate protection. Other well inputs stay in place.'))return;state={enabled:state.enabled,highWater:Math.max(0,n('wp_bit')),seen:[],markers:[]};persist();render();};
+ ['liveResetBtn','wpResetBtn'].forEach(id=>q(id).addEventListener('click',()=>{state.markers=[];state.highWater=Math.max(state.highWater,n('wp_bit'));persist();render();}));
+ q('wp_bit').addEventListener('change',detect);
+ // Keep duplicate protection on reset, reload and marker deletion. A fresh well uses a separate job baseline.
+ const previousPlot=plotWell;plotWell=function(bit,front){previousPlot(bit,front);render();};
+ ensureIds();persist();renderTops();render();setInterval(render,500);
+})();
