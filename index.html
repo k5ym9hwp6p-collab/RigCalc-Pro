@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.12</span>
+      <span class="eyebrow">BETA 1.13</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -741,11 +741,21 @@
           <div><strong>Well trajectory</strong><small>Blue marker is the calculated returns front. Tap plot for full-screen view.</small></div>
           <button id="wpResetBtn">Reset circulation</button>
         </div>
+        <div class="flow-area-controls">
+          <label class="flow-toggle"><input id="flowAreasOn" type="checkbox" checked> Show flow areas</label>
+          <label>Casing shoe <span>m MD</span><input id="flowShoeMd" type="number" min="0" step="any" inputmode="decimal" placeholder="Enter shoe MD"></label>
+        </div>
+        <div class="flow-area-totals"><button id="flowstringTotal" class="flow-total-string" type="button">Inside drill string</button><button id="flowcasedTotal" class="flow-total-cased" type="button">Cased-hole annulus</button><button id="flowopenTotal" class="flow-total-open" type="button">Open-hole annulus</button></div>
+        <p id="flowAreaWarning" class="live-note"></p>
+        <div id="flowAreaDetails" class="flow-area-details" role="status">Tap a coloured band to inspect its capacity.</div>
+        <p class="live-note">Band widths are schematic. Blue is inside the active string; teal and amber show cased and open-hole annulus. Shoe MD labels the boundary; interval IDs/ODs still control calculated volumes. Tap blank plot space to zoom.</p>
         <svg id="wellSvg" viewBox="0 0 700 430">
           <rect x="0" y="0" width="700" height="430" class="svg-bg"></rect>
           <g id="depthGrid"></g>
           <g id="hydraulicsOverlay"></g>
+          <g id="annulusFlowAreas"></g>
           <polyline id="wellPath" points="" class="well-path"></polyline>
+          <g id="stringFlowAreas"></g>
           <g id="wellControlMarkers"></g>
           <g id="fluidMarkers"></g>
           <g id="returnTopMarkers"></g>
@@ -959,6 +969,7 @@
     <div id="zoomViewport" class="zoom-viewport">
       <div id="zoomSvgHost" class="zoom-svg-host"></div>
     </div>
+    <div id="flowZoomDetails" class="flow-area-details" role="status"></div>
     <div class="zoom-footer">
       <span><i class="legend-bit"></i> Bit</span>
       <span><i class="legend-front"></i> Returns front</span>

@@ -1323,7 +1323,7 @@ const ReturnTagsMath=(()=>{
   draw(rows);
  }
  function draw(rows){const layer=q('returnTopMarkers');layer.replaceChildren();const geom=profilePlotGeometry(n('wp_bit'));rows.forEach(({m,s})=>{
-   if(m.arrivedAt||s.md===undefined||tvdAt(s.md)===null)return;const p=displayXY(s.md),dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.setAttribute('cx',geom.sx(p.x));dot.setAttribute('cy',geom.sy(p.tvd));dot.setAttribute('r','7');dot.setAttribute('fill',m.auto?'#f79009':'#7f56d9');dot.setAttribute('stroke','#fff');dot.setAttribute('stroke-width','2');const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=`${m.label}: ${s.md.toFixed(0)} m MD`;dot.appendChild(title);layer.appendChild(dot);
+   if(m.arrivedAt||s.md===undefined||tvdAt(s.md)===null)return;const p=flowAnnulusPoint(s.md,n('wp_bit')),dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.setAttribute('cx',p.x);dot.setAttribute('cy',p.y);dot.setAttribute('r','7');dot.setAttribute('fill',m.auto?'#f79009':'#7f56d9');dot.setAttribute('stroke','#fff');dot.setAttribute('stroke-width','2');const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=`${m.label}: ${s.md.toFixed(0)} m MD`;dot.appendChild(title);layer.appendChild(dot);
   });
  }
  function renderTops(){ensureIds();const list=q('returnTops');list.replaceChildren();
@@ -1344,6 +1344,90 @@ const ReturnTagsMath=(()=>{
  ['liveResetBtn','wpResetBtn'].forEach(id=>q(id).addEventListener('click',()=>{state.markers=[];state.highWater=Math.max(state.highWater,n('wp_bit'));persist();render();}));
  q('wp_bit').addEventListener('change',detect);
  // Keep duplicate protection on reset, reload and marker deletion. A fresh well uses a separate job baseline.
- const previousPlot=plotWell;plotWell=function(bit,front){previousPlot(bit,front);render();};
+ const previousPlot=plotWell;plotWell=function(bit,front){previousPlot(bit,front);render();const p=flowAnnulusPoint(front,bit);q('frontMarker').setAttribute('cx',p.x);q('frontMarker').setAttribute('cy',p.y);};
  ensureIds();persist();renderTops();render();setInterval(render,500);
+})();
+// Pixel offset is schematic; MD/TVD and capacities always remain unchanged.
+function flowAnnulusPoint(md,bit){const geom=profilePlotGeometry(bit),p=displayXY(md);let x=geom.sx(p.x),y=geom.sy(p.tvd);if(q('flowAreasOn')?.checked){const a=displayXY(Math.max(0,md-.25)),b=displayXY(Math.min(bit,md+.25)),dx=geom.sx(b.x)-geom.sx(a.x),dy=geom.sy(b.tvd)-geom.sy(a.tvd),len=Math.hypot(dx,dy);x+=len?dy/len*10:10;y-=len?dx/len*10:0;}return{x,y};}
+// ===== Beta 1.13: trajectory flow areas =====
+const FlowAreasMath=(()=>{
+ const area=id=>Math.PI/4e6*id*id;
+ function model(holes,strings,bit,shoe){
+  const warnings=[],annulus=[],inside=[];let annEnd=0,stringEnd=0;
+  const knownShoe=Number.isFinite(shoe)&&shoe>=0;
+  if(!knownShoe)warnings.push('Enter casing shoe MD to distinguish cased and open hole.');
+  for(const [i,h]of [...holes].map((h,i)=>[i,h]).sort((a,b)=>Number(a[1].from)-Number(b[1].from))){
+   const from=Math.max(0,Number(h.from)),to=Math.min(bit,Number(h.to)),id=Number(h.id),od=Number(h.od),over=Number(h.over)||0;
+   if(Number(h.from)>=bit||Number(h.to)<=0)continue;
+   if(![from,to,id,od,over].every(Number.isFinite)||to<=from||id<=od||od<0||over<0){warnings.push('Invalid hole / annulus interval omitted.');continue;}
+   if(Math.abs(from-annEnd)>1e-6)warnings.push('Annulus has a gap or overlap; totals cover entered valid intervals only.');
+   if(from<annEnd-1e-6)continue;annEnd=to;
+   const cuts=[from,...(knownShoe&&shoe>from&&shoe<to?[shoe]:[]),to],cap=(area(id)-area(od))*(1+over/100);
+   for(let k=1;k<cuts.length;k++){const a=cuts[k-1],b=cuts[k],kind=knownShoe?(a<shoe?'cased':'open'):'unknown';annulus.push({key:`ann-${i}-${k}`,kind,from:a,to:b,id,od,over,cap,volume:(b-a)*cap});}
+  }
+  for(const [i,s]of [...strings].map((s,i)=>[i,s]).sort((a,b)=>Number(a[1].from)-Number(b[1].from))){
+   const from=Math.max(0,Number(s.from)),to=Math.min(bit,Number(s.to)),id=Number(s.id);
+   if(Number(s.from)>=bit||Number(s.to)<=0)continue;
+   if(![from,to,id].every(Number.isFinite)||to<=from||id<=0){warnings.push('Invalid string interval omitted.');continue;}
+   if(Math.abs(from-stringEnd)>1e-6)warnings.push('String has a gap or overlap; totals cover entered valid intervals only.');
+   if(from<stringEnd-1e-6)continue;stringEnd=to;
+   const cap=area(id);inside.push({key:`string-${i}`,kind:'string',name:s.name||'String component',from,to,id,cap,volume:(to-from)*cap});
+   if(annulus.some(h=>h.from<to&&h.to>from&&id>h.od))warnings.push('A string ID exceeds the corresponding entered string OD. Check both tables.');
+  }
+  if(bit>0&&annEnd<bit-1e-6)warnings.push('Annulus dimensions do not reach the bit.');
+  if(bit>0&&stringEnd<bit-1e-6)warnings.push('String dimensions do not reach the bit.');
+  const sum=kind=>[...annulus,...inside].filter(r=>r.kind===kind).reduce((s,r)=>s+r.volume,0);
+  return{annulus,inside,knownShoe,totals:{string:sum('string'),cased:knownShoe?sum('cased'):null,open:knownShoe?sum('open'):null},warnings:[...new Set(warnings)]};
+ }
+ function path(from,to,survey,point,scale){const depths=[from,...survey.map(s=>Number(s.md)).filter(md=>md>from&&md<to).sort((a,b)=>a-b),to];return depths.map(md=>{const p=point(md);return{x:scale.sx(p.x),y:scale.sy(p.tvd)};});}
+ function normal(md,bit,point,scale){const a=point(Math.max(0,md-.25)),b=point(Math.min(bit,md+.25)),dx=scale.sx(b.x)-scale.sx(a.x),dy=scale.sy(b.tvd)-scale.sy(a.tvd),len=Math.hypot(dx,dy);return len?{x:dy/len,y:-dx/len}:{x:1,y:0};}
+ return{model,path,normal};
+})();
+(()=>{
+ const KEY='rigcalc-flow-areas-v113';let options={show:true,shoe:''},selected=null,lastSignature='',current=null;
+ try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x)options={...options,...x};}catch(e){}
+ q('flowAreasOn').checked=options.show;q('flowShoeMd').value=options.shoe;
+ const names={string:'Inside drill string',cased:'Cased-hole annulus',open:'Open-hole annulus',unknown:'Annulus — casing shoe not entered'};
+ const title=kind=>kind==='string'&&stringMode==='casing'?'Inside active casing':names[kind];
+ function persist(){localStorage.setItem(KEY,JSON.stringify(options));}
+ function svg(tag,attrs){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);return e;}
+ function detail(){
+  let text='Tap a coloured band for its depth interval, capacity and volume. Tap a total to inspect all matching sections.';
+  if(selected&&current){const all=[...current.annulus,...current.inside],rows=selected.kind?all.filter(r=>r.kind===selected.kind):all.filter(r=>r.key===selected.key);
+   if(rows.length)text=rows.map(r=>`${title(r.kind)}${r.name?' — '+r.name:''}\n${r.from.toFixed(0)}–${r.to.toFixed(0)} m MD • ${(r.cap*1000).toFixed(2)} L/m • ${r.volume.toFixed(3)} m³\n${r.kind==='string'?`String ID ${r.id} mm`:`Hole/casing ID ${r.id} mm × string OD ${r.od} mm • ${r.over}% entered excess`}`).join('\n\n');
+   else text='No modelled sections for this selection.';
+  }
+  q('flowAreaDetails').textContent=text;q('flowZoomDetails').textContent=text;
+ }
+ function render(){
+  const bit=Math.max(0,n('wp_bit')),shoe=String(options.shoe).trim()===''?NaN:Number(options.shoe),signature=JSON.stringify([bit,shoe,options.show,wpData.holes,stringData,wpData.survey,trajectoryMode(),stringMode]);
+  if(signature===lastSignature)return;lastSignature=signature;
+  current=FlowAreasMath.model(wpData.holes,stringData,bit,shoe);
+  const outer=q('annulusFlowAreas'),inner=q('stringFlowAreas');outer.replaceChildren();inner.replaceChildren();
+  for(const kind of ['string','cased','open']){const value=current.totals[kind];q(`flow${kind}Total`).textContent=`${title(kind)} · ${value===null?'Set shoe MD':value.toFixed(2)+' m³'}`;}
+  q('flowAreaWarning').textContent=current.warnings.join(' ');
+  const g=profilePlotGeometry(bit),point=displayXY;
+  if(options.show){
+   const maxSurvey=Math.max(0,...wpData.survey.map(s=>Number(s.md)||0));
+   function draw(rows,host,width){for(const row of rows){if(trajectoryMode()!=='vertical'&&(maxSurvey<row.to||!wpData.survey.length))continue;
+     const points=FlowAreasMath.path(row.from,row.to,wpData.survey,point,g).map(p=>`${p.x},${p.y}`).join(' ');
+     const p=svg('polyline',{points,class:`flow-area flow-${row.kind}`,'stroke-width':width,'data-flow-key':row.key,tabindex:'0',role:'button','aria-label':`${title(row.kind)}, ${row.from} to ${row.to} metres measured depth. Capacity ${(row.cap*1000).toFixed(2)} litres per metre.`});
+     const t=svg('title',{});t.textContent=`${title(row.kind)}: ${(row.cap*1000).toFixed(2)} L/m, ${row.volume.toFixed(3)} m³`;p.appendChild(t);host.appendChild(p);
+   }}
+   draw(current.annulus,outer,28);draw(current.inside,inner,8);
+   if(trajectoryMode()!=='vertical'&&maxSurvey<bit)q('flowAreaWarning').textContent+=' Extend the directional survey to bit MD to display all bands.';
+  }
+  detail();
+ }
+ function pick(e){const target=e.target.closest?.('[data-flow-key]');if(!target)return;if(e.type==='keydown'&&!['Enter',' '].includes(e.key))return;e.preventDefault();e.stopImmediatePropagation();selected={key:target.getAttribute('data-flow-key')};detail();}
+ for(const id of ['wellSvg','zoomSvgHost']){q(id).addEventListener('click',pick,true);q(id).addEventListener('keydown',pick,true);}
+ for(const kind of ['string','cased','open'])q(`flow${kind}Total`).onclick=()=>{selected={kind};detail();};
+ q('flowAreasOn').onchange=()=>{options.show=q('flowAreasOn').checked;persist();render();renderFullCircMarker();};
+ q('flowShoeMd').oninput=()=>{options.shoe=q('flowShoeMd').value;persist();render();renderFullCircMarker();};
+ const previousPlot=plotWell;plotWell=function(bit,front){previousPlot(bit,front);render();const p=flowAnnulusPoint(front,bit);q('frontMarker').setAttribute('cx',p.x);q('frontMarker').setAttribute('cy',p.y);};
+ const previousFullMarker=renderFullCircMarker;
+ renderFullCircMarker=function(){previousFullMarker();if(!options.show||!fullCircEnabled)return;const s=fullCircState();if(s.phaseKey!=='up')return;const geom=profilePlotGeometry(s.bit),p=displayXY(s.md),offset=FlowAreasMath.normal(s.md,s.bit,displayXY,geom);q('fullCircMarker').setAttribute('cx',geom.sx(p.x)+offset.x*10);q('fullCircMarker').setAttribute('cy',geom.sy(p.tvd)+offset.y*10);};
+ document.addEventListener('change',()=>{render();renderFullCircMarker();});
+ // Component/mode buttons can change geometry without emitting a change event.
+ setInterval(render,500);render();renderFullCircMarker();
 })();

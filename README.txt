@@ -1,3 +1,27 @@
+RigCalc Pro Beta 1.13 — Trajectory Flow Areas
+
+UPLOAD
+Extract and upload the included app files into the SAME existing website folder. README.txt is optional. No test folder is included. Keep website data to retain your inputs and formation tags. Close and reopen/reload the app after uploading to see Beta 1.13.
+
+NEW DISPLAY
+- Blue centre: inside the active drill string (or active casing in Casing Run mode).
+- Teal outer band: cased-hole annulus.
+- Amber outer band: open-hole annulus.
+- Enter Casing shoe in metres MD beside the trajectory. The boundary can split an existing interval without changing its entered dimensions or calculated total annular volume.
+- Until shoe MD is entered, annulus is shown as an unclassified grey dashed band. No cased/open split is guessed. Explicit 0 means all open hole; a shoe below bit means all currently modelled annulus is cased.
+- Tap a band for its depth range, capacity in L/m and volume in m³. Tap a total to inspect all matching sections. This works in the main and zoom views. Tap blank plot space for full screen.
+- Show flow areas toggles the bands. The full-circulation marker moves along the central string on the down leg, then along the annular band on the up leg. The return-front and tagged-return dots also use the annular band.
+- All paths follow the existing MD/TVD trajectory and survey vertices. Display widths and marker offsets are schematic, not a diameter scale.
+
+CALCULATIONS
+String capacity = pi/4 × string ID². Annular capacity = pi/4 × (hole/casing ID² − string OD²) × entered excess-volume factor. IDs and ODs are converted from mm to metres; L/m = m³/m × 1000. Volume = capacity × MD interval length.
+The casing-shoe field CLASSIFIES intervals. It does not supply a casing ID or change hole/string dimensions. Enter the appropriate casing ID, hole diameter and string/BHA OD in Hole / annulus sections. Enter string component IDs in String modeling.
+Totals cover modelled valid intervals. Missing, overlapping or invalid dimensions produce a notice. Extend the directional survey to the bit for complete band rendering. Existing partial/invalid input calculations in other modules are not replaced by these display checks.
+
+VALIDATION
+Calculation and adapter tests passed for cased/open/string totals, casing-shoe splits, unknown shoe, directional survey vertices, tap/keyboard handler wiring, zoom selection, marker offset, display toggle, invalid geometry, and active casing mode. Combined regression tests passed for automatic formation tags and circulation accounting. HTML IDs and JavaScript syntax checked. Full browser/phone visual rendering has not been verified in this environment.
+
+Retained from Beta 1.12:
 RigCalc Pro Beta 1.12 — Automatic Formation-Top Returns
 
 UPLOAD
