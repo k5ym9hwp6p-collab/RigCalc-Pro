@@ -1,26 +1,26 @@
-RigCalc Pro Beta 1.15 — BHA Anchored to Bit Depth
+RigCalc Pro Beta 1.16 — Automatic Multi-Section String
 
 INSTALL
-Extract and upload all app files to the SAME existing website folder. README.txt is optional. No test files are included. Keep website data to retain inputs. Close/reopen and reload after upload to see Beta 1.15.
+Extract and upload the app files to the SAME existing website folder. README.txt is optional. No test files are included. Keep website data to retain inputs; close/reopen and reload after uploading.
 
-USE
-Open Live Well Profile > Well Setup > String modeling in Drill String mode. Anchor BHA to current bit depth is enabled by default.
-- Enter drill-pipe ID and OD in the first row. Its length is automatic.
-- Enter BHA components from top to bottom: fixed length, ID and OD for each.
-- From MD and To MD are calculated, not entered. Use arrows to reorder components; × removes a BHA component; Add adds one below the existing assembly.
-- Changing Current bit depth moves the complete BHA to bottom and fills the remaining length above it with drill pipe.
-- A 300 m BHA occupies 3200–3500 m at 3500 m bit MD, and 3300–3600 m at 3600 m bit MD.
+STRING MODELING
+Open Live Well Profile > Well Setup > String modeling. Automatic string depths supports any number of DP, HWDP, collar and BHA/tool sections. Each row has its own name, ID and OD.
 
-ONE-TIME REVIEW
-Existing drill-string rows are copied into a new anchored model. The first/top row becomes the auto-length drill-pipe row; subsequent rows become fixed-length BHA components using their previous To minus From depths. Existing IDs are retained. ODs are copied from any component OD or the hole geometry at the former component midpoint. Review lengths, order and ODs once, especially if the previous first row was not drill pipe. A newly added component requires its real OD before valid estimates are available.
+BEHAVIOURS
+Fixed length: enter length in metres. The length remains unchanged. Rows below Auto-fill move with the bit; rows above it are placed from surface in sequence.
+Fixed To MD: enter the MD at the bottom/end of that row, not its length. Its start follows the previous row; its length is calculated. Fixed To MD boundaries must be above Auto-fill and increase down the string.
+Auto-fill: exactly one row fills the remaining depth between the rows above and the fixed assembly below. Its length is read-only and From/To depths are calculated.
 
-CALCULATIONS
-Internal capacity, string displacement functions, annular capacity/volumes, bottoms-up tracking, flow bands, hole-cleaning calculations, full-circulation tracking and trip-pill string-volume functions use the calculated component intervals. Dynamic annular intervals are split at both hole boundaries and string/BHA boundaries. Hole IDs and excess volume remain entered in Hole / annulus sections. Their old fixed string-OD inputs are disabled while the anchored model supplies ODs. The last hole interval extends to current bit MD with its last entered ID/excess; add/edit a physical interval when hole size changes.
+EXAMPLES
+Auto-fill DP size 1 > fixed 300 m DP size 2 > fixed 200 m HWDP > fixed 100 m BHA. At bit 3500 m, DP1 is 2900 m long. At bit 3600 m, DP1 becomes 3000 m; the other lengths stay fixed and move down by 100 m.
+DP size 1 Fixed To MD 1000 m > Auto-fill DP size 2 > fixed 200 m HWDP > fixed 100 m BHA. At bit 3500 m, DP2 occupies 1000–3200 m. At 3600 m it occupies 1000–3300 m.
 
-The BHA cannot exceed current bit MD. Components require positive lengths and valid ID < OD, with hole/casing ID larger than string OD. Errors are shown in String modeling; estimates are marked for checking instead of showing a valid arrival. Pumped-volume accounting is not reset by depth changes.
+EDITING
+Add creates a fixed-length section at the bottom. Enter its real ID/OD and length; use arrows to place it in order. Delete removes a non-Auto-fill row. Before deleting Auto-fill, choose Auto-fill on another row. Choosing a new Auto-fill converts the old one to its currently calculated fixed length (review the resulting arrangement). A missing Auto-fill, conflicting boundary, invalid dimensions or too-shallow bit depth shows a validation message rather than a usable prediction.
 
-COMPATIBILITY
-Original depth-based drill-string rows remain saved and are available by switching off Anchor BHA. The separate Casing Run model is unchanged and remains depth-based. Switching modes preserves the anchored BHA. Other well inputs and the simplified Beta 1.14 layout are retained. Well Control Live and Returns Coming remain removed.
+DATA AND CALCULATIONS
+Existing Beta 1.15 BHA values convert automatically to a first Auto-fill pipe row and fixed-length rows. Original manual drill-string data and separate Casing Run data are retained. Turning Automatic string depths off restores manual mode. Switching Casing Run does not alter the automatic assembly.
+The calculated sections are shared by internal capacities, pipe-volume functions, annular volumes, bottoms-up tracking, flow bands, hole-cleaning and trip-pill string-volume functions. The last hole interval extends to current bit MD with its entered ID/excess; add a physical hole interval when the hole diameter changes. Pumped-volume history is not reset by section/depth edits.
 
 VALIDATION
-Passed production-logic checks for 3500→3600 m anchoring, fixed lengths/order, DP fill, internal/annular volume deltas, final-hole extension, return-position calculations, invalid dimensions, shallow wells, editor edits/add/reorder/delete, persistence/reload, manual fallback and casing isolation. JavaScript syntax and HTML element IDs checked. Full browser/phone visual rendering has not been verified in this environment.
+Calculation and production-editor tests passed for two DP ODs, HWDP/BHA, 3500→3600 m depth changes, fixed MD boundaries, one Auto-fill, section ordering and coverage, capacity changes, add/edit/reorder/delete, auto-fill reassignment, validation, reload persistence, Beta 1.15 migration, manual fallback and casing isolation. Other tool sections compared unchanged. JavaScript syntax and HTML IDs checked. Full phone/browser rendering has not been visually verified in this environment.

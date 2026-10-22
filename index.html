@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.15</span>
+      <span class="eyebrow">BETA 1.16</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -885,7 +885,7 @@
           <button id="stringModeDrill" class="string-mode-btn active" data-string-mode="drill">Drill String</button>
           <button id="stringModeCasing" class="string-mode-btn" data-string-mode="casing">Casing Run</button>
         </div>
-        <div id="bhaIntro" class="bha-intro"><label><input id="bhaEnabled" type="checkbox" checked> Anchor BHA to current bit depth</label><p class="live-note">Enter drill-pipe ID/OD and fixed BHA lengths once, in order from top to bottom. From/To depths update automatically. On first use, existing rows after the first drill-pipe row become BHA components; review their lengths, order and ODs once.</p></div>
+        <div id="bhaIntro" class="bha-intro"><label><input id="bhaEnabled" type="checkbox" checked> Automatic string depths</label><p class="live-note">Add string sections from top to bottom, each with its own ID and OD. Choose Fixed length for DP, HWDP, collars or BHA; Fixed To MD for a section ending at a known depth; and exactly one Auto-fill for the remaining pipe. Place Auto-fill below all Fixed To MD boundaries. Sections below Auto-fill follow the bit.</p></div>
         <p id="bhaSummary" class="live-note"></p><p id="bhaError" class="bha-error" role="alert"></p>
         <div class="string-mode-info">
           <div><span>Active model</span><strong id="stringModeLabel">Drill String</strong></div>
