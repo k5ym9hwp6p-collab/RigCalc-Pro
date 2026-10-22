@@ -55,12 +55,51 @@ const WP_DEFAULTS={
 let wpData=JSON.parse(localStorage.getItem("rigcalc-wellprofile")||"null")||JSON.parse(JSON.stringify(WP_DEFAULTS));
 wpData.holes=(wpData.holes||[]).map(h=>({...h,over:Number(h.over)||0}));
 wpData.formations=Array.isArray(wpData.formations)?wpData.formations:[];
+// ===== Beta 1.15: lengths anchored to the bit =====
+const BHA_KEY='rigcalc-bha-bottom-v115';
+const BhaMath=(()=>{
+ function sections(config,bit){
+  const parts=config.parts||[],total=parts.reduce((s,p)=>s+Number(p.length),0);
+  if(!Number.isFinite(bit)||bit<0||!Number.isFinite(total)||parts.some(p=>!Number.isFinite(Number(p.length))||Number(p.length)<=0))throw Error('Enter a positive length for every BHA component.');
+  if(total>bit+1e-8)throw Error(`BHA length ${total.toFixed(1)} m exceeds current bit MD ${bit.toFixed(1)} m.`);
+  const pipe=config.pipe;if(!pipe||![Number(pipe.id),Number(pipe.od)].every(v=>Number.isFinite(v)&&v>0)||Number(pipe.id)>=Number(pipe.od))throw Error('Drill pipe needs positive ID and OD, with ID smaller than OD.');
+  let from=bit-total;const result=[{...pipe,name:pipe.name||'Drill Pipe',from:0,to:from,id:Number(pipe.id),od:Number(pipe.od),role:'pipe'}];
+  parts.forEach((p,i)=>{if(![Number(p.id),Number(p.od)].every(v=>Number.isFinite(v)&&v>0)||Number(p.id)>=Number(p.od))throw Error(`Check ID / OD for ${p.name||'BHA component'}; ID must be smaller than OD.`);const to=from+Number(p.length);result.push({...p,from,to,id:Number(p.id),od:Number(p.od),role:'bha',partIndex:i});from=to;});
+  return result;
+ }
+ function annulus(holes,string,bit){
+  const hs=holes.map(h=>({...h,from:Number(h.from),to:Number(h.to)})).sort((a,b)=>a.from-b.from);
+  if(hs.length)hs[hs.length-1].to=Math.max(hs[hs.length-1].to,bit);
+  let end=0;const out=[];
+  for(const h of hs){const from=Math.max(0,h.from),to=Math.min(bit,h.to);if(from>=bit||to<=0)continue;
+   if(![from,to,Number(h.id),Number(h.over||0)].every(Number.isFinite)||to<=from||Number(h.over||0)<0||Math.abs(from-end)>1e-6)throw Error('Hole intervals need continuous, non-overlapping depths from surface to bit.');
+   for(const s of string){const a=Math.max(from,s.from),b=Math.min(to,s.to);if(b>a){if(Number(h.id)<=s.od)throw Error(`Hole/casing ID must exceed ${s.name} OD at ${a.toFixed(0)} m MD.`);out.push({...h,from:a,to:b,od:s.od});}}
+   end=to;
+  }
+  if(Math.abs(end-bit)>1e-6)throw Error('Enter hole geometry covering surface to bit.');return out;
+ }
+ return{sections,annulus};
+})();
+var bhaState;
+try{bhaState=JSON.parse(localStorage.getItem(BHA_KEY)||'null');}catch(e){}
+if(!bhaState){
+ let rows;try{rows=JSON.parse(localStorage.getItem('rigcalc-string-drill-v109')||localStorage.getItem('rigcalc-string-v14')||'null');}catch(e){}
+ if(!Array.isArray(rows)||!rows.length)rows=[{name:'Drill Pipe',from:0,to:3500,id:108.6},{name:'HWDP',from:3500,to:3700,id:76.2},{name:'Drill Collars',from:3700,to:3900,id:71.4},{name:'BHA / Tools',from:3900,to:3978,id:50.8}];
+ rows=[...rows].sort((a,b)=>a.from-b.from);
+ const odFor=r=>{if(Number(r.od)>0)return Number(r.od);const md=(Number(r.from)+Number(r.to))/2;const h=wpData.holes.find(h=>md>=h.from&&md<=h.to);return Number(h?.od)||0;};
+ bhaState={enabled:true,pipe:{name:rows[0].name||'Drill Pipe',id:Number(rows[0].id)||0,od:odFor(rows[0])},parts:rows.slice(1).map(r=>({name:r.name||'BHA component',length:Number(r.to)-Number(r.from),id:Number(r.id)||0,od:odFor(r)})),review:true};
+ localStorage.setItem(BHA_KEY,JSON.stringify(bhaState));
+}
+function autoBhaActive(){return !!bhaState?.enabled&&localStorage.getItem('rigcalc-string-mode-v109')!=='casing';}
+function currentBhaSections(bit=Math.max(0,n('wp_bit'))){return BhaMath.sections(bhaState,bit);}
+function annulusSections(bit=Math.max(0,n('wp_bit'))){if(!autoBhaActive())return wpData.holes;try{return BhaMath.annulus(wpData.holes,currentBhaSections(bit),bit);}catch(e){return [];}}
+
 function saveWP(){localStorage.setItem("rigcalc-wellprofile",JSON.stringify(wpData))}
 function interpTVD(md){const s=[...wpData.survey].sort((a,b)=>a.md-b.md);if(!s.length)return md;if(md<=s[0].md)return s[0].tvd;for(let i=1;i<s.length;i++){if(md<=s[i].md){const f=(md-s[i-1].md)/(s[i].md-s[i-1].md||1);return s[i-1].tvd+f*(s[i].tvd-s[i-1].tvd)}}return s[s.length-1].tvd}
 function annCapM3m(id,od){return Math.max(0,circle(id)-circle(od))}
-function cumulativeAnnulus(fromMD,toMD){let total=0;for(const h of wpData.holes){const a=Math.max(fromMD,h.from),b=Math.min(toMD,h.to);if(b>a)total+=(b-a)*annCapM3m(h.id,h.od)*(1+(Number(h.over)||0)/100)}return total}
+function cumulativeAnnulus(fromMD,toMD){let total=0;for(const h of annulusSections(Math.max(toMD,n('wp_bit')))){const a=Math.max(fromMD,h.from),b=Math.min(toMD,h.to);if(b>a)total+=(b-a)*annCapM3m(h.id,h.od)*(1+(Number(h.over)||0)/100)}return total}
 function totalAnnulusToBit(bitMD){return cumulativeAnnulus(0,bitMD)}
-function frontMDFromPumped(bitMD,pumped){let remaining=Math.max(0,pumped),pos=bitMD;const hs=[...wpData.holes].sort((a,b)=>b.to-a.to);for(const h of hs){const top=Math.max(h.from,0),bot=Math.min(h.to,pos);if(bot<=top)continue;const cap=annCapM3m(h.id,h.od)*(1+(Number(h.over)||0)/100),vol=(bot-top)*cap;if(remaining<=vol)return bot-(cap?remaining/cap:0);remaining-=vol;pos=top}return 0}
+function frontMDFromPumped(bitMD,pumped){let remaining=Math.max(0,pumped),pos=bitMD;const hs=[...annulusSections(bitMD)].sort((a,b)=>b.to-a.to);for(const h of hs){const top=Math.max(h.from,0),bot=Math.min(h.to,pos);if(bot<=top)continue;const cap=annCapM3m(h.id,h.od)*(1+(Number(h.over)||0)/100),vol=(bot-top)*cap;if(remaining<=vol)return bot-(cap?remaining/cap:0);remaining-=vol;pos=top}return 0}
 function formationAtMD(md){const f=[...wpData.formations].sort((a,b)=>a.md-b.md);let cur=f[0]?.name||"—";for(const x of f){if(md>=x.md)cur=x.name;else break}return cur}
 function surveyXY(md){const s=[...wpData.survey].sort((a,b)=>a.md-b.md);if(!s.length)return{md:0,tvd:0,x:0};let x=0,pts=[{md:s[0].md,tvd:s[0].tvd,x:0}],prev=s[0];for(let i=1;i<s.length;i++){const dmd=s[i].md-prev.md,dtvd=s[i].tvd-prev.tvd;x+=Math.sqrt(Math.max(0,dmd*dmd-dtvd*dtvd));pts.push({md:s[i].md,tvd:s[i].tvd,x});prev=s[i]}if(md<=pts[0].md)return pts[0];for(let i=1;i<pts.length;i++){if(md<=pts[i].md){const f=(md-pts[i-1].md)/(pts[i].md-pts[i-1].md||1);return{md,tvd:pts[i-1].tvd+f*(pts[i].tvd-pts[i-1].tvd),x:pts[i-1].x+f*(pts[i].x-pts[i-1].x)}}}return pts[pts.length-1]}
 function drawDepthGrid(g,sy,maxDepth){if(!g)return;g.innerHTML="";for(let i=0;i<=4;i++){const d=maxDepth*i/4,y=sy(d),line=document.createElementNS("http://www.w3.org/2000/svg","line");line.setAttribute("x1","45");line.setAttribute("x2","680");line.setAttribute("y1",y);line.setAttribute("y2",y);line.setAttribute("class","depth-grid-line");g.appendChild(line);const t=document.createElementNS("http://www.w3.org/2000/svg","text");t.setAttribute("x","6");t.setAttribute("y",Math.min(420,y+4));t.setAttribute("class","depth-grid-text");t.textContent=`${d.toFixed(0)} m`;g.appendChild(t)}}
@@ -250,7 +289,7 @@ function activeStringLabel(){return stringMode==="casing"?"Casing Run":"Drill St
 function saveString(){if(stringMode==="casing"){casingStringData=stringData;localStorage.setItem(STRING_CASING_KEY,JSON.stringify(casingStringData))}else{drillStringData=stringData;localStorage.setItem(STRING_DRILL_KEY,JSON.stringify(drillStringData))}localStorage.setItem(STRING_MODE_KEY,stringMode)}
 function switchStringMode(mode){if(mode!=="drill"&&mode!=="casing")return;saveString();stringMode=mode;stringData=stringMode==="casing"?casingStringData:drillStringData;localStorage.setItem(STRING_MODE_KEY,stringMode);renderString();renderFluidList();if(typeof updateTripPill==="function")updateTripPill()}
 function stringCapM3m(id){return circle(Math.max(0,id))}
-function effectiveStringSections(bitMD){return [...stringData].sort((a,b)=>a.from-b.from).map(s=>({...s,from:Math.max(0,Number(s.from)||0),to:Math.min(bitMD,Number(s.to)||0),id:Math.max(0,Number(s.id)||0)})).filter(s=>s.to>s.from)}
+function effectiveStringSections(bitMD){if(autoBhaActive()){try{return currentBhaSections(bitMD).filter(s=>s.to>s.from);}catch(e){return [];}}return [...stringData].sort((a,b)=>a.from-b.from).map(s=>({...s,from:Math.max(0,Number(s.from)||0),to:Math.min(bitMD,Number(s.to)||0),id:Math.max(0,Number(s.id)||0)})).filter(s=>s.to>s.from)}
 function detailedPipeVolumeToBit(bitMD){let vol=0;for(const s of effectiveStringSections(bitMD))vol+=(s.to-s.from)*stringCapM3m(s.id);return vol}
 function pipeMDFromDetailedVolume(bitMD,vol){let remaining=Math.max(0,vol);const sections=effectiveStringSections(bitMD);for(const s of sections){const cap=stringCapM3m(s.id),sv=(s.to-s.from)*cap;if(remaining<=sv)return s.from+(cap?remaining/cap:0);remaining-=sv}return bitMD}
 function updateStringModeUI(){const casing=stringMode==="casing";q("stringModeDrill")?.classList.toggle("active",!casing);q("stringModeCasing")?.classList.toggle("active",casing);if(q("stringModeLabel"))q("stringModeLabel").textContent=activeStringLabel();if(q("stringTrackingSource"))q("stringTrackingSource").textContent=activeStringLabel();if(q("fluidPipeModel"))q("fluidPipeModel").value=activeStringLabel()+" model";if(q("stringComponentHead"))q("stringComponentHead").textContent=casing?"Casing component":"Component";if(q("stringVolumeLabel"))q("stringVolumeLabel").textContent=casing?"Modelled casing internal volume":"Modelled internal volume to bit";if(q("stringModeNote"))q("stringModeNote").textContent=casing?"Casing Run mode has its own saved component list. Use casing / liner / float equipment IDs as required. Switching back restores the Drill String values exactly as saved.":"Drill String mode is intended for DP / HWDP / collars / BHA. Switching to Casing Run preserves these values."}
@@ -781,7 +820,7 @@ renderFluidMarkers=function(){
   fluidEvents.forEach(ev=>{const st=fluidStates(ev),pf=displayXY(st.front.md),pt=displayXY(st.tail.md);const line=document.createElementNS("http://www.w3.org/2000/svg","line");line.setAttribute("x1",sx(pf.x));line.setAttribute("y1",sy(pf.tvd));line.setAttribute("x2",sx(pt.x));line.setAttribute("y2",sy(pt.tvd));line.setAttribute("class","fluid-svg-line");g.appendChild(line);const cf=document.createElementNS("http://www.w3.org/2000/svg","circle");cf.setAttribute("cx",sx(pf.x));cf.setAttribute("cy",sy(pf.tvd));cf.setAttribute("r","7");cf.setAttribute("class","fluid-svg-front");g.appendChild(cf);const ct=document.createElementNS("http://www.w3.org/2000/svg","circle");ct.setAttribute("cx",sx(pt.x));ct.setAttribute("cy",sy(pt.tvd));ct.setAttribute("r","6");ct.setAttribute("class","fluid-svg-tail");g.appendChild(ct);const lab=document.createElementNS("http://www.w3.org/2000/svg","text");lab.setAttribute("x",Math.min(610,sx(pf.x)+10));lab.setAttribute("y",Math.max(16,sy(pf.tvd)-8));lab.setAttribute("class","fluid-svg-label");lab.textContent=ev.label||ev.type;g.appendChild(lab)});
 };
 function mdAtTVD(tvd){const s=[...wpData.survey].sort((a,b)=>a.md-b.md);if(!s.length)return tvd;if(tvd<=s[0].tvd)return s[0].md;for(let i=1;i<s.length;i++){const a=s[i-1],b=s[i];if((tvd>=a.tvd&&tvd<=b.tvd)||(tvd<=a.tvd&&tvd>=b.tvd)){const f=(tvd-a.tvd)/((b.tvd-a.tvd)||1);return a.md+f*(b.md-a.md)}}return s[s.length-1].md}
-function holeAtMD(md){return [...wpData.holes].find(h=>md>=Number(h.from)&&md<=Number(h.to))||wpData.holes[wpData.holes.length-1]||null}
+function holeAtMD(md){return [...annulusSections(n('wp_bit'))].find(h=>md>=Number(h.from)&&md<=Number(h.to))||annulusSections(n('wp_bit')).at(-1)||null}
 function effectiveAnnCapAtMD(md){const h=holeAtMD(md);return h?annCapM3m(Number(h.id)||0,Number(h.od)||0)*(1+(Number(h.over)||0)/100):0}
 function refreshWcGeometrySummary(){const bit=Math.max(0,n("wp_bit")),tvd=interpTVD(bit),sv=detailedPipeVolumeToBit(bit),av=totalAnnulusToBit(bit);if(q("wcGeomMd"))q("wcGeomMd").textContent=bit.toFixed(0);if(q("wcGeomTvd"))q("wcGeomTvd").textContent=tvd.toFixed(0);if(q("wcGeomString"))q("wcGeomString").textContent=sv.toFixed(3);if(q("wcGeomAnn"))q("wcGeomAnn").textContent=av.toFixed(3)}
 function syncWellControlGeometry(force=false){
@@ -821,13 +860,13 @@ function tvdForPill(md){
   return interpTVD(Math.max(0,md));
 }
 function stringCapacityAtMD(md){
-  const s=[...stringData].sort((a,b)=>a.from-b.from).find(x=>md>=Number(x.from)&&md<Number(x.to));
+  const s=effectiveStringSections(n('wp_bit')).find(x=>md>=Number(x.from)&&md<Number(x.to));
   return s?stringCapM3m(Number(s.id)||0):0;
 }
 function stringVolumeBetween(fromMD,toMD){
   const a=Math.max(0,Math.min(fromMD,toMD)),b=Math.max(fromMD,toMD);
   let vol=0;
-  for(const s of [...stringData].sort((x,y)=>x.from-y.from)){
+  for(const s of effectiveStringSections(n('wp_bit'))){
     const lo=Math.max(a,Number(s.from)||0),hi=Math.min(b,Number(s.to)||0);
     if(hi>lo)vol+=(hi-lo)*stringCapM3m(Number(s.id)||0);
   }
@@ -836,7 +875,7 @@ function stringVolumeBetween(fromMD,toMD){
 function mdAfterStringVolume(startMD,volume,bitMD){
   let remaining=Math.max(0,volume),pos=Math.max(0,startMD);
   const end=Math.max(pos,bitMD);
-  const sections=[...stringData].sort((a,b)=>a.from-b.from);
+  const sections=effectiveStringSections(bitMD);
   for(const s of sections){
     const lo=Math.max(pos,Number(s.from)||0),hi=Math.min(end,Number(s.to)||0);
     if(hi<=lo)continue;
@@ -1156,7 +1195,7 @@ function saveHoleCleaning(){const obj={overlay:hcOverlayVisible};HC_FIELDS.forEa
 function loadHoleCleaning(){try{const obj=JSON.parse(localStorage.getItem(HC_KEY)||"{}");HC_FIELDS.forEach(id=>{if(q(id)&&obj[id]!==undefined)q(id).value=obj[id]});if(obj.overlay!==undefined)hcOverlayVisible=!!obj.overlay}catch(e){}}
 function hcInclinationAt(md){const s=[...wpData.survey].sort((a,b)=>a.md-b.md);if(s.length<2||trajectoryMode()==="vertical")return 0;let a=s[0],b=s[1];for(let i=1;i<s.length;i++){if(md<=s[i].md){a=s[i-1];b=s[i];break}a=s[Math.max(0,i-1)];b=s[i]}const dmd=Math.max(.001,Number(b.md)-Number(a.md)),dtvd=Number(b.tvd)-Number(a.tvd);return Math.acos(Math.max(-1,Math.min(1,dtvd/dmd)))*180/Math.PI}
 function hcEffectiveGeometry(h){const hole=Math.max(0,Number(h.id)||0)/1000,pipe=Math.max(0,Number(h.od)||0)/1000,over=Math.max(0,Number(h.over)||0)/100,geoArea=Math.PI/4*Math.max(0,hole*hole-pipe*pipe),area=geoArea*(1+over),effHole=Math.sqrt(Math.max(0,pipe*pipe+4*area/Math.PI)),dh=Math.max(.0001,effHole-pipe);return{area,dh}}
-function hcIntervals(){const bit=Math.max(0,n("wp_bit")),qMin=Math.max(0,n("wp_output"))*Math.max(0,n("wp_spm")),rho=Math.max(1,n("hc_mw")),mu=Math.max(.001,n("hc_visc"))/1000,slip=Math.max(0,n("hc_slip")),target=Math.max(.001,n("hc_target_av")),out=[];[...wpData.holes].sort((a,b)=>a.from-b.from).forEach(h=>{const from=Math.max(0,Number(h.from)||0),to=Math.min(bit,Number(h.to)||0);if(to<=from)return;const g=hcEffectiveGeometry(h),av=g.area>0?qMin/g.area:0,v=av/60,re=rho*v*g.dh/mu;let f=0;if(re>0)f=re<2300?64/re:0.3164/Math.pow(re,.25);const len=to-from,dpKpa=f*(len/g.dh)*(rho*v*v/2)/1000,mid=(from+to)/2,incl=hcInclinationAt(mid),tr=av>0?Math.max(0,Math.min(100,(av-slip)/av*100)):0;let status="Good";if(av<target*.8||tr<40)status="Poor";else if(av<target||tr<60)status="Marginal";const rpm=Math.max(0,n("hc_rpm")),rop=Math.max(0,n("hc_rop")),highAngle=incl>=30;let note="";if(highAngle&&rpm<60)note="Low RPM";if(highAngle&&rop>30)note=note?note+" / High ROP":"High ROP";out.push({from,to,av,re,dpKpa,tr,incl,status,highAngle,note})});return out}
+function hcIntervals(){const bit=Math.max(0,n("wp_bit")),qMin=Math.max(0,n("wp_output"))*Math.max(0,n("wp_spm")),rho=Math.max(1,n("hc_mw")),mu=Math.max(.001,n("hc_visc"))/1000,slip=Math.max(0,n("hc_slip")),target=Math.max(.001,n("hc_target_av")),out=[];[...annulusSections(bit)].sort((a,b)=>a.from-b.from).forEach(h=>{const from=Math.max(0,Number(h.from)||0),to=Math.min(bit,Number(h.to)||0);if(to<=from)return;const g=hcEffectiveGeometry(h),av=g.area>0?qMin/g.area:0,v=av/60,re=rho*v*g.dh/mu;let f=0;if(re>0)f=re<2300?64/re:0.3164/Math.pow(re,.25);const len=to-from,dpKpa=f*(len/g.dh)*(rho*v*v/2)/1000,mid=(from+to)/2,incl=hcInclinationAt(mid),tr=av>0?Math.max(0,Math.min(100,(av-slip)/av*100)):0;let status="Good";if(av<target*.8||tr<40)status="Poor";else if(av<target||tr<60)status="Marginal";const rpm=Math.max(0,n("hc_rpm")),rop=Math.max(0,n("hc_rop")),highAngle=incl>=30;let note="";if(highAngle&&rpm<60)note="Low RPM";if(highAngle&&rop>30)note=note?note+" / High ROP":"High ROP";out.push({from,to,av,re,dpKpa,tr,incl,status,highAngle,note})});return out}
 function hcSummary(){const rows=hcIntervals(),bit=Math.max(0,n("wp_bit")),tvd=Math.max(0,interpTVD(bit)),rho=Math.max(0,n("hc_mw")),totalDp=rows.reduce((s,r)=>s+r.dpKpa,0),ecdAdd=tvd>0?totalDp/(0.00980665*tvd):0,ecd=rho+ecdAdd,minAv=rows.length?Math.min(...rows.map(r=>r.av)):0,minTr=rows.length?Math.min(...rows.map(r=>r.tr)):0,minRow=rows.find(r=>Math.abs(r.av-minAv)<1e-9)||null,high=rows.filter(r=>r.highAngle).length;let overall="Good",kind="hc-good";if(rows.some(r=>r.status==="Poor")){overall="Poor section identified";kind="hc-poor"}else if(rows.some(r=>r.status==="Marginal")){overall="Marginal section identified";kind="hc-marginal"}return{rows,bit,tvd,totalDp,ecdAdd,ecd,minAv,minTr,minRow,high,overall,kind}}
 function renderHydraulicsOverlay(){const g=q("hydraulicsOverlay");if(!g)return;g.innerHTML="";if(!hcOverlayVisible)return;const bit=Math.max(0,n("wp_bit"));if(bit<=0)return;const geom=profilePlotGeometry(bit),sx=geom.sx,sy=geom.sy;hcIntervals().forEach(r=>{const a=displayXY(r.from),b=displayXY(r.to),line=document.createElementNS("http://www.w3.org/2000/svg","line");line.setAttribute("x1",sx(a.x));line.setAttribute("y1",sy(a.tvd));line.setAttribute("x2",sx(b.x));line.setAttribute("y2",sy(b.tvd));line.setAttribute("class",`hc-overlay-${r.status.toLowerCase()}${r.highAngle?" hc-overlay-highangle":""}`);const title=document.createElementNS("http://www.w3.org/2000/svg","title");title.textContent=`${r.from.toFixed(0)}–${r.to.toFixed(0)} m MD | AV ${r.av.toFixed(1)} m/min | Transport ${r.tr.toFixed(0)}% | ${r.status}`;line.appendChild(title);g.appendChild(line)})}
 function updateHoleCleaning(){if(!q("hcTable"))return;const s=hcSummary(),flow=Math.max(0,n("wp_output"))*Math.max(0,n("wp_spm"));q("hcBitMd").textContent=s.bit.toFixed(0);q("hcBitTvd").textContent=s.tvd.toFixed(0);q("hcFlow").textContent=flow.toFixed(3);q("hcIntervals").textContent=s.rows.length;q("hcMinAv").textContent=s.minAv.toFixed(1);q("hcMinAvDepth").textContent=s.minRow?`${s.minRow.from.toFixed(0)}–${s.minRow.to.toFixed(0)}`:"—";q("hcTotalDp").textContent=s.totalDp.toFixed(0);q("hcEcdAdd").textContent=s.ecdAdd.toFixed(1);q("hcEcd").textContent=s.ecd.toFixed(0);q("hcMinTr").textContent=s.minTr.toFixed(0);q("hcHighAngle").textContent=s.high;q("hcOverall").textContent=s.overall;const box=q("hcOverallBox");box.classList.remove("hc-good","hc-marginal","hc-poor");box.classList.add(s.kind);const tb=q("hcTable").querySelector("tbody");tb.innerHTML="";s.rows.forEach(r=>{const tr=document.createElement("tr");tr.className=`hc-row-${r.status.toLowerCase()}`;tr.innerHTML=`<td>${r.from.toFixed(0)}–${r.to.toFixed(0)}</td><td>${r.incl.toFixed(0)}°</td><td>${r.av.toFixed(1)}</td><td>${r.re.toFixed(0)}</td><td>${r.dpKpa.toFixed(0)}</td><td>${r.tr.toFixed(0)}%</td><td>${r.status}${r.note?` • ${r.note}`:""}</td>`;tb.appendChild(tr)});if(q("hcOverlayBtn"))q("hcOverlayBtn").textContent=hcOverlayVisible?"Hide profile overlay":"Show profile overlay";renderHydraulicsOverlay();saveHoleCleaning()}
@@ -1250,9 +1289,9 @@ const FlowAreasMath=(()=>{
   q('flowAreaDetails').textContent=text;q('flowZoomDetails').textContent=text;
  }
  function render(){
-  const bit=Math.max(0,n('wp_bit')),shoe=String(options.shoe).trim()===''?NaN:Number(options.shoe),signature=JSON.stringify([bit,shoe,options.show,wpData.holes,stringData,wpData.survey,trajectoryMode(),stringMode]);
+  const bit=Math.max(0,n('wp_bit')),shoe=String(options.shoe).trim()===''?NaN:Number(options.shoe),signature=JSON.stringify([bit,shoe,options.show,wpData.holes,stringData,bhaState,wpData.survey,trajectoryMode(),stringMode]);
   if(signature===lastSignature)return;lastSignature=signature;
-  current=FlowAreasMath.model(wpData.holes,stringData,bit,shoe);
+  current=FlowAreasMath.model(annulusSections(bit),effectiveStringSections(bit),bit,shoe);
   const outer=q('annulusFlowAreas'),inner=q('stringFlowAreas');outer.replaceChildren();inner.replaceChildren();
   for(const kind of ['string','cased','open']){const value=current.totals[kind];q(`flow${kind}Total`).textContent=`${title(kind)} · ${value===null?'Set shoe MD':value.toFixed(2)+' m³'}`;}
   q('flowAreaWarning').textContent=current.warnings.join(' ');
@@ -1280,4 +1319,44 @@ const FlowAreasMath=(()=>{
  document.addEventListener('change',()=>{render();renderFullCircMarker();});
  // Component/mode buttons can change geometry without emitting a change event.
  setInterval(render,500);render();renderFullCircMarker();
+})();
+// ===== Bottom-anchored BHA editor =====
+(()=>{
+ const originalRender=renderString,originalAdd=q('addStringBtn').onclick;
+ const manualHead='<tr><th id="stringComponentHead">Component</th><th>From MD</th><th>To MD</th><th>ID mm</th><th>Internal m³</th><th></th></tr>';
+ function store(){localStorage.setItem(BHA_KEY,JSON.stringify(bhaState));}
+ function issue(){if(!autoBhaActive())return '';try{const sections=currentBhaSections();BhaMath.annulus(wpData.holes,sections,Math.max(0,n('wp_bit')));return '';}catch(e){return e.message;}}
+ function tag(t,text){const el=document.createElement(t);if(text!==undefined)el.textContent=text;return el;}
+ function inputCell(tr,index,key,value,type='number',readonly=false){const td=tag('td'),el=tag('input');el.type=type;el.value=value;el.readOnly=readonly;if(type==='number'){el.min='0';el.step='any';}el.dataset.bha=String(index);el.dataset.bhaKey=key;td.appendChild(el);tr.appendChild(td);}
+ function refresh(){store();renderString();renderHoles();updateProfile();renderLive();renderFluidList();updateHoleCleaning();updateFullCirculationReadout();if(typeof updateTripPill==='function')updateTripPill();}
+ renderString=function(){
+  const casing=stringMode==='casing',active=autoBhaActive();q('bhaEnabled').checked=!!bhaState.enabled;q('bhaEnabled').disabled=casing;q('bhaIntro').hidden=casing;
+  const head=q('stringTable').querySelector('thead');
+  if(!active){head.innerHTML=manualHead;originalRender();q('bhaSummary').textContent=casing?'Casing Run uses its separate saved depth-based model.':'Manual depth-based string model.';q('bhaError').textContent='';return;}
+  head.innerHTML='<tr><th id="stringComponentHead">Component · top to bottom</th><th>Length m</th><th>ID mm</th><th>OD mm</th><th>From MD</th><th>To MD</th><th>Internal m³</th><th></th></tr>';
+  updateStringModeUI();q('stringModeNote').textContent='BHA lengths stay fixed. Drill pipe fills the depth above it. From/To MD are calculated from bit MD. Annulus uses these ODs; hole IDs and excess stay in Hole / annulus sections. The last hole section extends to current bit MD.';
+  const body=q('stringTable').querySelector('tbody');body.replaceChildren();let sections=[];try{sections=currentBhaSections();}catch(e){}
+  const all=[bhaState.pipe,...bhaState.parts],total=bhaState.parts.reduce((sum,p)=>sum+(Number(p.length)||0),0);
+  all.forEach((r,i)=>{const tr=tag('tr'),section=sections[i],length=i?Number(r.length):Math.max(0,n('wp_bit')-total);
+   inputCell(tr,i,'name',r.name,'text');inputCell(tr,i,'length',length,'number',i===0);inputCell(tr,i,'id',r.id);inputCell(tr,i,'od',r.od);
+   tr.appendChild(tag('td',section?section.from.toFixed(1):'—'));tr.appendChild(tag('td',section?section.to.toFixed(1):'—'));tr.appendChild(tag('td',section?((section.to-section.from)*stringCapM3m(section.id)).toFixed(3):'—'));
+   const td=tag('td');if(i){for(const [label,action]of [['↑','up'],['↓','down'],['×','delete']]){const b=tag('button',label);b.type='button';b.dataset.bhaAction=action;b.dataset.bhaPart=String(i-1);b.setAttribute('aria-label',`${action} ${r.name}`);td.appendChild(b);}}else td.textContent='Auto length';tr.appendChild(td);body.appendChild(tr);
+  });
+  const problem=issue();q('bhaError').textContent=problem;
+  q('bhaSummary').textContent=`BHA ${total.toFixed(1)} m • Top ${Math.max(0,n('wp_bit')-total).toFixed(1)} m MD • Bit ${n('wp_bit').toFixed(1)} m MD`;
+  const vol=detailedPipeVolumeToBit(Math.max(0,n('wp_bit'))),out=n('wp_output'),spm=n('wp_spm');q('stringTotalVol').textContent=sections.length?vol.toFixed(3):'Unavailable';q('stringBitStrokes').textContent=sections.length&&out>0?(vol/out).toFixed(0):'—';q('stringBitTime').textContent=sections.length&&out>0&&spm>0?(vol/out/spm).toFixed(1):'—';
+ };
+ q('bhaEnabled').onchange=()=>{bhaState.enabled=q('bhaEnabled').checked;refresh();};
+ q('addStringBtn').onclick=()=>{if(!autoBhaActive()){originalAdd();return;}bhaState.parts.push({name:'New BHA component',length:10,id:50.8,od:0});refresh();};
+ document.addEventListener('change',e=>{const d=e.target.dataset;if(d.bha!==undefined&&!e.target.readOnly){const i=Number(d.bha),r=i===0?bhaState.pipe:bhaState.parts[i-1];if(!r)return;r[d.bhaKey]=d.bhaKey==='name'?e.target.value:Number(e.target.value);refresh();}});
+ document.addEventListener('click',e=>{const d=e.target.dataset;if(d.bhaAction){const i=Number(d.bhaPart);if(d.bhaAction==='delete')bhaState.parts.splice(i,1);else {const j=i+(d.bhaAction==='up'?-1:1);if(j>=0&&j<bhaState.parts.length)[bhaState.parts[i],bhaState.parts[j]]=[bhaState.parts[j],bhaState.parts[i]];}refresh();}});
+ const oldHoles=renderHoles;renderHoles=function(){oldHoles();if(autoBhaActive())q('holeTable').querySelectorAll('input[data-k="od"]').forEach(el=>{el.disabled=true;el.value='';el.placeholder='Auto';el.title='String OD is supplied by the bottom-anchored String Modeling table.';});};
+ function showInvalid(){const msg=issue();q('bhaError').textContent=msg;if(!msg)return;for(const id of ['liveEta','liveFront','liveDepth','fullCircLocationTitle','fullCircNextEvent','wp_rem_vol','wp_rem_strokes','wp_rem_time','fullCircVol','fullCircStrokes','fullCircTime','fullCircRemainVol','fullCircRemainTime','loopRemainingVol','loopRemainingTime'])if(q(id))q(id).textContent='Check BHA / hole dimensions';for(const id of ['frontMarker','fullCircMarker','fluidMarkers'])q(id)?.setAttribute('visibility','hidden');}
+ const oldLive=renderLive;renderLive=function(){for(const id of ['frontMarker','fullCircMarker','fluidMarkers'])q(id)?.removeAttribute('visibility');oldLive();showInvalid();};
+ const oldProfile=updateProfile;updateProfile=function(){oldProfile();showInvalid();};
+ // Keep the inspector and loop totals honest when geometry is incomplete.
+ const oldFull=updateFullCirculationReadout;updateFullCirculationReadout=function(){oldFull();showInvalid();};
+ const oldSync=syncWellControlGeometry;syncWellControlGeometry=function(force){if(issue()){alert(issue());return;}oldSync(force);};
+ q('wp_bit').addEventListener('change',()=>{renderString();renderHoles();updateProfile();renderLive();updateHoleCleaning();});
+ renderString();renderHoles();updateProfile();renderLive();updateHoleCleaning();
 })();

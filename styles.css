@@ -241,3 +241,5 @@ body.education-on .edu-learn-btn{display:inline-flex}
 
 /* Beta 1.14: a focused profile, with configuration tucked away. */
 .well-setup,.profile-manual,.loop-details,.capacity-details{border:1px solid var(--border);border-radius:12px;padding:14px;margin:14px 0;background:var(--card)}.well-setup>summary,.profile-manual>summary,.loop-details>summary,.capacity-details>summary{font-weight:800;cursor:pointer;min-height:28px}.well-setup[open]>summary,.loop-details[open]>summary{margin-bottom:12px}.well-setup .profile-card{margin-top:14px}.operating-inputs{margin:16px 0}.full-circ-card .loop-details{background:transparent}#wellprofile .live-stats>div:has(#liveFront){display:none}
+
+.bha-intro{margin:12px 0;padding:12px;border:1px solid var(--border);border-radius:10px}.bha-intro label{display:flex;gap:10px;align-items:center}.bha-intro input{width:20px;height:20px}.bha-error{color:#d92d20;font-weight:700}#stringTable input[readonly]{background:var(--bg);opacity:.8}#stringTable td:last-child button{min-width:32px;min-height:36px;margin:2px}
