@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.16</span>
+      <span class="eyebrow">BETA 1.17</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -44,7 +44,17 @@
         </label>
       </div>
 
-      <div class="tool-grid beta-core-grid">
+      
+      <div class="active-well-banner">
+        <div>
+          <span>ACTIVE WELL</span>
+          <strong id="activeWellName">Default Well</strong>
+          <small id="activeWellSaved">Not yet saved</small>
+        </div>
+        <button data-open="wellmanager" class="active-well-btn">Manage Wells</button>
+      </div>
+
+<div class="tool-grid beta-core-grid">
         <button class="tool-card beta-core-card" data-open="capacities"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M10 30 29 11l9 9-19 19H10z"/><path d="m28 12 8 8M12 30l7 7M17 25l6 6"/><circle cx="15" cy="34" r="3.5"/></svg><span>Capacities</span><small>Hole, pipe, annulus & displacement</small></button>
         <button class="tool-card beta-core-card" data-open="pump"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M14 17h20v17H14zM18 12h12v5H18zM8 21h6v9H8zM34 21h6v9h-6z"/><path d="M18 34v4h12v-4M20 22h8m-8 5h8"/></svg><span>Pumps & Circulation</span><small>Output, strokes & bottoms-up</small></button>
         <button class="tool-card beta-core-card" data-open="trippinghub"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 8v10l-5 6 5 10h12l5-10-5-6V8"/><path d="M24 8v22m0 0c0 4-5 4-5 8a5 5 0 0 0 10 0c0-2-1-3-2-4"/></svg><span>Tripping</span><small>Trip sheet, fill checks & Trip Pill</small></button>
@@ -59,7 +69,14 @@
         </button>
       </div>
 
-      <details class="advanced-tools">
+      
+        <button class="tool-card beta-core-card" data-open="wellmanager">
+          <svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M8 12h12l3 4h17v22H8z"/><path d="M14 24h20M14 30h14"/>
+          </svg>
+          <span>Well Files</span><small>Save, switch, duplicate & back up jobs</small>
+        </button>
+<details class="advanced-tools">
         <summary><span>Advanced Tools</span><small>MPD, cementing, hydraulics & motors</small></summary>
         <div class="tool-grid advanced-grid">
           <button class="tool-card compact-tool-card" data-open="mpd"><svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="14"/><path d="M24 24l7-7M14 31h20M24 10v4"/></svg><span>MPD</span><small>BHP, ECD & window</small></button>
@@ -565,7 +582,64 @@
       <div class="disclaimer danger"><strong>Model limitation</strong><p>This module is a planning/checking aid. The pressure-loss model is a simplified equivalent-fluid Darcy calculation and the transport ratio uses the slip velocity you enter. It does not model non-Newtonian rheology, eccentric annuli, cuttings beds, particle-size distribution, pipe movement, sag, temperature, compressibility or transient effects. Verify against approved hydraulics / hole-cleaning methods and field response.</p></div>
     </section>
 
-    <section id="academy" class="screen calculator">
+    
+    <section id="wellmanager" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Well Files & Job Manager</h2><p>Keep each well separate, saved and recoverable</p></div></div>
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Active well</strong><small>The active well owns the RigCalc data currently loaded on this device.</small></div>
+          <button id="wellSaveNowBtn">Save now</button>
+        </div>
+        <div class="profile-summary">
+          <div><span>Well name</span><strong id="wmActiveName">Default Well</strong><em></em></div>
+          <div><span>Last saved</span><strong id="wmLastSaved">—</strong><em></em></div>
+          <div><span>Snapshots</span><strong id="wmSnapshotCount">0</strong><em>saved</em></div>
+          <div><span>Total wells</span><strong id="wmWellCount">1</strong><em>jobs</em></div>
+        </div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Well files</strong><small>Create, switch, rename, duplicate or delete saved wells.</small></div>
+          <button id="wellNewBtn">+ New well</button>
+        </div>
+        <div id="wellList" class="well-list"></div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Snapshots</strong><small>Manual restore points for the active well. Use before major edits or updates.</small></div>
+          <button id="wellSnapshotBtn">Create snapshot</button>
+        </div>
+        <div id="snapshotList" class="snapshot-list"></div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Backup & restore</strong><small>Export one portable RigCalc backup file or restore it on this or another device.</small></div>
+        </div>
+        <div class="well-backup-actions">
+          <button id="wellExportBtn" class="live-start">Export RigCalc backup</button>
+          <label class="well-import-label">Import RigCalc backup<input id="wellImportInput" type="file" accept=".json,application/json"></label>
+        </div>
+        <p id="wellBackupStatus" class="live-note">No backup activity yet.</p>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Pad workflow</strong><small>Duplicate a previous well and adjust only what changes.</small></div></div>
+        <div class="hc-guide">
+          <div><strong>Duplicate</strong><span>Copies the entire selected well—survey, geometry, strings, cement, well control, MPD, Trip Pill, tracked fluids and other RigCalc settings.</span></div>
+          <div><strong>Switch</strong><span>Saves the current well first, then loads the selected well into RigCalc.</span></div>
+          <div><strong>Snapshot</strong><span>Creates a dated restore point before changing a job.</span></div>
+          <div><strong>Export</strong><span>Creates a portable JSON backup containing all saved wells and snapshots.</span></div>
+        </div>
+      </div>
+
+      <div class="disclaimer"><strong>Storage note</strong><p>Well Files are stored in this browser/device. Export a RigCalc backup before deleting the Home Screen app, clearing website data, changing devices, or doing a major update.</p></div>
+    </section>
+
+<section id="academy" class="screen calculator">
       <div class="screen-title"><button class="back">‹</button><div><h2>RigCalc Academy</h2><p>Understand the calculation, not just the answer</p></div></div>
 
       <div class="academy-hero">

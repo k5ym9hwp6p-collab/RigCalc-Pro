@@ -1395,3 +1395,135 @@ const FlowAreasMath=(()=>{
  q('wp_bit').addEventListener('change',()=>{renderString();renderHoles();updateProfile();renderLive();updateHoleCleaning();});
  renderString();renderHoles();updateProfile();renderLive();updateHoleCleaning();
 })();
+
+
+// ===== RigCalc Pro Beta 1.17: Well Files & Job Manager =====
+const WELL_MANAGER_KEY="rigcalc-well-manager-v117";
+const WELL_ACTIVE_KEY="rigcalc-active-well-v117";
+const WELL_SNAPSHOT_LIMIT=8;
+
+function rigcalcProjectKeys(){
+  return Object.keys(localStorage).filter(k=>{
+    if(k===WELL_MANAGER_KEY||k===WELL_ACTIVE_KEY)return false;
+    if(k.startsWith("rigcalc-well-manager")||k.startsWith("rigcalc-active-well"))return false;
+    if(k.startsWith("rigcalc-education-mode"))return false;
+    return k.startsWith("rigcalc-");
+  });
+}
+function captureRigCalcState(){const out={};rigcalcProjectKeys().forEach(k=>out[k]=localStorage.getItem(k));return out}
+function clearRigCalcProjectState(){rigcalcProjectKeys().forEach(k=>localStorage.removeItem(k))}
+function applyRigCalcState(state){clearRigCalcProjectState();Object.entries(state||{}).forEach(([k,v])=>{if(typeof v==="string")localStorage.setItem(k,v)})}
+function wmNow(){return new Date().toISOString()}
+function wmDisplayTime(iso){if(!iso)return "—";try{return new Date(iso).toLocaleString()}catch(e){return iso}}
+function wmId(){return "well_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,7)}
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+function defaultManager(){
+  const id=wmId();
+  return{version:1,wells:[{id,name:"Default Well",createdAt:wmNow(),updatedAt:wmNow(),state:captureRigCalcState(),snapshots:[]}]};
+}
+function loadManager(){
+  try{const x=JSON.parse(localStorage.getItem(WELL_MANAGER_KEY)||"null");if(x&&Array.isArray(x.wells)&&x.wells.length)return x}catch(e){}
+  const x=defaultManager();localStorage.setItem(WELL_MANAGER_KEY,JSON.stringify(x));localStorage.setItem(WELL_ACTIVE_KEY,x.wells[0].id);return x;
+}
+let wellManager=loadManager();
+let activeWellId=localStorage.getItem(WELL_ACTIVE_KEY)||wellManager.wells[0]?.id;
+function activeWell(){let w=wellManager.wells.find(x=>x.id===activeWellId);if(!w&&wellManager.wells.length){w=wellManager.wells[0];activeWellId=w.id;localStorage.setItem(WELL_ACTIVE_KEY,activeWellId)}return w}
+function persistManager(){localStorage.setItem(WELL_MANAGER_KEY,JSON.stringify(wellManager));localStorage.setItem(WELL_ACTIVE_KEY,activeWellId)}
+function saveActiveWell(){const w=activeWell();if(!w)return;w.state=captureRigCalcState();w.updatedAt=wmNow();persistManager();renderWellManager()}
+function createSnapshot(label="Manual snapshot"){
+  saveActiveWell();const w=activeWell();if(!w)return;
+  w.snapshots=Array.isArray(w.snapshots)?w.snapshots:[];
+  w.snapshots.unshift({id:"snap_"+Date.now().toString(36),label,createdAt:wmNow(),state:JSON.parse(JSON.stringify(w.state||{}))});
+  w.snapshots=w.snapshots.slice(0,WELL_SNAPSHOT_LIMIT);persistManager();renderWellManager();
+}
+function loadWell(id){
+  if(id===activeWellId)return;saveActiveWell();const w=wellManager.wells.find(x=>x.id===id);if(!w)return;
+  activeWellId=id;persistManager();applyRigCalcState(w.state||{});location.reload();
+}
+function newWell(){
+  const name=prompt("New well name","New Well");if(!name)return;saveActiveWell();
+  const w={id:wmId(),name:name.trim()||"New Well",createdAt:wmNow(),updatedAt:wmNow(),state:{},snapshots:[]};
+  wellManager.wells.push(w);activeWellId=w.id;persistManager();applyRigCalcState({});location.reload();
+}
+function duplicateWell(id){
+  const src=wellManager.wells.find(x=>x.id===id);if(!src)return;
+  const name=prompt("Name for duplicated well",`${src.name} Copy`);if(!name)return;
+  wellManager.wells.push({id:wmId(),name:name.trim()||`${src.name} Copy`,createdAt:wmNow(),updatedAt:wmNow(),state:JSON.parse(JSON.stringify(src.state||{})),snapshots:[]});
+  persistManager();renderWellManager();
+}
+function renameWell(id){const w=wellManager.wells.find(x=>x.id===id);if(!w)return;const name=prompt("Rename well",w.name);if(!name)return;w.name=name.trim()||w.name;w.updatedAt=wmNow();persistManager();renderWellManager()}
+function deleteWell(id){
+  if(wellManager.wells.length<=1){alert("RigCalc needs at least one well file.");return}
+  const w=wellManager.wells.find(x=>x.id===id);if(!w)return;
+  if(!confirm(`Delete "${w.name}"? This cannot be undone unless it exists in an exported backup.`))return;
+  const deletingActive=id===activeWellId;wellManager.wells=wellManager.wells.filter(x=>x.id!==id);
+  if(deletingActive){activeWellId=wellManager.wells[0].id;persistManager();applyRigCalcState(wellManager.wells[0].state||{});location.reload();return}
+  persistManager();renderWellManager();
+}
+function restoreSnapshot(id){
+  const w=activeWell();if(!w)return;const s=(w.snapshots||[]).find(x=>x.id===id);if(!s)return;
+  if(!confirm(`Restore snapshot from ${wmDisplayTime(s.createdAt)}? Current unsaved changes will be replaced.`))return;
+  applyRigCalcState(s.state||{});w.state=JSON.parse(JSON.stringify(s.state||{}));w.updatedAt=wmNow();persistManager();location.reload();
+}
+function exportRigCalcBackup(){
+  saveActiveWell();
+  const payload={format:"RigCalc Pro Backup",version:"1.17",exportedAt:wmNow(),activeWellId,manager:wellManager};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  const safe=(activeWell()?.name||"RigCalc").replace(/[^a-z0-9_-]+/gi,"_");
+  a.download=`RigCalc_Backup_${safe}_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  if(q("wellBackupStatus"))q("wellBackupStatus").textContent=`Backup exported ${new Date().toLocaleString()}`;
+}
+async function importRigCalcBackup(file){
+  try{
+    const payload=JSON.parse(await file.text()),mgr=payload.manager;
+    if(!payload||payload.format!=="RigCalc Pro Backup"||!mgr||!Array.isArray(mgr.wells)||!mgr.wells.length)throw new Error();
+    if(!confirm(`Restore backup containing ${mgr.wells.length} well file(s)? This will replace the current Well Files library on this device.`))return;
+    wellManager=mgr;activeWellId=(payload.activeWellId&&mgr.wells.some(w=>w.id===payload.activeWellId))?payload.activeWellId:mgr.wells[0].id;
+    persistManager();applyRigCalcState(activeWell().state||{});location.reload();
+  }catch(err){alert("Could not import this RigCalc backup.");if(q("wellBackupStatus"))q("wellBackupStatus").textContent="Backup import failed."}
+}
+function renderWellManager(){
+  const w=activeWell();if(!w)return;
+  if(q("activeWellName"))q("activeWellName").textContent=w.name;
+  if(q("activeWellSaved"))q("activeWellSaved").textContent=`Last saved ${wmDisplayTime(w.updatedAt)}`;
+  if(q("wmActiveName"))q("wmActiveName").textContent=w.name;
+  if(q("wmLastSaved"))q("wmLastSaved").textContent=wmDisplayTime(w.updatedAt);
+  if(q("wmSnapshotCount"))q("wmSnapshotCount").textContent=(w.snapshots||[]).length;
+  if(q("wmWellCount"))q("wmWellCount").textContent=wellManager.wells.length;
+  const list=q("wellList");
+  if(list){list.innerHTML="";wellManager.wells.forEach(x=>{
+    const row=document.createElement("div");row.className="well-row"+(x.id===activeWellId?" active":"");
+    row.innerHTML=`<div class="well-row-main"><strong>${escapeHtml(x.name)}</strong><span>Updated ${escapeHtml(wmDisplayTime(x.updatedAt))}${x.id===activeWellId?" • ACTIVE":""}</span></div>
+      <div class="well-row-actions">${x.id===activeWellId?'<button data-well-save="'+x.id+'">Save</button>':'<button data-well-load="'+x.id+'">Open</button>'}
+      <button data-well-dup="${x.id}">Duplicate</button><button data-well-rename="${x.id}">Rename</button><button data-well-delete="${x.id}">Delete</button></div>`;
+    list.appendChild(row);
+  })}
+  const sl=q("snapshotList");
+  if(sl){sl.innerHTML="";const snaps=w.snapshots||[];
+    if(!snaps.length){sl.innerHTML='<div class="snapshot-row"><div class="snapshot-row-main"><strong>No snapshots yet</strong><span>Create one before major changes or updates.</span></div></div>'}
+    else snaps.forEach(s=>{const row=document.createElement("div");row.className="snapshot-row";row.innerHTML=`<div class="snapshot-row-main"><strong>${escapeHtml(s.label||"Snapshot")}</strong><span>${escapeHtml(wmDisplayTime(s.createdAt))}</span></div><div class="snapshot-row-actions"><button data-snapshot-restore="${s.id}">Restore</button></div>`;sl.appendChild(row)})
+  }
+}
+
+q("wellSaveNowBtn")?.addEventListener("click",()=>{saveActiveWell();if(q("wellBackupStatus"))q("wellBackupStatus").textContent="Active well saved."});
+q("wellNewBtn")?.addEventListener("click",newWell);
+q("wellSnapshotBtn")?.addEventListener("click",()=>createSnapshot("Manual snapshot"));
+q("wellExportBtn")?.addEventListener("click",exportRigCalcBackup);
+q("wellImportInput")?.addEventListener("change",e=>{const f=e.target.files?.[0];if(f)importRigCalcBackup(f);e.target.value=""});
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.dataset.wellLoad)loadWell(t.dataset.wellLoad);
+  if(t.dataset.wellSave)saveActiveWell();
+  if(t.dataset.wellDup)duplicateWell(t.dataset.wellDup);
+  if(t.dataset.wellRename)renameWell(t.dataset.wellRename);
+  if(t.dataset.wellDelete)deleteWell(t.dataset.wellDelete);
+  if(t.dataset.snapshotRestore)restoreSnapshot(t.dataset.snapshotRestore);
+});
+
+(function initWellManager(){
+  const w=activeWell();if(!w)return;
+  if(!w.state||!Object.keys(w.state).length){w.state=captureRigCalcState();w.updatedAt=wmNow();persistManager()}
+  renderWellManager();
+})();
