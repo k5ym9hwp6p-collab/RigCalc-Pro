@@ -262,3 +262,5 @@ body.education-on .edu-learn-btn{display:inline-flex}
 .well-import-label{display:flex;align-items:center;justify-content:center;padding:11px 12px;border-radius:11px;border:1px solid var(--line);background:var(--card2);font-weight:800;font-size:.76rem;cursor:pointer}
 .well-import-label input{display:none}
 @media(min-width:700px){.well-backup-actions{grid-template-columns:1fr 1fr}}
+
+.pump2-field.hidden{display:none!important}
