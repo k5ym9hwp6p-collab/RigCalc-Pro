@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.18</span>
+      <span class="eyebrow">BETA 1.19</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -70,7 +70,15 @@
       </div>
 
       
-        <button class="tool-card beta-core-card" data-open="wellmanager">
+        
+        <button class="tool-card beta-core-card" data-open="operations">
+          <svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M7 35h34"/><path d="M12 31V17l6-5 6 5v14"/><path d="M24 31V11l6-5 6 5v20"/>
+            <path d="M9 39h30"/><circle cx="35" cy="14" r="3"/>
+          </svg>
+          <span>Live Operations</span><small>Current operation, live status & event log</small>
+        </button>
+<button class="tool-card beta-core-card" data-open="wellmanager">
           <svg class="tool-line-icon" viewBox="0 0 48 48" aria-hidden="true">
             <path d="M8 12h12l3 4h17v22H8z"/><path d="M14 24h20M14 30h14"/>
           </svg>
@@ -583,6 +591,81 @@
     </section>
 
     
+    
+    <section id="operations" class="screen calculator">
+      <div class="screen-title"><button class="back">‹</button><div><h2>Live Operations</h2><p>One field view for the current rig operation</p></div></div>
+
+      <div class="ops-operation-selector">
+        <label>Current operation
+          <select id="opsMode">
+            <option value="drilling">Drilling</option>
+            <option value="circulating">Circulating</option>
+            <option value="tripout">Tripping Out</option>
+            <option value="tripin">Tripping In</option>
+            <option value="pill">Spotting Pill</option>
+            <option value="casing">Casing Run</option>
+            <option value="cement">Cementing</option>
+          </select>
+        </label>
+        <div id="opsModeBadge" class="ops-mode-badge">DRILLING</div>
+      </div>
+
+      <div class="profile-card ops-live-card">
+        <div class="section-heading">
+          <div><strong>Live rig status</strong><small>Uses the current Live Well Profile, active string and pump setup.</small></div>
+          <div id="opsLivePulse" class="ops-live-pulse"></div>
+        </div>
+        <div class="ops-live-grid">
+          <div><span>Active well</span><strong id="opsWell">—</strong></div>
+          <div><span>Bit depth</span><strong id="opsBit">—</strong><em>MD / TVD</em></div>
+          <div><span>String mode</span><strong id="opsString">—</strong></div>
+          <div><span>Pumps</span><strong id="opsPumps">—</strong></div>
+          <div><span>Combined flow</span><strong id="opsFlow">—</strong><em>m³/min</em></div>
+          <div><span>Total pumped</span><strong id="opsPumped">—</strong><em>m³</em></div>
+          <div><span>Live strokes</span><strong id="opsStrokes">—</strong></div>
+          <div><span>Elapsed</span><strong id="opsElapsed">—</strong></div>
+        </div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading"><div><strong>Operation focus</strong><small id="opsFocusSubtitle">What matters most for the selected operation.</small></div></div>
+        <div id="opsFocusGrid" class="ops-focus-grid"></div>
+        <div id="opsFocusActions" class="ops-focus-actions"></div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Circulation position</strong><small>Current fluid location and full-loop progress when circulation is active.</small></div>
+          <button id="opsOpenLiveWell">Open Live Well</button>
+        </div>
+        <div class="ops-live-grid">
+          <div><span>Returns front</span><strong id="opsFront">—</strong><em>MD / TVD</em></div>
+          <div><span>Bottoms-up remaining</span><strong id="opsBuRemain">—</strong><em>m³</em></div>
+          <div><span>Full circulation phase</span><strong id="opsFullPhase">—</strong></div>
+          <div><span>Full loop progress</span><strong id="opsFullProgress">—</strong><em>%</em></div>
+        </div>
+        <div class="ops-progress"><div id="opsProgressBar"></div></div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Mark event</strong><small>Captures time, bit depth, pump status, strokes and pumped volume.</small></div>
+          <button id="opsCustomEventBtn">+ Custom</button>
+        </div>
+        <div id="opsQuickEvents" class="ops-quick-events"></div>
+      </div>
+
+      <div class="profile-card">
+        <div class="section-heading">
+          <div><strong>Operations log</strong><small>Newest event first. Stored with the active well.</small></div>
+          <button id="opsClearEventsBtn">Clear log</button>
+        </div>
+        <div id="opsEventList" class="ops-event-list"></div>
+      </div>
+
+      <div class="disclaimer"><strong>Use boundary</strong><p>Live Operations organizes and records RigCalc calculations. It does not replace the drilling program, tour sheet, operator procedures, certified well-control practices or field instrumentation.</p></div>
+    </section>
+
     <section id="wellmanager" class="screen calculator">
       <div class="screen-title"><button class="back">‹</button><div><h2>Well Files & Job Manager</h2><p>Keep each well separate, saved and recoverable</p></div></div>
 

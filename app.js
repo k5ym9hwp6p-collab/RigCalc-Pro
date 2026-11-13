@@ -169,7 +169,7 @@ renderWP();
 
 // ===== Beta 1.12: preserve displacement across rate/output changes =====
 const LIVE_KEY="rigcalc-live-v12";
-let liveState={running:false,accumulatedMs:0,startedAt:null,baseStrokes:0,baseVolume:0,segmentSpm:0,segmentOutput:0};
+let liveState={running:false,accumulatedMs:0,startedAt:null,baseStrokes:0,baseVolume:0,segmentSpm:0,segmentOutput:0,segmentRate:0};
 try{const stored=JSON.parse(localStorage.getItem(LIVE_KEY)||"null");if(stored){
   liveState={...liveState,...stored};
   if(!Number.isFinite(stored.baseVolume)||!Number.isFinite(stored.baseStrokes)){
@@ -181,40 +181,23 @@ try{const stored=JSON.parse(localStorage.getItem(LIVE_KEY)||"null");if(stored){
 function saveLive(){localStorage.setItem(LIVE_KEY,JSON.stringify(liveState))}
 function circulationSnapshot(now=Date.now()){
  const dt=liveState.running&&liveState.startedAt!==null?Math.max(0,now-liveState.startedAt):0;
- const strokes=dt/60000*liveState.segmentSpm;
- return {ms:liveState.accumulatedMs+dt,strokes:liveState.baseStrokes+strokes,pumped:liveState.baseVolume+strokes*liveState.segmentOutput};
+ const minutes=dt/60000;
+ const rate=Number.isFinite(liveState.segmentRate)&&liveState.segmentRate>=0?liveState.segmentRate:(liveState.segmentSpm*liveState.segmentOutput);
+ const pumped=minutes*rate;
+ const eqOutput=liveState.segmentOutput>0?liveState.segmentOutput:wpPumpState().eqOutput;
+ const strokes=eqOutput>0?pumped/eqOutput:0;
+ return {ms:liveState.accumulatedMs+dt,strokes:liveState.baseStrokes+strokes,pumped:liveState.baseVolume+pumped};
 }
 function checkpointCirculation(){
- const snap=circulationSnapshot();liveState.accumulatedMs=snap.ms;liveState.baseStrokes=snap.strokes;liveState.baseVolume=snap.pumped;
- liveState.startedAt=liveState.running?Date.now():null;liveState.segmentSpm=Math.max(0,n("wp_spm"));liveState.segmentOutput=Math.max(0,n("wp_output"));saveLive();
+ const snap=circulationSnapshot(),pump=wpPumpState();
+ liveState.accumulatedMs=snap.ms;liveState.baseStrokes=snap.strokes;liveState.baseVolume=snap.pumped;
+ liveState.startedAt=liveState.running?Date.now():null;
+ liveState.segmentSpm=pump.totalSpm;liveState.segmentOutput=pump.eqOutput;liveState.segmentRate=pump.totalRate;
+ saveLive();
 }
 function currentLiveMs(){return circulationSnapshot().ms}
 function formatClock(ms){const sec=Math.floor(ms/1000),h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return h>0?`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`:`${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`}
-function setLiveButtons(){const running=liveState.running;q("liveStartBtn").disabled=running;q("livePauseBtn").disabled=!running;q("liveStateText").textContent=running&&n("wp_spm")>0?"Circulating":"Paused / pumps off";q("livePulse").classList.toggle("running",running&&n("wp_spm")>0);q("livePulse").classList.toggle("paused",!running||n("wp_spm")<=0)}
-function getLiveComputed(){const snap=circulationSnapshot(),ms=snap.ms,minutes=ms/60000,spm=Math.max(0,n("wp_spm")),output=Math.max(0,n("wp_output")),strokes=snap.strokes,pumped=snap.pumped,bit=Math.max(0,n("wp_bit")),total=totalAnnulusToBit(bit),used=Math.min(total,pumped),front=frontMDFromPumped(bit,used),remaining=Math.max(0,total-used),remStrokes=output>0?remaining/output:Infinity,remTime=spm>0?remStrokes/spm:Infinity;return{ms,minutes,spm,output,strokes,pumped,bit,total,used,front,remaining,remStrokes,remTime}}
-function renderLive(){const c=getLiveComputed();q("liveElapsed").textContent=formatClock(c.ms);q("liveStrokes").textContent=c.strokes.toFixed(0);q("liveVolume").textContent=c.pumped.toFixed(2)+" m³";q("liveFront").textContent=c.front.toFixed(0)+" m MD";q("liveDepth").textContent=`${c.front.toFixed(0)} MD / ${interpTVD(c.front).toFixed(0)} TVD`;q("liveEta").textContent=c.remaining<=0.0001?"At surface":(liveState.running&&Number.isFinite(c.remTime)?c.remTime.toFixed(1)+" min":"Pumps Off — ETA paused");if(liveState.running||liveState.accumulatedMs>0){q("wp_bit_md").textContent=c.bit.toFixed(0);q("wp_front_md").textContent=c.front.toFixed(0);q("wp_front_tvd").textContent=interpTVD(c.front).toFixed(0);q("wp_rem_vol").textContent=c.remaining.toFixed(2);q("wp_rem_strokes").textContent=c.remStrokes.toFixed(0);q("wp_rem_time").textContent=c.remTime.toFixed(1);plotWell(c.bit,c.front)}}
-q("liveStartBtn").onclick=()=>{if(!liveState.running){checkpointCirculation();liveState.running=true;liveState.startedAt=Date.now();saveLive();setLiveButtons();renderLive()}};
-q("livePauseBtn").onclick=()=>{if(liveState.running){checkpointCirculation();liveState.running=false;liveState.startedAt=null;saveLive();setLiveButtons();renderLive()}};
-function resetLiveCirculation(){liveState={running:false,accumulatedMs:0,startedAt:null,baseStrokes:0,baseVolume:0,segmentSpm:Math.max(0,n("wp_spm")),segmentOutput:Math.max(0,n("wp_output"))};saveLive();setLiveButtons();renderLive()}
-q("liveResetBtn").onclick=()=>{resetLiveCirculation();updateProfile()};
-const oldWpReset=q("wpResetBtn");if(oldWpReset)oldWpReset.addEventListener("click",resetLiveCirculation);
-["wp_output","wp_spm"].forEach(id=>q(id).addEventListener("input",()=>{checkpointCirculation();setLiveButtons();renderLive()}));
-q("wp_bit").addEventListener("input",()=>renderLive());
-saveLive();setLiveButtons();renderLive();setInterval(()=>renderLive(),500);
-
-// ===== RigCalc Pro v1.3: Fluid Tracker =====
-const FLUID_KEY="rigcalc-fluidtracker-v13";
-let fluidEvents=[];
-try{fluidEvents=JSON.parse(localStorage.getItem(FLUID_KEY)||"[]")||[]}catch(e){fluidEvents=[]}
-function saveFluids(){localStorage.setItem(FLUID_KEY,JSON.stringify(fluidEvents))}
-function liveTotalPumpedVolume(){return getLiveComputed().pumped}
-
-// Approximate total internal drill-string volume using user-entered average pipe capacity.
-function pipeInternalVolumeToBit(bitMD,pipeCap){return Math.max(0,bitMD*pipeCap)}
-function mdDownPipeFromVolume(bitMD,pipeCap,vol){
-  if(pipeCap<=0)return 0;
-  return Math.min(bitMD,Math.max(0,vol/pipeCap));
-}
+function setLiveButtons(){const running=liveState.running,pump=wpPumpState(),flowing=pump.totalRate>0;q("liveStartBtn").disabled=running;q("livePauseBtn").disabled=!running;q("liveStateText").textContent=running&&flowing?"Circulating":"Paused / pumps off";q("livePulse").classList.toggle("running",running&&flowing);q("livePulse").classList.toggle("paused",!running||!flowing)}
 function annulusMDUpFromBit(bitMD,annVol){
   return frontMDFromPumped(bitMD,annVol);
 }
@@ -1572,3 +1555,129 @@ document.addEventListener("click",e=>{
 });
 loadWpPumpSetup();
 renderWpPumpSetup();
+
+
+// ===== RigCalc Pro Beta 1.19: Live Operations Mode =====
+const OPS_MODE_KEY="rigcalc-ops-mode-v119";
+const OPS_EVENTS_KEY="rigcalc-ops-events-v119";
+let opsMode=localStorage.getItem(OPS_MODE_KEY)||"drilling";
+let opsEvents=[];
+try{opsEvents=JSON.parse(localStorage.getItem(OPS_EVENTS_KEY)||"[]")||[]}catch(e){opsEvents=[]}
+
+const OPS_CONFIG={
+ drilling:{label:"DRILLING",subtitle:"Drilling progress, pumps, hole cleaning and live well position.",events:["Connection","Sweep pumped","Drilling resumed"],actions:[["Live Well","wellprofile"],["Hydraulics","holecleaning"],["Bit Hydraulics","bithydraulics"]]},
+ circulating:{label:"CIRCULATING",subtitle:"Returns front, bottoms-up and full-circulation progress.",events:["Circulation started","Bottoms-up at surface","Full circulation complete"],actions:[["Live Well","wellprofile"],["Hydraulics","holecleaning"]]},
+ tripout:{label:"TRIPPING OUT",subtitle:"String position, Trip Pill and dry-pipe planning.",events:["Trip out started","Trip pill spotted","Wet pipe"],actions:[["Trip Pill","trippill"],["Live Well","wellprofile"]]},
+ tripin:{label:"TRIPPING IN",subtitle:"Current depth and active string geometry while running in hole.",events:["Trip in started","Connection","On bottom"],actions:[["Live Well","wellprofile"],["Trip Sheet","tripsheet"]]},
+ pill:{label:"SPOTTING PILL",subtitle:"Pill volume, string travel and final placement.",events:["Pill pumping started","Pill at bit","Pill spotted"],actions:[["Trip Pill","trippill"],["Live Well","wellprofile"]]},
+ casing:{label:"CASING RUN",subtitle:"Casing string mode, depth and circulation status.",events:["Casing run started","Casing circulating","Casing on bottom"],actions:[["Live Well","wellprofile"],["Cementing","cementing"]]},
+ cement:{label:"CEMENTING",subtitle:"Cement program and live pumping stages.",events:["Cement job started","Spacer started","Plug bumped"],actions:[["Cementing","cementing"],["Live Well","wellprofile"]]}
+};
+function opsSaveEvents(){localStorage.setItem(OPS_EVENTS_KEY,JSON.stringify(opsEvents))}
+function opsOpenScreen(id){
+  const s=q(id);if(!s)return;
+  document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
+  s.classList.add("active");scrollTo(0,0);
+}
+function opsCurrentData(){
+  const live=getLiveComputed(),pump=wpPumpState(),bit=Math.max(0,n("wp_bit")),tvd=interpTVD(bit);
+  let full={phase:"—",progress:0};
+  try{full=fullCircState()}catch(e){}
+  return{live,pump,bit,tvd,full};
+}
+function opsFocusItems(){
+  const d=opsCurrentData(),c=OPS_CONFIG[opsMode]||OPS_CONFIG.drilling;
+  const base={
+    drilling:[
+      ["Bit depth",`${d.bit.toFixed(0)} MD / ${d.tvd.toFixed(0)} TVD`,"Current Live Well depth"],
+      ["Flow",`${d.pump.totalRate.toFixed(3)} m³/min`,`${d.pump.count} pump${d.pump.count===2?"s":""} active`],
+      ["Returns front",`${d.live.front.toFixed(0)} MD`,"Current calculated returns position"],
+      ["Hole cleaning",q("hcOverall")?.textContent||"Open Hydraulics","Current screening result"]
+    ],
+    circulating:[
+      ["Pumped",`${d.live.pumped.toFixed(2)} m³`,"Since Live Circulate reset"],
+      ["Bottoms-up left",`${d.live.remaining.toFixed(2)} m³`,Number.isFinite(d.live.remTime)?`${d.live.remTime.toFixed(1)} min`:"—"],
+      ["Full circulation",`${(d.full.progress||0).toFixed(0)}%`,d.full.phase||"—"],
+      ["Returns front",`${d.live.front.toFixed(0)} MD / ${interpTVD(d.live.front).toFixed(0)} TVD`,""]
+    ],
+    tripout:[
+      ["String",activeStringLabel(),"Active capacity model"],
+      ["Bit depth",`${d.bit.toFixed(0)} MD`,"Update as pipe is pulled"],
+      ["Trip Pill dry stands",q("r_pill_dry_stands")?.textContent||"—","From Trip Pill module"],
+      ["Trip Pill drop",`${q("r_pill_drop_md")?.textContent||"—"} m`,"Static balance estimate"]
+    ],
+    tripin:[
+      ["String",activeStringLabel(),"Active capacity model"],
+      ["Current depth",`${d.bit.toFixed(0)} MD / ${d.tvd.toFixed(0)} TVD`,""],
+      ["Flow",`${d.pump.totalRate.toFixed(3)} m³/min`,"When circulating"],
+      ["Annular remaining",`${d.live.remaining.toFixed(2)} m³`,"To returns surface"]
+    ],
+    pill:[
+      ["Pill volume",`${n("pill_volume").toFixed(2)} m³`,"Trip Pill input"],
+      ["Pill density",`${n("pill_density").toFixed(0)} kg/m³`,""],
+      ["Dry-pipe drop",`${q("r_pill_drop_md")?.textContent||"—"} m`,""],
+      ["Active string",activeStringLabel(),"String capacity source"]
+    ],
+    casing:[
+      ["String mode",activeStringLabel(),stringMode==="casing"?"Casing model active":"Switch to Casing Run in Live Well"],
+      ["Current depth",`${d.bit.toFixed(0)} MD`,""],
+      ["Combined flow",`${d.pump.totalRate.toFixed(3)} m³/min`,""],
+      ["String volume",`${q("stringTotalVol")?.textContent||"—"} m³`,"Internal modeled volume"]
+    ],
+    cement:[
+      ["Live stage",q("cemLiveStage")?.textContent||"Open Cementing",""],
+      ["Total pumped",q("cemLiveTotal")?.textContent||"—","Cement module"],
+      ["Remaining",q("cemLiveRemain")?.textContent||"—","To programmed bump"],
+      ["Front depth",q("cemFrontMd")?.textContent||"—","Cement placement model"]
+    ]
+  };
+  return base[opsMode]||base.drilling;
+}
+function renderOpsFocus(){
+  const cfg=OPS_CONFIG[opsMode]||OPS_CONFIG.drilling;
+  if(q("opsMode"))q("opsMode").value=opsMode;
+  if(q("opsModeBadge"))q("opsModeBadge").textContent=cfg.label;
+  if(q("opsFocusSubtitle"))q("opsFocusSubtitle").textContent=cfg.subtitle;
+  const g=q("opsFocusGrid");if(g){g.innerHTML="";opsFocusItems().forEach(x=>{const d=document.createElement("div");d.className="ops-focus-item";d.innerHTML=`<span>${escapeHtml(x[0])}</span><strong>${escapeHtml(x[1])}</strong><small>${escapeHtml(x[2]||"")}</small>`;g.appendChild(d)})}
+  const a=q("opsFocusActions");if(a){a.innerHTML="";cfg.actions.forEach(([label,id])=>{const b=document.createElement("button");b.textContent=label;b.onclick=()=>opsOpenScreen(id);a.appendChild(b)})}
+  const qe=q("opsQuickEvents");if(qe){qe.innerHTML="";cfg.events.forEach(label=>{const b=document.createElement("button");b.textContent=label;b.onclick=()=>opsMarkEvent(label);qe.appendChild(b)})}
+}
+function opsMarkEvent(label){
+  const d=opsCurrentData();
+  const evt={id:"evt_"+Date.now().toString(36),label,mode:opsMode,at:new Date().toISOString(),bitMd:d.bit,bitTvd:d.tvd,pumped:d.live.pumped,strokes:d.live.strokes,flow:d.pump.totalRate,pumps:d.pump.count,string:activeStringLabel()};
+  opsEvents.unshift(evt);opsEvents=opsEvents.slice(0,150);opsSaveEvents();renderOpsEvents();
+}
+function renderOpsEvents(){
+  const list=q("opsEventList");if(!list)return;list.innerHTML="";
+  if(!opsEvents.length){list.innerHTML='<div class="ops-event-row"><div><strong>No events marked yet</strong><span>Use the quick event buttons above to start a field timeline.</span></div></div>';return}
+  opsEvents.forEach(e=>{
+    const row=document.createElement("div");row.className="ops-event-row";
+    row.innerHTML=`<div><strong>${escapeHtml(e.label)}</strong><span>${escapeHtml(new Date(e.at).toLocaleString())} • ${Number(e.bitMd).toFixed(0)} MD / ${Number(e.bitTvd).toFixed(0)} TVD • ${Number(e.pumped).toFixed(2)} m³ pumped • ${Number(e.strokes).toFixed(0)} strokes • ${Number(e.flow).toFixed(3)} m³/min</span></div><button data-ops-del="${e.id}">✕</button>`;
+    list.appendChild(row);
+  });
+}
+function renderOperations(){
+  if(!q("operations"))return;
+  const d=opsCurrentData(),well=(typeof activeWell==="function"&&activeWell())?activeWell().name:"Default Well";
+  q("opsWell").textContent=well;
+  q("opsBit").textContent=`${d.bit.toFixed(0)} / ${d.tvd.toFixed(0)}`;
+  q("opsString").textContent=activeStringLabel();
+  q("opsPumps").textContent=`${d.pump.count} Pump${d.pump.count===2?"s":""}`;
+  q("opsFlow").textContent=d.pump.totalRate.toFixed(3);
+  q("opsPumped").textContent=d.live.pumped.toFixed(2);
+  q("opsStrokes").textContent=d.live.strokes.toFixed(0);
+  q("opsElapsed").textContent=formatClock(d.live.ms);
+  q("opsFront").textContent=`${d.live.front.toFixed(0)} / ${interpTVD(d.live.front).toFixed(0)}`;
+  q("opsBuRemain").textContent=d.live.remaining.toFixed(2);
+  q("opsFullPhase").textContent=d.full.phase||"—";
+  q("opsFullProgress").textContent=Number(d.full.progress||0).toFixed(0);
+  q("opsProgressBar").style.width=`${Math.max(0,Math.min(100,Number(d.full.progress)||0))}%`;
+  q("opsLivePulse").classList.toggle("running",liveState.running&&d.pump.totalRate>0);
+  renderOpsFocus();
+}
+q("opsMode")?.addEventListener("change",e=>{opsMode=e.target.value;localStorage.setItem(OPS_MODE_KEY,opsMode);renderOperations()});
+q("opsOpenLiveWell")?.addEventListener("click",()=>opsOpenScreen("wellprofile"));
+q("opsCustomEventBtn")?.addEventListener("click",()=>{const s=prompt("Event description");if(s?.trim())opsMarkEvent(s.trim())});
+q("opsClearEventsBtn")?.addEventListener("click",()=>{if(confirm("Clear the Live Operations event log?")){opsEvents=[];opsSaveEvents();renderOpsEvents()}});
+document.addEventListener("click",e=>{if(e.target.dataset.opsDel){opsEvents=opsEvents.filter(x=>x.id!==e.target.dataset.opsDel);opsSaveEvents();renderOpsEvents()}});
+renderOpsEvents();renderOperations();setInterval(renderOperations,1000);

@@ -1,15 +1,45 @@
-RigCalc Pro Beta 1.18 — Dual Pump Live Well
+RigCalc Pro Beta 1.19 — Live Operations Mode
 
-Built from Beta 1.17.
+Built from Beta 1.18.
 
-Live Well Profile:
-- Select 1 Pump or 2 Pumps.
-- Pump 1 has separate output (m³/stk) and SPM.
-- Pump 2 appears only in 2-pump mode and has separate output and SPM.
-- Combined rate = P1 output × P1 SPM + P2 output × P2 SPM.
-- Pump 2 settings remain stored when switching back to one pump.
-- Combined rate is shown in Live Well.
-- Linked circulation / full-circulation / hydraulics calculations use the summed volumetric flow where applicable.
+New Live Operations dashboard
+- Operation selector:
+  • Drilling
+  • Circulating
+  • Tripping Out
+  • Tripping In
+  • Spotting Pill
+  • Casing Run
+  • Cementing
+- Live status:
+  • active well
+  • bit MD/TVD
+  • active Drill String / Casing Run model
+  • 1- or 2-pump setup
+  • combined m³/min
+  • pumped volume
+  • live strokes
+  • elapsed circulation time
+- Operation-specific focus cards and shortcuts.
+- Live returns-front / bottoms-up / full-circulation summary.
 
-Note:
-Volume and time calculations use actual combined m³/min. Existing stroke-style displays retain an equivalent combined-stroke basis for compatibility.
+Event Markers
+- Quick event buttons change with selected operation.
+- Custom event entry.
+- Each event captures:
+  • date/time
+  • operation
+  • bit MD/TVD
+  • total pumped volume
+  • live strokes
+  • combined pump rate
+  • pump count
+  • active string model
+- Events persist locally and are included in Well Files / backup because they use RigCalc project storage.
+
+Beta 1.18 correction
+- Circulate Live now uses the actual combined volumetric rate when two pumps are selected.
+- Pump changes are checkpointed correctly so changing SPM/output while circulating does not rewrite previously pumped volume.
+
+Important
+Live Operations is an organizational / calculation view. It does not replace approved drilling programs, operator procedures, official tour records, cement records, certified well-control procedures or field instrumentation.
