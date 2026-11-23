@@ -16,7 +16,7 @@
   <header class="app-header hero-header">
     <div class="hero-shade"></div>
     <div class="hero-content">
-      <span class="eyebrow">BETA 1.19.4</span>
+      <span class="eyebrow">BETA 1.19.5</span>
       <h1><span>RigCalc</span> <b>Pro</b></h1>
       <div class="hero-rule"></div>
       <div class="hero-tagline">DRILL SMARTER <i>│</i> WORK SAFER <i>│</i> GET RESULTS</div>
@@ -1033,33 +1033,30 @@
       </div>
 
 
-      <div class="profile-card">
-        <div class="section-heading">
-          <div><strong>String modeling</strong><small>Switch between separate Drill String and Casing Run models. Each mode saves its own components and dimensions.</small></div>
-          <button id="addStringBtn">+ Add</button>
+      
+      <div class="profile-card" id="stringModelCard">
+        <div class="section-heading"><div><strong>String modeling</strong><small>Build the Drill String or Casing Run model used by Live Well calculations.</small></div></div>
+        <div class="string-mode-clean">
+          <button type="button" id="stringModeDrill" class="active">Drill String</button>
+          <button type="button" id="stringModeCasing">Casing Run</button>
         </div>
-        <div class="string-mode-switch" role="group" aria-label="String model mode">
-          <button id="stringModeDrill" class="string-mode-btn active" data-string-mode="drill">Drill String</button>
-          <button id="stringModeCasing" class="string-mode-btn" data-string-mode="casing">Casing Run</button>
-        </div>
-        <div id="bhaIntro" class="bha-intro"><label><input id="bhaEnabled" type="checkbox" checked> Automatic string depths</label><p class="live-note">Add string sections from top to bottom, each with its own ID and OD. Choose Fixed length for DP, HWDP, collars or BHA; Fixed To MD for a section ending at a known depth; and exactly one Auto-fill for the remaining pipe. Place Auto-fill below all Fixed To MD boundaries. Sections below Auto-fill follow the bit.</p></div>
-        <div id="stringModelStatus" class="string-model-status"><span>CALCULATION SOURCE</span><strong id="stringModelSource">—</strong></div><p id="bhaSummary" class="live-note"></p><p id="bhaError" class="bha-error" role="alert"></p>
-        <div class="string-mode-info">
-          <div><span>Active model</span><strong id="stringModeLabel">Drill String</strong></div>
-          <div><span>Used by fluid tracking</span><strong id="stringTrackingSource">Drill String</strong></div>
-        </div>
+        <div class="string-source-clean"><span>CALCULATION SOURCE</span><strong id="stringModelSource">Drill String · automatic depths</strong></div>
+        <label class="flow-toggle string-auto-toggle"><input id="stringAutoDepths" type="checkbox" checked> Automatic depths from current bit depth</label>
+        <p id="stringModeNote" class="live-note"></p>
         <div class="table-wrap">
-          <table id="stringTable">
-            <thead><tr><th id="stringComponentHead">Component</th><th>From MD</th><th>To MD</th><th>ID mm</th><th>Internal m³</th><th></th></tr></thead>
+          <table id="stringModelTable">
+            <thead><tr><th>Component</th><th>Length m</th><th>ID mm</th><th>OD mm</th><th>From MD</th><th>To MD</th><th>Internal m³</th><th></th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
-        <div class="string-summary">
-          <div><span id="stringVolumeLabel">Modelled internal volume to bit</span><strong id="stringTotalVol">—</strong><em>m³</em></div>
+        <div class="string-clean-actions"><button type="button" id="stringAddSectionBtn">+ Add section</button><button type="button" id="stringSaveBtn">Save model</button></div>
+        <div class="profile-summary">
+          <div><span>Active model</span><strong id="stringModeLabel">Drill String</strong><em></em></div>
+          <div><span>Total internal volume</span><strong id="stringTotalVol">—</strong><em>m³</em></div>
           <div><span>Strokes surface → bottom</span><strong id="stringBitStrokes">—</strong><em>strokes</em></div>
           <div><span>Time surface → bottom</span><strong id="stringBitTime">—</strong><em>min</em></div>
         </div>
-        <p id="stringModeNote" class="live-note">Drill String mode is intended for DP / HWDP / collars / BHA. Switching modes does not overwrite the other model.</p>
+        <p id="stringModelError" class="bha-error" role="alert"></p>
       </div></details>
 
       <div class="disclaimer danger"><strong>Operational limitation</strong><p>The returns-front position is an annular-volume estimate. Real transport can differ because of compressibility, cuttings loading, washout, temperature, multiphase flow, surge/swab and changing geometry. Do not use this display as a substitute for pit, flow, gas, MPD or well-control monitoring.</p></div>
