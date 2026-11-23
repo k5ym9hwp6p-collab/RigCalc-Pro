@@ -109,50 +109,6 @@ if(!Array.isArray(bhaState.sections)){
  bhaState.sections=[{...bhaState.pipe,behavior:'fill'},...(bhaState.parts||[]).map(p=>({...p,behavior:'fixed'}))];
  localStorage.setItem(BHA_KEY,JSON.stringify(bhaState));
 }
-// Beta 1.19.1: normalize the automatic drill-string model so visible rows and calculations stay in sync.
-(function repairBhaModel(){
- const manual=Array.isArray(drillStringData)?drillStringData:[];
- const odFor=(r)=>{
-   if(Number(r.od)>0)return Number(r.od);
-   const mid=((Number(r.from)||0)+(Number(r.to)||0))/2;
-   const h=(wpData.holes||[]).find(x=>mid>=Number(x.from)&&mid<=Number(x.to));
-   return Math.max((Number(r.id)||0)+1,Number(h?.od)||127);
- };
- let rows=Array.isArray(bhaState.sections)?bhaState.sections:[];
- rows=rows.filter(r=>r&&typeof r==="object").map(r=>({
-   name:String(r.name||"String section"),
-   behavior:["fill","fixed","boundary"].includes(r.behavior)?r.behavior:"fixed",
-   length:Number(r.length)||0,
-   toMD:Number(r.toMD)||0,
-   id:Number(r.id)||0,
-   od:Number(r.od)||0
- }));
- const validBasic=rows.length>0&&rows.every(r=>r.id>0&&r.od>r.id);
- const fillCount=rows.filter(r=>r.behavior==="fill").length;
- if(!validBasic||fillCount!==1){
-   if(manual.length){
-     rows=manual.map((r,i)=>({
-       name:String(r.name||`Section ${i+1}`),
-       behavior:i===0?"fill":"fixed",
-       length:i===0?0:Math.max(.1,(Number(r.to)||0)-(Number(r.from)||0)),
-       toMD:0,
-       id:Math.max(.1,Number(r.id)||1),
-       od:odFor(r)
-     }));
-   }else{
-     rows=[
-       {name:"Drill Pipe",behavior:"fill",length:0,toMD:0,id:108.6,od:127},
-       {name:"BHA / Tools",behavior:"fixed",length:78,toMD:0,id:50.8,od:165}
-     ];
-   }
-   bhaState.sections=rows;
-   bhaState.enabled=true;
-   localStorage.setItem(BHA_KEY,JSON.stringify(bhaState));
- }else{
-   bhaState.sections=rows;
- }
-})();
-
 function autoBhaActive(){return !!bhaState?.enabled&&stringMode==='drill';}
 function currentBhaSections(bit=Math.max(0,n('wp_bit'))){return BhaMath.sections(bhaState,bit);}
 function annulusSections(bit=Math.max(0,n('wp_bit'))){if(!autoBhaActive())return wpData.holes;try{return BhaMath.annulus(wpData.holes,currentBhaSections(bit),bit);}catch(e){return [];}}
@@ -198,18 +154,18 @@ function loadWpPumpSetup(){
   }catch(e){}
 }
 function updateProfile(){const bit=Math.max(0,n("wp_bit")),pump=wpPumpState(),out=pump.eqOutput,spm=pump.totalSpm,mode=q("wp_mode").value,pumped=mode==="strokes"?Math.max(0,n("wp_strokes"))*out:Math.max(0,n("wp_minutes"))*pump.totalRate,total=totalAnnulusToBit(bit),used=Math.min(total,pumped),front=frontMDFromPumped(bit,used),rem=Math.max(0,total-used),rs=out?rem/out:0,rt=pump.totalRate?rem/pump.totalRate:0;q("wp_bit_md").textContent=bit.toFixed(0);q("wp_front_md").textContent=front.toFixed(0);q("wp_front_tvd").textContent=interpTVD(front).toFixed(0);q("wp_rem_vol").textContent=rem.toFixed(2);q("wp_rem_strokes").textContent=rs.toFixed(0);q("wp_rem_time").textContent=rt.toFixed(1);renderWpPumpSetup();plotWell(bit,front)}
-function renderSurvey(){const tb=q("surveyTable").querySelector("tbody");tb.innerHTML="";wpData.survey.sort((a,b)=>a.md-b.md).forEach((r,i)=>{const tr=document.createElement("tr");tr.innerHTML=`<td><input data-sv="${i}" data-k="md" type="number" value="${r.md}"></td><td><input data-sv="${i}" data-k="tvd" type="number" value="${r.tvd}"></td><td><button data-del-sv="${i}">✕</button></td>`;tb.appendChild(tr)})}
-function renderHoles(){const tb=q("holeTable").querySelector("tbody");tb.innerHTML="";wpData.holes.sort((a,b)=>a.from-b.from).forEach((r,i)=>{const tr=document.createElement("tr");tr.innerHTML=`<td><input data-hole="${i}" data-k="from" type="number" value="${r.from}"></td><td><input data-hole="${i}" data-k="to" type="number" value="${r.to}"></td><td><input data-hole="${i}" data-k="id" type="number" value="${r.id}"></td><td><input data-hole="${i}" data-k="od" type="number" value="${r.od}"></td><td><input data-hole="${i}" data-k="over" type="number" step="1" value="${Number(r.over)||0}"></td><td><button data-del-hole="${i}">✕</button></td>`;tb.appendChild(tr)})}
+function renderSurvey(){const table=q("surveyTable"),tb=table?.querySelector("tbody");if(!tb)return;tb.innerHTML="";wpData.survey.sort((a,b)=>a.md-b.md).forEach((r,i)=>{const tr=document.createElement("tr");tr.innerHTML=`<td><input data-sv="${i}" data-k="md" type="number" value="${r.md}"></td><td><input data-sv="${i}" data-k="tvd" type="number" value="${r.tvd}"></td><td><button data-del-sv="${i}">✕</button></td>`;tb.appendChild(tr)})}
+function renderHoles(){const table=q("holeTable"),tb=table?.querySelector("tbody");if(!tb)return;tb.innerHTML="";wpData.holes.sort((a,b)=>a.from-b.from).forEach((r,i)=>{const tr=document.createElement("tr");tr.innerHTML=`<td><input data-hole="${i}" data-k="from" type="number" value="${r.from}"></td><td><input data-hole="${i}" data-k="to" type="number" value="${r.to}"></td><td><input data-hole="${i}" data-k="id" type="number" value="${r.id}"></td><td><input data-hole="${i}" data-k="od" type="number" value="${r.od}"></td><td><input data-hole="${i}" data-k="over" type="number" step="1" value="${Number(r.over)||0}"></td><td><button data-del-hole="${i}">✕</button></td>`;tb.appendChild(tr)})}
 function renderFormationPressures(){}
 function renderWP(){renderSurvey();renderHoles();updateProfile()}
 document.addEventListener("change",e=>{const a=e.target.dataset;if(a.sv!==undefined){wpData.survey[+a.sv][a.k]=+e.target.value||0;saveWP();renderWP();if(typeof updateHoleCleaning==="function")updateHoleCleaning()}if(a.hole!==undefined){wpData.holes[+a.hole][a.k]=+e.target.value||0;saveWP();renderWP();if(typeof updateHoleCleaning==="function")updateHoleCleaning()}if(a.form!==undefined){wpData.formations[+a.form][a.k]=a.k==="name"?e.target.value:(+e.target.value||0);saveWP();renderWP()}if(e.target.id&&e.target.id.startsWith("wp_"))updateProfile()});
 document.addEventListener("input",e=>{if(e.target.id&&["wp_bit","wp_output","wp_spm","wp_strokes","wp_minutes"].includes(e.target.id))updateProfile()});
 document.addEventListener("click",e=>{if(e.target.dataset.delSv!==undefined){wpData.survey.splice(+e.target.dataset.delSv,1);saveWP();renderWP()}if(e.target.dataset.delHole!==undefined){wpData.holes.splice(+e.target.dataset.delHole,1);saveWP();renderWP()}if(e.target.dataset.delForm!==undefined){wpData.formations.splice(+e.target.dataset.delForm,1);saveWP();renderWP()}});
-q("addSurveyBtn").onclick=()=>{const last=wpData.survey[wpData.survey.length-1]||{md:0,tvd:0};wpData.survey.push({md:last.md+100,tvd:last.tvd+80});saveWP();renderWP()};
-q("addHoleBtn").onclick=()=>{const last=wpData.holes[wpData.holes.length-1]||{to:0,id:171.45,od:127};wpData.holes.push({from:last.to,to:last.to+500,id:last.id,od:last.od,over:Number(last.over)||0});saveWP();renderWP()};
+if(q("addSurveyBtn"))q("addSurveyBtn").onclick=()=>{const last=wpData.survey[wpData.survey.length-1]||{md:0,tvd:0};wpData.survey.push({md:last.md+100,tvd:last.tvd+80});saveWP();renderWP()};
+if(q("addHoleBtn"))q("addHoleBtn").onclick=()=>{const last=wpData.holes[wpData.holes.length-1]||{to:0,id:171.45,od:127};wpData.holes.push({from:last.to,to:last.to+500,id:last.id,od:last.od,over:Number(last.over)||0});saveWP();renderWP()};
 if(q("addFormationBtn"))q("addFormationBtn").onclick=()=>{};
 q("wpResetBtn").onclick=()=>{q("wp_strokes").value=0;q("wp_minutes").value=0;updateProfile()};
-renderWP();
+if(verifyWellSetupReady())renderWP();
 
 // ===== Beta 1.12: preserve displacement across rate/output changes =====
 const LIVE_KEY="rigcalc-live-v12";
@@ -361,6 +317,52 @@ let drillStringData=loadStringRows(STRING_DRILL_KEY,STRING_DEFAULTS);
 let casingStringData=loadStringRows(STRING_CASING_KEY,CASING_DEFAULTS);
 let stringMode=localStorage.getItem(STRING_MODE_KEY)==="casing"?"casing":"drill";
 let stringData=stringMode==="casing"?casingStringData:drillStringData;
+function repairBhaModel(){
+ const manual=Array.isArray(drillStringData)?drillStringData:[];
+ const odFor=(r)=>{
+   if(Number(r.od)>0)return Number(r.od);
+   const mid=((Number(r.from)||0)+(Number(r.to)||0))/2;
+   const h=(wpData.holes||[]).find(x=>mid>=Number(x.from)&&mid<=Number(x.to));
+   return Math.max((Number(r.id)||0)+1,Number(h?.od)||127);
+ };
+ let rows=Array.isArray(bhaState.sections)?bhaState.sections:[];
+ rows=rows.filter(r=>r&&typeof r==="object").map(r=>({
+   name:String(r.name||"String section"),
+   behavior:["fill","fixed","boundary"].includes(r.behavior)?r.behavior:"fixed",
+   length:Number(r.length)||0,
+   toMD:Number(r.toMD)||0,
+   id:Number(r.id)||0,
+   od:Number(r.od)||0
+ }));
+ const validBasic=rows.length>0&&rows.every(r=>r.id>0&&r.od>r.id);
+ const fillCount=rows.filter(r=>r.behavior==="fill").length;
+ if(!validBasic||fillCount!==1){
+   if(manual.length){
+     rows=manual.map((r,i)=>({
+       name:String(r.name||`Section ${i+1}`),
+       behavior:i===0?"fill":"fixed",
+       length:i===0?0:Math.max(.1,(Number(r.to)||0)-(Number(r.from)||0)),
+       toMD:0,
+       id:Math.max(.1,Number(r.id)||1),
+       od:odFor(r)
+     }));
+   }else{
+     rows=[
+       {name:"Drill Pipe",behavior:"fill",length:0,toMD:0,id:108.6,od:127},
+       {name:"BHA / Tools",behavior:"fixed",length:78,toMD:0,id:50.8,od:165}
+     ];
+   }
+   bhaState.sections=rows;
+   bhaState.enabled=true;
+   localStorage.setItem(BHA_KEY,JSON.stringify(bhaState));
+ }else{
+   bhaState.sections=rows;
+ }
+
+}
+
+repairBhaModel();
+
 function activeStringLabel(){return stringMode==="casing"?"Casing Run":"Drill String"}
 function saveString(){if(stringMode==="casing"){casingStringData=stringData;localStorage.setItem(STRING_CASING_KEY,JSON.stringify(casingStringData))}else{drillStringData=stringData;localStorage.setItem(STRING_DRILL_KEY,JSON.stringify(drillStringData))}localStorage.setItem(STRING_MODE_KEY,stringMode)}
 function switchStringMode(mode){
@@ -369,7 +371,19 @@ function switchStringMode(mode){
  stringMode=mode;
  stringData=stringMode==="casing"?casingStringData:drillStringData;
  localStorage.setItem(STRING_MODE_KEY,stringMode);
- renderString();
+ 
+
+// ===== Beta 1.19.2: Well Setup startup integrity =====
+function verifyWellSetupReady(){
+  const required=["surveyTable","holeTable","addSurveyBtn","addHoleBtn","stringTable","wp_trajectory_type"];
+  const missing=required.filter(id=>!q(id));
+  if(missing.length){
+    console.error("RigCalc Well Setup missing elements:",missing);
+    return false;
+  }
+  return true;
+}
+renderString();
  if(typeof renderHoles==="function")renderHoles();
  if(typeof updateProfile==="function")updateProfile();
  if(typeof renderLive==="function")renderLive();

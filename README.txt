@@ -1,24 +1,21 @@
-RigCalc Pro Beta 1.19.1 — String Modeling Fix
+RigCalc Pro Beta 1.19.2 — Well Setup Startup Fix
 
-Bug-fix release built from Beta 1.19.
+Built from Beta 1.19.1.
 
-Fixed
-- Drill String / Casing Run switching now forces all linked Live Well calculations to recalculate immediately.
-- Automatic Drill String mode now uses the current in-memory mode rather than a separate stale localStorage mode check.
-- Added a repair pass for invalid or stale automatic string data.
-- If an old automatic model is unusable, RigCalc rebuilds it from the saved Drill String rows rather than showing a table that calculations ignore.
-- Visible automatic Drill String rows are now explicitly identified as the calculation source.
-- Mobile input edits are saved immediately; full geometry recalculates on commit/change.
-- String-to-bit time now uses the true combined flow when two pumps are active.
-- Switching modes refreshes:
-  • hole/annulus geometry
-  • Live Well returns
-  • Fluid Tracker
-  • Hydraulics / Hole Cleaning
-  • Full Circulation
-  • Trip Pill
-  • Live Operations
+Root cause fixed
+- Beta 1.19.1 executed its automatic Drill String repair routine before the saved Drill String model had been initialized.
+- Because drillStringData is declared later with let, the early reference caused a JavaScript startup error.
+- That stopped the rest of the Live Well / Well Setup initialization, making Well Setup appear non-functional.
 
-Data preservation
-- Existing Drill String and Casing Run saved models are retained.
-- Automatic Drill String data is repaired only if its basic section geometry is invalid or it lacks exactly one Auto-fill section.
+Fixed in 1.19.2
+- Moved automatic string repair until after Drill String and Casing Run models are loaded.
+- Well Setup survey and hole controls now initialize normally.
+- Add Survey / Add Hole handlers are null-safe.
+- Survey and hole table rendering is protected against missing optional UI elements.
+- String modeling repair still runs, but at the correct initialization point.
+- Existing Drill String, Casing Run, survey, hole geometry, Well Files and Live Operations data are preserved.
+
+Validation
+- JavaScript syntax checked with Node.
+- Verified repairRigCalc ordering: drillStringData initializes before repairBhaModel() executes.
+- ZIP integrity checked.
