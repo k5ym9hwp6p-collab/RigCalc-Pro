@@ -213,7 +213,7 @@ function fluidEdgeState(event,edgeStartOffset){
   if(edgePumped<pipeVol){
     const downMD=mdDownPipeFromVolume(bit,pipeCap,edgePumped);
     const remainingPipe=pipeVol-edgePumped;
-    const rate=n("wp_spm")*n("wp_output");
+    const rate=wpPumpState().totalRate;
     return {phase:"Down drill pipe",md:downMD,progress:pipeVol?edgePumped/pipeVol:0,formation:formationAtMD(downMD),etaBit:rate?remainingPipe/rate:0,etaSurface:null};
   }
   const annVol=edgePumped-pipeVol;
@@ -371,19 +371,7 @@ function switchStringMode(mode){
  stringMode=mode;
  stringData=stringMode==="casing"?casingStringData:drillStringData;
  localStorage.setItem(STRING_MODE_KEY,stringMode);
- 
-
-// ===== Beta 1.19.2: Well Setup startup integrity =====
-function verifyWellSetupReady(){
-  const required=["surveyTable","holeTable","addSurveyBtn","addHoleBtn","stringTable","wp_trajectory_type"];
-  const missing=required.filter(id=>!q(id));
-  if(missing.length){
-    console.error("RigCalc Well Setup missing elements:",missing);
-    return false;
-  }
-  return true;
-}
-renderString();
+ renderString();
  if(typeof renderHoles==="function")renderHoles();
  if(typeof updateProfile==="function")updateProfile();
  if(typeof renderLive==="function")renderLive();
@@ -393,14 +381,25 @@ renderString();
  if(typeof updateTripPill==="function")updateTripPill();
  if(typeof renderOperations==="function")renderOperations();
 }
+
+function verifyWellSetupReady(){
+  const required=["surveyTable","holeTable","addSurveyBtn","addHoleBtn","stringTable","wp_trajectory_type"];
+  const missing=required.filter(id=>!q(id));
+  if(missing.length){
+    console.error("RigCalc Well Setup missing elements:",missing);
+    return false;
+  }
+  return true;
+}
+
 function stringCapM3m(id){return circle(Math.max(0,id))}
 function effectiveStringSections(bitMD){if(autoBhaActive()){try{return currentBhaSections(bitMD).filter(s=>s.to>s.from);}catch(e){return [];}}return [...stringData].sort((a,b)=>a.from-b.from).map(s=>({...s,from:Math.max(0,Number(s.from)||0),to:Math.min(bitMD,Number(s.to)||0),id:Math.max(0,Number(s.id)||0)})).filter(s=>s.to>s.from)}
 function detailedPipeVolumeToBit(bitMD){let vol=0;for(const s of effectiveStringSections(bitMD))vol+=(s.to-s.from)*stringCapM3m(s.id);return vol}
 function pipeMDFromDetailedVolume(bitMD,vol){let remaining=Math.max(0,vol);const sections=effectiveStringSections(bitMD);for(const s of sections){const cap=stringCapM3m(s.id),sv=(s.to-s.from)*cap;if(remaining<=sv)return s.from+(cap?remaining/cap:0);remaining-=sv}return bitMD}
 function updateStringModeUI(){const casing=stringMode==="casing";q("stringModeDrill")?.classList.toggle("active",!casing);q("stringModeCasing")?.classList.toggle("active",casing);if(q("stringModeLabel"))q("stringModeLabel").textContent=activeStringLabel();if(q("stringTrackingSource"))q("stringTrackingSource").textContent=activeStringLabel();if(q("fluidPipeModel"))q("fluidPipeModel").value=activeStringLabel()+" model";if(q("stringComponentHead"))q("stringComponentHead").textContent=casing?"Casing component":"Component";if(q("stringVolumeLabel"))q("stringVolumeLabel").textContent=casing?"Modelled casing internal volume":"Modelled internal volume to bit";if(q("stringModeNote"))q("stringModeNote").textContent=casing?"Casing Run mode has its own saved component list. Use casing / liner / float equipment IDs as required. Switching back restores the Drill String values exactly as saved.":"Drill String mode is intended for DP / HWDP / collars / BHA. Switching to Casing Run preserves these values."}
-function renderString(){updateStringModeUI();const tb=q("stringTable").querySelector("tbody");tb.innerHTML="";stringData.sort((a,b)=>a.from-b.from).forEach((r,i)=>{const vol=Math.max(0,(Number(r.to)-Number(r.from))*stringCapM3m(Number(r.id)));const tr=document.createElement("tr");tr.innerHTML=`<td><input data-string="${i}" data-k="name" value="${r.name}"></td><td><input data-string="${i}" data-k="from" type="number" value="${r.from}"></td><td><input data-string="${i}" data-k="to" type="number" value="${r.to}"></td><td><input data-string="${i}" data-k="id" type="number" step="0.1" value="${r.id}"></td><td>${vol.toFixed(3)}</td><td><button data-del-string="${i}">✕</button></td>`;tb.appendChild(tr)});const bit=Math.max(0,n("wp_bit")),vol=detailedPipeVolumeToBit(bit),pump=wpPumpState(),out=pump.eqOutput,spm=pump.totalSpm;const strokes=out?vol/out:0,time=pump.totalRate?vol/pump.totalRate:0;q("stringTotalVol").textContent=vol.toFixed(3);q("stringBitStrokes").textContent=strokes.toFixed(0);q("stringBitTime").textContent=time.toFixed(1)}
+function renderString(){updateStringModeUI();const table=q("stringTable"),tb=table?.querySelector("tbody");if(!tb)return;tb.innerHTML="";stringData.sort((a,b)=>a.from-b.from).forEach((r,i)=>{const vol=Math.max(0,(Number(r.to)-Number(r.from))*stringCapM3m(Number(r.id)));const tr=document.createElement("tr");tr.innerHTML=`<td><input data-string="${i}" data-k="name" value="${r.name}"></td><td><input data-string="${i}" data-k="from" type="number" value="${r.from}"></td><td><input data-string="${i}" data-k="to" type="number" value="${r.to}"></td><td><input data-string="${i}" data-k="id" type="number" step="0.1" value="${r.id}"></td><td>${vol.toFixed(3)}</td><td><button data-del-string="${i}">✕</button></td>`;tb.appendChild(tr)});const bit=Math.max(0,n("wp_bit")),vol=detailedPipeVolumeToBit(bit),pump=wpPumpState(),out=pump.eqOutput,spm=pump.totalSpm;const strokes=out?vol/out:0,time=pump.totalRate?vol/pump.totalRate:0;q("stringTotalVol").textContent=vol.toFixed(3);q("stringBitStrokes").textContent=strokes.toFixed(0);q("stringBitTime").textContent=time.toFixed(1)}
 q("stringModeDrill")?.addEventListener("click",()=>switchStringMode("drill"));q("stringModeCasing")?.addEventListener("click",()=>switchStringMode("casing"));
-q("addStringBtn").onclick=()=>{const last=stringData[stringData.length-1]||{to:0,id:stringMode==="casing"?200:108.6};stringData.push({name:stringMode==="casing"?"New casing component":"New component",from:Number(last.to)||0,to:(Number(last.to)||0)+100,id:Number(last.id)||(stringMode==="casing"?200:100)});saveString();renderString();renderFluidList()};
+if(q("addStringBtn"))q("addStringBtn").onclick=()=>{const last=stringData[stringData.length-1]||{to:0,id:stringMode==="casing"?200:108.6};stringData.push({name:stringMode==="casing"?"New casing component":"New component",from:Number(last.to)||0,to:(Number(last.to)||0)+100,id:Number(last.id)||(stringMode==="casing"?200:100)});saveString();renderString();renderFluidList()};
 document.addEventListener("change",e=>{const a=e.target.dataset;if(a.string!==undefined){stringData[+a.string][a.k]=a.k==="name"?e.target.value:(+e.target.value||0);saveString();renderString();renderFluidList();if(typeof updateTripPill==="function")updateTripPill()}});
 document.addEventListener("click",e=>{if(e.target.dataset.delString!==undefined){stringData.splice(+e.target.dataset.delString,1);saveString();renderString();renderFluidList();if(typeof updateTripPill==="function")updateTripPill()}});
 
@@ -1439,11 +1438,11 @@ const FlowAreasMath=(()=>{
   if(q('bhaEnabled')){q('bhaEnabled').checked=!!bhaState.enabled;q('bhaEnabled').disabled=casing;}
   if(q('bhaIntro'))q('bhaIntro').hidden=casing;
   if(q('stringModelSource'))q('stringModelSource').textContent=casing?'Casing Run saved model':(active?'Automatic Drill String sections':'Manual Drill String saved model');
-  const head=q('stringTable').querySelector('thead');
+  const table=q('stringTable'),head=table?.querySelector('thead');if(!table||!head)return;
   if(!active){head.innerHTML=manualHead;originalRender();q('bhaSummary').textContent=casing?'Casing Run uses its separate saved depth-based model.':'Manual depth-based string model.';q('bhaError').textContent='';return;}
   head.innerHTML='<tr><th id="stringComponentHead">Component · top to bottom</th><th>Behaviour</th><th>Length / To MD · m</th><th>ID mm</th><th>OD mm</th><th>From MD</th><th>To MD</th><th>Calculated length m</th><th>Internal m³</th><th></th></tr>';
   updateStringModeUI();q('stringModeNote').textContent='Fixed-length sections retain their lengths. Fixed To MD sets a section end depth. Exactly one Auto-fill takes the remaining depth; put it below all fixed-depth boundaries. From/To MD are calculated. Annulus uses these ODs; hole IDs and excess stay in Hole / annulus sections. The last hole section extends to current bit MD.';
-  const body=q('stringTable').querySelector('tbody');body.replaceChildren();let sections=[];try{sections=currentBhaSections();}catch(e){}
+  const body=table.querySelector('tbody');if(!body)return;body.replaceChildren();let sections=[];try{sections=currentBhaSections();}catch(e){}
   const all=bhaState.sections;
   all.forEach((r,i)=>{const tr=tag('tr'),section=sections[i];
    inputCell(tr,i,'name',r.name,'text');
