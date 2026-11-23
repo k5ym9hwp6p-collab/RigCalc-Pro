@@ -1,45 +1,24 @@
-RigCalc Pro Beta 1.19 — Live Operations Mode
+RigCalc Pro Beta 1.19.1 — String Modeling Fix
 
-Built from Beta 1.18.
+Bug-fix release built from Beta 1.19.
 
-New Live Operations dashboard
-- Operation selector:
-  • Drilling
-  • Circulating
-  • Tripping Out
-  • Tripping In
-  • Spotting Pill
-  • Casing Run
-  • Cementing
-- Live status:
-  • active well
-  • bit MD/TVD
-  • active Drill String / Casing Run model
-  • 1- or 2-pump setup
-  • combined m³/min
-  • pumped volume
-  • live strokes
-  • elapsed circulation time
-- Operation-specific focus cards and shortcuts.
-- Live returns-front / bottoms-up / full-circulation summary.
+Fixed
+- Drill String / Casing Run switching now forces all linked Live Well calculations to recalculate immediately.
+- Automatic Drill String mode now uses the current in-memory mode rather than a separate stale localStorage mode check.
+- Added a repair pass for invalid or stale automatic string data.
+- If an old automatic model is unusable, RigCalc rebuilds it from the saved Drill String rows rather than showing a table that calculations ignore.
+- Visible automatic Drill String rows are now explicitly identified as the calculation source.
+- Mobile input edits are saved immediately; full geometry recalculates on commit/change.
+- String-to-bit time now uses the true combined flow when two pumps are active.
+- Switching modes refreshes:
+  • hole/annulus geometry
+  • Live Well returns
+  • Fluid Tracker
+  • Hydraulics / Hole Cleaning
+  • Full Circulation
+  • Trip Pill
+  • Live Operations
 
-Event Markers
-- Quick event buttons change with selected operation.
-- Custom event entry.
-- Each event captures:
-  • date/time
-  • operation
-  • bit MD/TVD
-  • total pumped volume
-  • live strokes
-  • combined pump rate
-  • pump count
-  • active string model
-- Events persist locally and are included in Well Files / backup because they use RigCalc project storage.
-
-Beta 1.18 correction
-- Circulate Live now uses the actual combined volumetric rate when two pumps are selected.
-- Pump changes are checkpointed correctly so changing SPM/output while circulating does not rewrite previously pumped volume.
-
-Important
-Live Operations is an organizational / calculation view. It does not replace approved drilling programs, operator procedures, official tour records, cement records, certified well-control procedures or field instrumentation.
+Data preservation
+- Existing Drill String and Casing Run saved models are retained.
+- Automatic Drill String data is repaired only if its basic section geometry is invalid or it lacks exactly one Auto-fill section.
