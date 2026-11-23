@@ -1,19 +1,22 @@
-RigCalc Pro Beta 1.19.6 — String Modeling Runtime Fix
+RigCalc Pro Beta 1.19.7 — String Modeling Startup Fix
 
-Built from Beta 1.19.5.
+Built from Beta 1.19.6.
 
-Root cause fixed
-- 1.19.5 removed the old BHA/String Modeling state.
-- The Flow Areas renderer still referenced the retired `bhaState` variable.
-- That caused a runtime ReferenceError after the new String Modeling module loaded.
+Root cause
+- The app still called verifyWellSetupReady() during startup.
+- That helper was removed during the clean String Modeling rebuild.
+- The undefined function caused a ReferenceError before the String Modeling module was reached.
 
 Fixed
-- Flow Areas now uses the clean String Modeling sections directly.
-- Removed the last legacy BHA/String Modeling reference.
-- Hardened Flow Areas against missing optional SVG containers.
-- Clean Drill String / Casing Run module remains unchanged.
+- Removed the orphan helper call.
+- Initial Well Setup rendering now runs after the rest of the app has finished initializing.
+- The initial Well Setup render is isolated so one render error cannot stop later modules from loading.
+- Clean Drill String / Casing Run modeling from 1.19.5 remains in place.
+- 1.19.6 Flow Areas fix remains in place.
+- Added a String Modeling ready marker for easier troubleshooting.
 
 Validation
-- No legacy BHA/String Modeling references remain.
 - JavaScript syntax checked with Node.
+- No verifyWellSetupReady references remain.
+- Clean String Modeling initialization remains present.
 - ZIP integrity checked.

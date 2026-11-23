@@ -110,7 +110,7 @@ if(q("addSurveyBtn"))q("addSurveyBtn").onclick=()=>{const last=wpData.survey[wpD
 if(q("addHoleBtn"))q("addHoleBtn").onclick=()=>{const last=wpData.holes[wpData.holes.length-1]||{to:0,id:171.45,od:127};wpData.holes.push({from:last.to,to:last.to+500,id:last.id,od:last.od,over:Number(last.over)||0});saveWP();renderWP()};
 if(q("addFormationBtn"))q("addFormationBtn").onclick=()=>{};
 q("wpResetBtn").onclick=()=>{q("wp_strokes").value=0;q("wp_minutes").value=0;updateProfile()};
-if(verifyWellSetupReady())renderWP();
+setTimeout(()=>{try{renderWP()}catch(e){console.error("Initial Well Setup render failed",e)}},0);
 
 // ===== Beta 1.12: preserve displacement across rate/output changes =====
 const LIVE_KEY="rigcalc-live-v12";
@@ -317,6 +317,7 @@ function renderStringClean(){
 }
 function refreshAfterStringChange(){
  saveStringClean();renderStringClean();
+if(q("stringModelSource"))q("stringModelSource").dataset.ready="true";
  if(typeof renderHoles==="function")renderHoles();if(typeof updateProfile==="function")updateProfile();if(typeof renderLive==="function")renderLive();if(typeof renderFluidList==="function")renderFluidList();if(typeof updateHoleCleaning==="function")updateHoleCleaning();if(typeof updateFullCirculationReadout==="function")updateFullCirculationReadout();if(typeof updateTripPill==="function")updateTripPill();if(typeof renderOperations==="function")renderOperations();
 }
 function switchStringMode(mode){if(mode!=="drill"&&mode!=="casing")return;saveStringClean();stringMode=mode;stringData=mode==="casing"?casingStringData:drillStringData;refreshAfterStringChange()}
