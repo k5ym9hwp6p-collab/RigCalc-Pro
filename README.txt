@@ -1,23 +1,23 @@
-RigCalc Pro Beta 1.19.3 — String Modeling Interaction Fix
+RigCalc Pro Beta 1.19.4 — String Modeling Boot Fix
 
-Built from Beta 1.19.2.
+Built from Beta 1.19.3.
 
-Root cause
-- Beta 1.19.2 accidentally embedded verifyWellSetupReady() inside switchStringMode().
-- That broke the Drill String / Casing Run switching path and prevented String Modeling from behaving normally.
+Root cause fixed
+- Automatic String Modeling is consulted during the first Live Well / Well Setup calculation.
+- `stringMode` was declared later with `let`.
+- That created a JavaScript temporal-dead-zone error when autoBhaActive() ran during initial startup.
+- The error occurred before String Modeling finished initializing, which is why the table/mode controls could remain non-functional even after the previous structural fixes.
 
-Fixed
-- Restored switchStringMode() as a complete standalone function.
-- Moved Well Setup verification into its own standalone function.
-- Drill String / Casing Run buttons switch models cleanly.
-- Linked Live Well calculations refresh immediately after switching.
-- Base and automatic String Modeling table renderers are null-safe.
-- Add String control is null-safe.
-- Automatic String Modeling retains Auto-fill, Fixed length and Fixed To MD behaviors.
-- Fluid Tracker now uses true combined two-pump flow.
+Fixed in 1.19.4
+- `stringMode` is now boot-safe and available during the earliest Well Setup calculations.
+- autoBhaActive() safely determines Drill String / Casing Run mode during startup.
+- Automatic String Modeling is rendered again after its override and handlers are fully installed.
+- Drill String / Casing Run switching refreshes the displayed calculation source.
+- Automatic String controls are guarded against stale cached markup.
+- Existing saved Drill String, Casing Run, automatic BHA/string sections, survey and hole data are preserved.
 
 Validation
 - JavaScript syntax checked with Node.
-- String-mode function structure checked.
-- Automatic String Modeling hooks checked.
+- Verified stringMode is boot-safe before the initial renderWP()/updateProfile() call.
+- Verified automatic String Modeling override initializes after string model state.
 - ZIP integrity checked.

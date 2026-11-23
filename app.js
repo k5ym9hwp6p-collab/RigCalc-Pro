@@ -109,7 +109,10 @@ if(!Array.isArray(bhaState.sections)){
  bhaState.sections=[{...bhaState.pipe,behavior:'fill'},...(bhaState.parts||[]).map(p=>({...p,behavior:'fixed'}))];
  localStorage.setItem(BHA_KEY,JSON.stringify(bhaState));
 }
-function autoBhaActive(){return !!bhaState?.enabled&&stringMode==='drill';}
+function autoBhaActive(){
+ const mode=stringMode||(localStorage.getItem('rigcalc-string-mode-v109')==='casing'?'casing':'drill');
+ return !!bhaState?.enabled&&mode==='drill';
+}
 function currentBhaSections(bit=Math.max(0,n('wp_bit'))){return BhaMath.sections(bhaState,bit);}
 function annulusSections(bit=Math.max(0,n('wp_bit'))){if(!autoBhaActive())return wpData.holes;try{return BhaMath.annulus(wpData.holes,currentBhaSections(bit),bit);}catch(e){return [];}}
 
@@ -315,7 +318,7 @@ function loadStringRows(key,defaults){try{const x=JSON.parse(localStorage.getIte
 if(!localStorage.getItem(STRING_DRILL_KEY)){try{const legacy=JSON.parse(localStorage.getItem(STRING_LEGACY_KEY)||"[]");if(Array.isArray(legacy)&&legacy.length)localStorage.setItem(STRING_DRILL_KEY,JSON.stringify(legacy))}catch(e){}}
 let drillStringData=loadStringRows(STRING_DRILL_KEY,STRING_DEFAULTS);
 let casingStringData=loadStringRows(STRING_CASING_KEY,CASING_DEFAULTS);
-let stringMode=localStorage.getItem(STRING_MODE_KEY)==="casing"?"casing":"drill";
+var stringMode=localStorage.getItem(STRING_MODE_KEY)==="casing"?"casing":"drill";
 let stringData=stringMode==="casing"?casingStringData:drillStringData;
 function repairBhaModel(){
  const manual=Array.isArray(drillStringData)?drillStringData:[];
@@ -363,6 +366,13 @@ function repairBhaModel(){
 
 repairBhaModel();
 
+
+function refreshStringModelStatus(){
+ const el=q('stringModelSource');
+ if(!el)return;
+ if(stringMode==='casing')el.textContent='Casing Run saved model';
+ else el.textContent=autoBhaActive()?'Automatic Drill String sections':'Manual Drill String saved model';
+}
 function activeStringLabel(){return stringMode==="casing"?"Casing Run":"Drill String"}
 function saveString(){if(stringMode==="casing"){casingStringData=stringData;localStorage.setItem(STRING_CASING_KEY,JSON.stringify(casingStringData))}else{drillStringData=stringData;localStorage.setItem(STRING_DRILL_KEY,JSON.stringify(drillStringData))}localStorage.setItem(STRING_MODE_KEY,stringMode)}
 function switchStringMode(mode){
@@ -371,6 +381,7 @@ function switchStringMode(mode){
  stringMode=mode;
  stringData=stringMode==="casing"?casingStringData:drillStringData;
  localStorage.setItem(STRING_MODE_KEY,stringMode);
+ refreshStringModelStatus();
  renderString();
  if(typeof renderHoles==="function")renderHoles();
  if(typeof updateProfile==="function")updateProfile();
@@ -1458,7 +1469,7 @@ const FlowAreasMath=(()=>{
   q('bhaSummary').textContent=`${all.length} string sections • Bit ${n('wp_bit').toFixed(1)} m MD${fill>=0?' • Auto-fill: '+all[fill].name+' • Fixed assembly below: '+movingLength.toFixed(1)+' m':''}`;
   const vol=detailedPipeVolumeToBit(Math.max(0,n('wp_bit'))),pump=wpPumpState(),out=pump.eqOutput,rate=pump.totalRate;q('stringTotalVol').textContent=sections.length?vol.toFixed(3):'Unavailable';q('stringBitStrokes').textContent=sections.length&&out>0?(vol/out).toFixed(0):'—';q('stringBitTime').textContent=sections.length&&rate>0?(vol/rate).toFixed(1):'—';
  };
- q('bhaEnabled').onchange=()=>{
+ if(q('bhaEnabled'))q('bhaEnabled').onchange=()=>{
  bhaState.enabled=q('bhaEnabled').checked;
  store();
  renderString();renderHoles();updateProfile();renderLive();renderFluidList();
@@ -1467,7 +1478,7 @@ const FlowAreasMath=(()=>{
  if(typeof updateTripPill==='function')updateTripPill();
  if(typeof renderOperations==='function')renderOperations();
 };
- q('addStringBtn').onclick=()=>{if(!autoBhaActive()){originalAdd();return;}bhaState.sections.push({name:'New section',behavior:'fixed',length:10,id:0,od:0});refresh();};
+ if(q('addStringBtn'))q('addStringBtn').onclick=()=>{if(!autoBhaActive()){originalAdd();return;}bhaState.sections.push({name:'New section',behavior:'fixed',length:10,id:0,od:0});refresh();};
  document.addEventListener('change',e=>{const d=e.target.dataset;if(d.bha!==undefined&&!e.target.readOnly){const i=Number(d.bha),r=bhaState.sections[i];if(!r)return;
   if(d.bhaKey==='behavior'){
    let prior=[];try{prior=currentBhaSections();}catch(e){}
@@ -1500,7 +1511,11 @@ document.addEventListener('click',e=>{const d=e.target.dataset;if(d.bhaAction){c
  const oldSync=syncWellControlGeometry;syncWellControlGeometry=function(force){if(issue()){alert(issue());return;}oldSync(force);};
  q('wp_bit').addEventListener('change',()=>{renderString();renderHoles();updateProfile();renderLive();updateHoleCleaning();});
  renderString();renderHoles();updateProfile();renderLive();updateHoleCleaning();
+ if(typeof renderFluidList==='function')renderFluidList();
+ if(typeof updateFullCirculationReadout==='function')updateFullCirculationReadout();
+ if(typeof updateTripPill==='function')updateTripPill();
 })();
+
 
 
 // ===== RigCalc Pro Beta 1.17: Well Files & Job Manager =====
