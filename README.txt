@@ -1,16 +1,19 @@
-RigCalc Pro Beta 1.19.5 — String Modeling Rebuild
+RigCalc Pro Beta 1.19.6 — String Modeling Runtime Fix
 
-This release removes both legacy automatic-string systems and replaces them with one String Modeling module.
+Built from Beta 1.19.5.
 
-- Separate Drill String and Casing Run models
-- Independent saved values
-- Component name, length, ID and OD
-- Calculated From/To MD
-- Internal volume by section
-- Automatic-depth toggle
-- Add/delete sections
-- Linked volume, strokes-to-bit and time-to-bit
-- Linked Live Well, Fluid Tracker, Hydraulics, Full Circulation, Trip Pill and Live Operations refresh
-- Existing legacy depth-based string arrays are migrated where possible
+Root cause fixed
+- 1.19.5 removed the old BHA/String Modeling state.
+- The Flow Areas renderer still referenced the retired `bhaState` variable.
+- That caused a runtime ReferenceError after the new String Modeling module loaded.
 
-Automatic depths: rows are surface-to-bit; the first section absorbs current bit-depth changes so the lower assembly remains on bottom.
+Fixed
+- Flow Areas now uses the clean String Modeling sections directly.
+- Removed the last legacy BHA/String Modeling reference.
+- Hardened Flow Areas against missing optional SVG containers.
+- Clean Drill String / Casing Run module remains unchanged.
+
+Validation
+- No legacy BHA/String Modeling references remain.
+- JavaScript syntax checked with Node.
+- ZIP integrity checked.

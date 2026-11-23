@@ -1320,10 +1320,10 @@ const FlowAreasMath=(()=>{
   q('flowAreaDetails').textContent=text;q('flowZoomDetails').textContent=text;
  }
  function render(){
-  const bit=Math.max(0,n('wp_bit')),shoe=String(options.shoe).trim()===''?NaN:Number(options.shoe),signature=JSON.stringify([bit,shoe,options.show,wpData.holes,stringData,bhaState,wpData.survey,trajectoryMode(),stringMode]);
+  const bit=Math.max(0,n('wp_bit')),shoe=String(options.shoe).trim()===''?NaN:Number(options.shoe),signature=JSON.stringify([bit,shoe,options.show,wpData.holes,stringData,computedStringSections(bit),wpData.survey,trajectoryMode(),stringMode]);
   if(signature===lastSignature)return;lastSignature=signature;
   current=FlowAreasMath.model(annulusSections(bit),effectiveStringSections(bit),bit,shoe);
-  const outer=q('annulusFlowAreas'),inner=q('stringFlowAreas');outer.replaceChildren();inner.replaceChildren();
+  const outer=q('annulusFlowAreas'),inner=q('stringFlowAreas');if(!outer||!inner)return;outer.replaceChildren();inner.replaceChildren();
   for(const kind of ['string','cased','open']){const value=current.totals[kind];q(`flow${kind}Total`).textContent=`${title(kind)} · ${value===null?'Set shoe MD':value.toFixed(2)+' m³'}`;}
   q('flowAreaWarning').textContent=current.warnings.join(' ');
   const g=profilePlotGeometry(bit),point=displayXY;
