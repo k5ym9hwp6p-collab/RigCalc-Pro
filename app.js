@@ -117,10 +117,11 @@ const LIVE_KEY="rigcalc-live-v12";
 let liveState={running:false,accumulatedMs:0,startedAt:null,baseStrokes:0,baseVolume:0,segmentSpm:0,segmentOutput:0,segmentRate:0};
 try{const stored=JSON.parse(localStorage.getItem(LIVE_KEY)||"null");if(stored){
   liveState={...liveState,...stored};
+  if(!Number.isFinite(stored.segmentRate))liveState.segmentRate=liveState.segmentSpm*liveState.segmentOutput;
   if(!Number.isFinite(stored.baseVolume)||!Number.isFinite(stored.baseStrokes)){
     const ms=(Number(stored.accumulatedMs)||0)+(stored.running&&stored.startedAt?Math.max(0,Date.now()-stored.startedAt):0);
     liveState.accumulatedMs=ms;liveState.baseStrokes=ms/60000*Math.max(0,n("wp_spm"));liveState.baseVolume=liveState.baseStrokes*Math.max(0,n("wp_output"));liveState.startedAt=stored.running?Date.now():null;
-    liveState.segmentSpm=Math.max(0,n("wp_spm"));liveState.segmentOutput=Math.max(0,n("wp_output"));
+    liveState.segmentSpm=Math.max(0,n("wp_spm"));liveState.segmentOutput=Math.max(0,n("wp_output"));liveState.segmentRate=liveState.segmentSpm*liveState.segmentOutput;
   }
 }}catch(e){}
 function saveLive(){localStorage.setItem(LIVE_KEY,JSON.stringify(liveState))}
@@ -143,32 +144,36 @@ function checkpointCirculation(){
 function currentLiveMs(){return circulationSnapshot().ms}
 function formatClock(ms){const sec=Math.floor(ms/1000),h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return h>0?`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`:`${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`}
 function setLiveButtons(){const running=liveState.running,pump=wpPumpState(),flowing=pump.totalRate>0;q("liveStartBtn").disabled=running;q("livePauseBtn").disabled=!running;q("liveStateText").textContent=running&&flowing?"Circulating":"Paused / pumps off";q("livePulse").classList.toggle("running",running&&flowing);q("livePulse").classList.toggle("paused",!running||!flowing)}
+function renderLive(){const c=getLiveComputed();q("liveElapsed").textContent=formatClock(c.ms);q("liveStrokes").textContent=c.strokes.toFixed(0);q("liveVolume").textContent=c.pumped.toFixed(2)+" m³";q("liveFront").textContent=c.front.toFixed(0)+" m MD";q("liveDepth").textContent=`${c.front.toFixed(0)} MD / ${interpTVD(c.front).toFixed(0)} TVD`;q("liveEta").textContent=c.remaining<=0.0001?"At surface":(liveState.running&&Number.isFinite(c.remTime)?c.remTime.toFixed(1)+" min":"Pumps Off — ETA paused");if(liveState.running||liveState.accumulatedMs>0){q("wp_bit_md").textContent=c.bit.toFixed(0);q("wp_front_md").textContent=c.front.toFixed(0);q("wp_front_tvd").textContent=interpTVD(c.front).toFixed(0);q("wp_rem_vol").textContent=c.remaining.toFixed(2);q("wp_rem_strokes").textContent=c.remStrokes.toFixed(0);q("wp_rem_time").textContent=c.remTime.toFixed(1);plotWell(c.bit,c.front)}}
+q("liveStartBtn").onclick=()=>{if(!liveState.running){checkpointCirculation();liveState.running=true;liveState.startedAt=Date.now();saveLive();setLiveButtons();renderLive()}};
+q("livePauseBtn").onclick=()=>{if(liveState.running){checkpointCirculation();liveState.running=false;liveState.startedAt=null;saveLive();setLiveButtons();renderLive()}};
+function resetLiveCirculation(){liveState={running:false,accumulatedMs:0,startedAt:null,baseStrokes:0,baseVolume:0,segmentSpm:0,segmentOutput:0,segmentRate:0};saveLive();setLiveButtons();renderLive()}
+q("liveResetBtn").onclick=()=>{resetLiveCirculation();updateProfile()};
+const oldWpReset=q("wpResetBtn");if(oldWpReset)oldWpReset.addEventListener("click",resetLiveCirculation);
+["wp_output","wp_spm","wp_output2","wp_spm2","wp_pump_count"].forEach(id=>q(id).addEventListener("input",()=>{checkpointCirculation();setLiveButtons();renderLive()}));
+q("wp_bit").addEventListener("input",()=>renderLive());
+
 function annulusMDUpFromBit(bitMD,annVol){
   return frontMDFromPumped(bitMD,annVol);
 }
-function fluidEdgeState(event,edgeStartOffset){
-  const bit=Math.max(0,n("wp_bit"));
-  const pipeCap=Math.max(0,Number(event.pipeCap)||0);
-  const pipeVol=pipeInternalVolumeToBit(bit,pipeCap);
-  const currentPumped=liveTotalPumpedVolume();
-  const edgePumped=currentPumped-(Number(event.startPumpVol)||0)-edgeStartOffset;
-  if(edgePumped<=0){
-    return {phase:"At surface",md:0,progress:0,formation:"Surface",etaBit:pipeCap&&n("wp_spm")&&n("wp_output")?pipeVol/(n("wp_spm")*n("wp_output")):0,etaSurface:null};
-  }
-  if(edgePumped<pipeVol){
-    const downMD=mdDownPipeFromVolume(bit,pipeCap,edgePumped);
-    const remainingPipe=pipeVol-edgePumped;
-    const rate=wpPumpState().totalRate;
-    return {phase:"Down drill pipe",md:downMD,progress:pipeVol?edgePumped/pipeVol:0,formation:formationAtMD(downMD),etaBit:rate?remainingPipe/rate:0,etaSurface:null};
-  }
-  const annVol=edgePumped-pipeVol;
-  const annTotal=totalAnnulusToBit(bit);
-  const used=Math.min(annTotal,annVol);
-  const md=annulusMDUpFromBit(bit,used);
-  const rem=Math.max(0,annTotal-used);
-  const rate=wpPumpState().totalRate;
-  return {phase:rem<=0.0001?"At surface":"Up annulus",md,progress:annTotal?used/annTotal:1,formation:formationAtMD(md),etaBit:0,etaSurface:rate?rem/rate:0};
+function getLiveComputed(){
+  const snap=circulationSnapshot(),pump=wpPumpState(),bit=Math.max(0,n("wp_bit"));
+  const total=totalAnnulusToBit(bit),used=Math.min(total,snap.pumped);
+  const front=frontMDFromPumped(bit,used),remaining=Math.max(0,total-used);
+  const remStrokes=pump.eqOutput>0?remaining/pump.eqOutput:Infinity;
+  const remTime=pump.totalRate>0?remaining/pump.totalRate:Infinity;
+  return {...snap,bit,total,used,front,remaining,remStrokes,remTime};
 }
+function liveTotalPumpedVolume(){return circulationSnapshot().pumped}
+
+const FLUID_KEY="rigcalc-fluidtracker-v13";
+let fluidEvents=[];
+try{
+  const stored=JSON.parse(localStorage.getItem(FLUID_KEY)||"null");
+  if(Array.isArray(stored))fluidEvents=stored;
+}catch(e){}
+function saveFluids(){localStorage.setItem(FLUID_KEY,JSON.stringify(fluidEvents))}
+
 function fluidStates(event){
   const front=fluidEdgeState(event,0);
   const tail=fluidEdgeState(event,Number(event.volume)||0);
@@ -227,18 +232,10 @@ function renderFluidList(){
   });
   renderFluidMarkers();
 }
-q("addFluidBtn").onclick=()=>{
-  const type=q("fluidType").value,label=q("fluidLabel").value.trim()||type,volume=Math.max(0,n("fluidVolume")),pipeCap=Math.max(0,n("fluidPipeCap"));
-  if(volume<=0||pipeCap<=0){alert("Enter a fluid volume and drill-pipe internal capacity greater than zero.");return}
-  fluidEvents.push({type,label,volume,pipeCap,startPumpVol:liveTotalPumpedVolume(),createdAt:Date.now()});
-  saveFluids();renderFluidList();
-  const m=label.match(/(\d+)$/);if(m)q("fluidLabel").value=label.replace(/\d+$/,(Number(m[1])+1).toString());
-};
 q("clearFluidsBtn").onclick=()=>{fluidEvents=[];saveFluids();renderFluidList()};
 document.addEventListener("click",e=>{if(e.target.dataset.fluidDel!==undefined){fluidEvents.splice(+e.target.dataset.fluidDel,1);saveFluids();renderFluidList()}});
 setInterval(renderFluidList,500);
 ["wp_bit","wp_output","wp_spm","fluidPipeCap"].forEach(id=>{if(q(id))q(id).addEventListener("input",renderFluidList)});
-renderFluidList();
 
 // ===== RigCalc Pro v1.4: Detailed Drill String + Full-screen Profile =====
 const STRING_LEGACY_KEY="rigcalc-string-v14";
@@ -258,8 +255,8 @@ function normalizeStringRows(rows,casing=false){
  }));
 }
 function loadCleanRows(key,mode){
- try{const v=JSON.parse(localStorage.getItem(key)||"null");if(Array.isArray(v)&&v.length)return normalizeStringRows(v,mode==="casing")}catch(e){}
- const legacy=mode==="casing"?["rigcalc-string-casing-v109","rigcalc-string-casing-v114"]:["rigcalc-string-drill-v109","rigcalc-string-drill-v114"];
+ try{const v=JSON.parse(localStorage.getItem(key)||"null");if(Array.isArray(v))return normalizeStringRows(v,mode==="casing")}catch(e){}
+ const legacy=mode==="casing"?["rigcalc-string-casing-v109","rigcalc-string-casing-v114"]:["rigcalc-string-drill-v109","rigcalc-string-drill-v114",STRING_LEGACY_KEY];
  for(const k of legacy){try{const v=JSON.parse(localStorage.getItem(k)||"null");if(Array.isArray(v)&&v.length)return normalizeStringRows(v,mode==="casing")}catch(e){}}
  return mode==="casing"?[{name:"Casing",length:1000,id:200,od:244.5}]:[
   {name:"Drill Pipe",length:3800,id:108.6,od:127},
@@ -286,7 +283,7 @@ function computedStringSections(bitMD=Math.max(0,n("wp_bit"))){
  const fit=rows.map(r=>({...r}));
  if(stringAutoDepths){const below=fit.slice(1).reduce((s,r)=>s+r.length,0);fit[0].length=Math.max(0,bitMD-below)}
  let md=0;
- return fit.map(r=>{const from=md,to=Math.min(bitMD,md+r.length);md=to;return{...r,from,to}}).filter(r=>r.to>r.from);
+ return fit.map((r,index)=>{const from=md,to=Math.min(bitMD,md+r.length);md=to;return{...r,index,from,to}}).filter(r=>r.to>r.from);
 }
 function effectiveStringSections(bitMD){return computedStringSections(bitMD)}
 function detailedPipeVolumeToBit(bitMD){return computedStringSections(bitMD).reduce((v,s)=>v+(s.to-s.from)*stringCapM3m(s.id),0)}
@@ -304,7 +301,7 @@ function renderStringClean(){
  if(q("stringAutoDepths"))q("stringAutoDepths").checked=stringAutoDepths;
  if(q("stringModeNote"))q("stringModeNote").textContent=casing?"Casing Run is saved separately from Drill String. Automatic depths keep the lower casing assembly on bottom.":"Rows are listed surface to bit. Automatic depths let the first section absorb bit-depth changes so HWDP/BHA stay on bottom.";
  const sections=computedStringSections();tb.innerHTML="";
- stringData.forEach((r,i)=>{const s=sections[i]||{from:0,to:0},vol=Math.max(0,s.to-s.from)*stringCapM3m(Number(r.id)||0),tr=document.createElement("tr");
+ stringData.forEach((r,i)=>{const s=sections.find(section=>section.index===i)||{from:0,to:0},vol=Math.max(0,s.to-s.from)*stringCapM3m(Number(r.id)||0),tr=document.createElement("tr");
   tr.innerHTML=`<td><input data-clean-string="${i}" data-k="name" value="${escapeHtml(r.name)}"></td><td><input data-clean-string="${i}" data-k="length" type="number" inputmode="decimal" step="0.1" value="${Number(r.length)||0}"></td><td><input data-clean-string="${i}" data-k="id" type="number" inputmode="decimal" step="0.1" value="${Number(r.id)||0}"></td><td><input data-clean-string="${i}" data-k="od" type="number" inputmode="decimal" step="0.1" value="${Number(r.od)||0}"></td><td>${Number(s.from||0).toFixed(1)}</td><td>${Number(s.to||0).toFixed(1)}</td><td>${vol.toFixed(3)}</td><td><button type="button" data-clean-del="${i}">✕</button></td>`;
   tb.appendChild(tr);
  });
@@ -312,12 +309,12 @@ function renderStringClean(){
  if(q("stringTotalVol"))q("stringTotalVol").textContent=vol.toFixed(3);
  if(q("stringBitStrokes"))q("stringBitStrokes").textContent=(pump.eqOutput>0?vol/pump.eqOutput:0).toFixed(0);
  if(q("stringBitTime"))q("stringBitTime").textContent=(pump.totalRate>0?vol/pump.totalRate:0).toFixed(1);
+ if(q("stringModelSource"))q("stringModelSource").dataset.ready="true";
  const bad=stringData.find(r=>Number(r.id)<=0||Number(r.od)<=Number(r.id));
  if(q("stringModelError"))q("stringModelError").textContent=bad?"Check geometry: each section requires ID > 0 and OD > ID.":"";
 }
 function refreshAfterStringChange(){
  saveStringClean();renderStringClean();
-if(q("stringModelSource"))q("stringModelSource").dataset.ready="true";
  if(typeof renderHoles==="function")renderHoles();if(typeof updateProfile==="function")updateProfile();if(typeof renderLive==="function")renderLive();if(typeof renderFluidList==="function")renderFluidList();if(typeof updateHoleCleaning==="function")updateHoleCleaning();if(typeof updateFullCirculationReadout==="function")updateFullCirculationReadout();if(typeof updateTripPill==="function")updateTripPill();if(typeof renderOperations==="function")renderOperations();
 }
 function switchStringMode(mode){if(mode!=="drill"&&mode!=="casing")return;saveStringClean();stringMode=mode;stringData=mode==="casing"?casingStringData:drillStringData;refreshAfterStringChange()}
@@ -329,10 +326,13 @@ q("stringSaveBtn")?.addEventListener("click",()=>{refreshAfterStringChange();ale
 document.addEventListener("input",e=>{const d=e.target?.dataset;if(d?.cleanString===undefined)return;const r=stringData[Number(d.cleanString)];if(!r)return;r[d.k]=d.k==="name"?e.target.value:Number(e.target.value)||0;saveStringClean()});
 document.addEventListener("change",e=>{const d=e.target?.dataset;if(d?.cleanString===undefined)return;const r=stringData[Number(d.cleanString)];if(!r)return;r[d.k]=d.k==="name"?e.target.value:Number(e.target.value)||0;refreshAfterStringChange()});
 document.addEventListener("click",e=>{if(e.target?.dataset?.cleanDel===undefined)return;stringData.splice(Number(e.target.dataset.cleanDel),1);refreshAfterStringChange()});
-renderStringClean();
+["wp_bit","wp_output","wp_spm","wp_output2","wp_spm2","wp_pump_count"].forEach(id=>{
+ q(id)?.addEventListener("input",renderStringClean);
+});
 
-// Override v1.3's edge-state function so every tracked fluid uses the detailed drill-string model.
-fluidEdgeState=function(event,edgeStartOffset){
+// Detailed geometry applies to every tracked fluid
+
+function fluidEdgeState(event,edgeStartOffset){
   const bit=Math.max(0,n("wp_bit"));
   const pipeVol=detailedPipeVolumeToBit(bit);
   const currentPumped=liveTotalPumpedVolume();
@@ -349,7 +349,7 @@ fluidEdgeState=function(event,edgeStartOffset){
   const annVol=edgePumped-pipeVol,annTotal=totalAnnulusToBit(bit),used=Math.min(annTotal,annVol);
   const md=annulusMDUpFromBit(bit,used),rem=Math.max(0,annTotal-used);
   return {phase:rem<=0.0001?"At surface":"Up annulus",md,progress:annTotal?used/annTotal:1,formation:formationAtMD(md),etaBit:0,etaSurface:rate?rem/rate:0};
-};
+}
 
 // New events no longer store/use average pipe capacity.
 q("addFluidBtn").onclick=()=>{
@@ -1626,4 +1626,8 @@ q("opsOpenLiveWell")?.addEventListener("click",()=>opsOpenScreen("wellprofile"))
 q("opsCustomEventBtn")?.addEventListener("click",()=>{const s=prompt("Event description");if(s?.trim())opsMarkEvent(s.trim())});
 q("opsClearEventsBtn")?.addEventListener("click",()=>{if(confirm("Clear the Live Operations event log?")){opsEvents=[];opsSaveEvents();renderOpsEvents()}});
 document.addEventListener("click",e=>{if(e.target.dataset.opsDel){opsEvents=opsEvents.filter(x=>x.id!==e.target.dataset.opsDel);opsSaveEvents();renderOpsEvents()}});
+renderStringClean();
+setLiveButtons();
+renderLive();
+setInterval(()=>renderLive(),500);
 renderOpsEvents();renderOperations();setInterval(renderOperations,1000);

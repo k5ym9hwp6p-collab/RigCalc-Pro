@@ -1,22 +1,12 @@
-RigCalc Pro Beta 1.19.7 — String Modeling Startup Fix
+RigCalc Pro Beta 1.19.8
 
-Built from Beta 1.19.6.
+Fixes the blank String modeling table in Beta 1.19.7. Restores
+fluid tracker state and Live Well circulation initialization, keeps the
+existing storage keys, and updates string readouts when bit depth changes.
 
-Root cause
-- The app still called verifyWellSetupReady() during startup.
-- That helper was removed during the clean String Modeling rebuild.
-- The undefined function caused a ReferenceError before the String Modeling module was reached.
+Deploy the files together to the same site address to retain saved inputs.
+The app header should show BETA 1.19.8 after the service worker updates.
 
-Fixed
-- Removed the orphan helper call.
-- Initial Well Setup rendering now runs after the rest of the app has finished initializing.
-- The initial Well Setup render is isolated so one render error cannot stop later modules from loading.
-- Clean Drill String / Casing Run modeling from 1.19.5 remains in place.
-- 1.19.6 Flow Areas fix remains in place.
-- Added a String Modeling ready marker for easier troubleshooting.
-
-Validation
-- JavaScript syntax checked with Node.
-- No verifyWellSetupReady references remain.
-- Clean String Modeling initialization remains present.
-- ZIP integrity checked.
+Validation: JavaScript startup and UI event handlers tested with a simulated
+DOM, including default and saved models, a saved sweep, section editing,
+casing mode, depth and volume calculations, and circulation start/pause.
